@@ -1,0 +1,183 @@
+// Full-screen file/folder structure view
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download } from 'lucide-react';
+import { getFolderStructure, getHomeNote } from '@/lib/notes/noteLoader';
+import { GardenHeader } from '@/components/garden/GardenHeader';
+import { GardenFooter } from '@/components/garden/GardenFooter';
+import { ExportModal } from '@/components/garden/ExportModal';
+import { Button } from '@/components/ui/button';
+import { useLocale } from '@/hooks/useLocale';
+import { cn } from '@/lib/utils';
+
+interface FolderInfo {
+  name: string;
+  path: string;
+  notes: { slug: string; title: string; isHome: boolean }[];
+  subfolders: FolderInfo[];
+}
+
+interface FolderItemProps {
+  folder: FolderInfo;
+  level?: number;
+}
+
+function FolderItem({ folder, level = 0 }: FolderItemProps) {
+  const [isOpen, setIsOpen] = useState(true);
+  const location = useLocation();
+  
+  const hasContent = folder.notes.length > 0 || folder.subfolders.length > 0;
+  
+  return (
+    <div className="w-full">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "w-full flex items-center gap-3 px-4 py-3 text-base hover:bg-accent/50 rounded-lg transition-colors",
+          "font-medium text-foreground"
+        )}
+        style={{ paddingLeft: `${16 + level * 24}px` }}
+      >
+        {hasContent ? (
+          isOpen ? (
+            <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          )
+        ) : (
+          <span className="w-5" />
+        )}
+        <Folder className="w-5 h-5 text-primary flex-shrink-0" />
+        <span className="text-left">{folder.name}</span>
+      </button>
+      
+      {isOpen && hasContent && (
+        <div className="mt-1">
+          {/* Subfolders */}
+          {folder.subfolders.map((subfolder) => (
+            <FolderItem key={subfolder.path} folder={subfolder} level={level + 1} />
+          ))}
+          
+          {/* Notes */}
+          {folder.notes.map((note) => {
+            const isActive = location.pathname === `/notes/${note.slug}`;
+            
+            return (
+              <Link
+                key={note.slug}
+                to={note.isHome ? '/' : `/notes/${note.slug}`}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 text-base rounded-lg transition-colors",
+                  isActive 
+                    ? "bg-primary/10 text-primary font-medium" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                )}
+                style={{ paddingLeft: `${40 + level * 24}px` }}
+              >
+                {note.isHome ? (
+                  <Home className="w-5 h-5 flex-shrink-0" />
+                ) : (
+                  <FileText className="w-5 h-5 flex-shrink-0" />
+                )}
+                <span className="text-left">{note.title}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function FilesPage() {
+  const folders = getFolderStructure();
+  const homeNote = getHomeNote();
+  const { t } = useLocale();
+  const location = useLocation();
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  
+  // Count total notes and folders
+  const countItems = (folders: FolderInfo[]): { notes: number; folders: number } => {
+    let notes = 0;
+    let folderCount = 0;
+    
+    for (const folder of folders) {
+      folderCount++;
+      notes += folder.notes.length;
+      const sub = countItems(folder.subfolders);
+      notes += sub.notes;
+      folderCount += sub.folders;
+    }
+    
+    return { notes, folders: folderCount };
+  };
+  
+  const counts = countItems(folders);
+  
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <GardenHeader />
+      
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <FolderTree className="w-8 h-8 text-primary" />
+              <h1 className="text-3xl font-semibold text-foreground font-serif">
+                {t.sidebar.fileStructure || 'File Structure'}
+              </h1>
+            </div>
+            <Button
+              onClick={() => setExportModalOpen(true)}
+              variant="default"
+              size="sm"
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export Context
+            </Button>
+          </div>
+          <p className="text-muted-foreground">
+            {counts.folders} {counts.folders === 1 ? 'folder' : 'folders'}, {counts.notes} {counts.notes === 1 ? 'note' : 'notes'}
+          </p>
+        </div>
+        
+        <ExportModal open={exportModalOpen} onOpenChange={setExportModalOpen} />
+        
+        {/* Tree structure */}
+        <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
+          {/* Home link if exists */}
+          {homeNote && (
+            <Link
+              to="/"
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 text-base rounded-lg transition-colors mb-2",
+                location.pathname === '/'
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              )}
+            >
+              <Home className="w-5 h-5 flex-shrink-0" />
+              <span>{t.sidebar.home}</span>
+            </Link>
+          )}
+          
+          {/* Folder structure */}
+          {folders.map((folder) => (
+            <FolderItem key={folder.path} folder={folder} />
+          ))}
+          
+          {folders.length === 0 && (
+            <div className="text-center py-12">
+              <FolderTree className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground">No files found</p>
+            </div>
+          )}
+        </div>
+      </main>
+      
+      <GardenFooter />
+    </div>
+  );
+}
