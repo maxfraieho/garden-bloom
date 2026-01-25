@@ -19,14 +19,10 @@ export function AccessGuard({ children }: AccessGuardProps) {
     return <>{children}</>;
   }
 
-  // If MCP gateway is unavailable, show content in public/read-only mode
-  if (!gatewayAvailable) {
+  // Show content in public/read-only mode by default
+  // Owner can enable authentication via gateway
+  if (!gatewayAvailable || !isAuthenticated) {
     return <>{children}</>;
-  }
-
-  // Require owner authentication for all other routes
-  if (!isAuthenticated) {
-    return <AccessGateUI />;
   }
 
   return <>{children}</>;
