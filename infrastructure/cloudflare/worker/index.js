@@ -32,8 +32,14 @@ function corsResponse() {
   });
 }
 
-function errorResponse(message, status = 400) {
-  return jsonResponse({ success: false, error: message }, status);
+// Backward-compatible error envelope.
+// - Existing clients: still can read `error` as string.
+// - UI-friendly additions: `errorCode`, `errorDetails`.
+function errorResponse(message, status = 400, details = undefined, code = undefined) {
+  const payload = { success: false, error: message };
+  if (code) payload.errorCode = code;
+  if (details !== undefined) payload.errorDetails = details;
+  return jsonResponse(payload, status);
 }
 
 // ============================================
@@ -281,6 +287,62 @@ async function deleteFromMinIO(env, path) {
       'Authorization': authorization,
     },
   });
+}
+
+// ============================================
+// NotebookLM API Helper (UI Adapter)
+// ============================================
+
+/**
+ * fetchNotebookLM(env, path, init)
+ * - Uses env.NOTEBOOKLM_BASE_URL OR fallback https://notebooklm-gateway.replit.app
+ * - Timeout via env.NOTEBOOKLM_TIMEOUT_MS (default 15000)
+ * - Optional Bearer via env.NOTEBOOKLM_SERVICE_TOKEN
+ * - Never throws for HTTP errors: returns { ok:false, status, data }
+ */
+async function fetchNotebookLM(env, path, init = {}) {
+  const baseUrl = (env.NOTEBOOKLM_BASE_URL || 'https://notebooklm-gateway.replit.app').replace(/\/$/, '');
+  const timeoutMs = Number.parseInt(env.NOTEBOOKLM_TIMEOUT_MS, 10) || 15000;
+  const url = `${baseUrl}${path}`;
+
+  const headers = new Headers(init.headers || {});
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  if (env.NOTEBOOKLM_SERVICE_TOKEN && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${env.NOTEBOOKLM_SERVICE_TOKEN}`);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort('timeout'), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await res.json().catch(() => null)
+      : await res.text().catch(() => null);
+
+    if (!res.ok) {
+      return { ok: false, status: res.status, data };
+    }
+
+    return { ok: true, status: res.status, data };
+  } catch (err) {
+    const isTimeout = err?.name === 'AbortError' || err === 'timeout' || err?.message?.toLowerCase?.().includes('timeout');
+    return {
+      ok: false,
+      status: isTimeout ? 504 : 502,
+      data: {
+        error: isTimeout ? `NotebookLM timeout after ${timeoutMs}ms` : `NotebookLM fetch failed: ${err?.message || String(err)}`,
+      },
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 // ============================================
@@ -666,7 +728,7 @@ async function handleZonesValidate(zoneId, env, request) {
   }
   
   if (new Date(zone.expiresAt) < new Date()) {
-    return errorResponse('Zone expired', 410, { expired: true });
+    return errorResponse('Zone expired', 410, { expired: true }, 'ZONE_EXPIRED');
   }
 
   // ✅ RETURN COMPLETE DATA
@@ -705,7 +767,19 @@ async function handleZonesNotes(zoneId, env) {
 
 async function handleZonesCreate(request, env, host) {
   const body = await request.json();
-  const { name, description, allowedPaths, ttlMinutes, notes, accessType } = body;
+  const {
+    name,
+    description,
+    allowedPaths,
+    ttlMinutes,
+    notes,
+    accessType,
+    // NotebookLM integration fields
+    createNotebookLM,
+    notebookTitle,
+    notebookShareEmails,
+    notebookSourceMode = 'minio',
+  } = body;
 
   const zoneId = crypto.randomUUID().slice(0, 8);
   const accessCode = `ACCESS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
@@ -740,6 +814,7 @@ async function handleZonesCreate(request, env, host) {
   // ============================================
   // Upload zone content to MinIO for MCP access
   // ============================================
+  let minioKey = null;
   try {
     const zoneContent = {
       id: zoneId,
@@ -766,7 +841,8 @@ async function handleZonesCreate(request, env, host) {
       'application/x-ndjson');
     
     // Markdown format for human readability
-    await uploadToMinIO(env, `zones/${zoneId}/notes.md`, 
+    minioKey = `zones/${zoneId}/notes.md`;
+    await uploadToMinIO(env, minioKey, 
       `# ${name}\n\n${description || ''}\n\n---\n\n` +
       notes.map(n => `## ${n.title}\n\n${n.content}`).join('\n\n---\n\n'),
       'text/markdown');
@@ -777,6 +853,112 @@ async function handleZonesCreate(request, env, host) {
     // Continue - KV is primary storage
   }
 
+  // ============================================
+  // NotebookLM Integration (if requested)
+  // ============================================
+  let notebooklmResult = null;
+
+  if (createNotebookLM) {
+    const notebooklmMapping = {
+      zoneId,
+      notebookId: null,
+      notebookUrl: null,
+      importJobId: null,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      lastError: null,
+    };
+
+    try {
+      // 1) Create notebook
+      const createRes = await fetchNotebookLM(env, '/v1/notebooks', {
+        method: 'POST',
+        body: JSON.stringify({ title: notebookTitle || name }),
+      });
+      if (!createRes.ok) {
+        throw new Error(createRes?.data?.error || createRes?.data?.detail || `Create notebook failed (${createRes.status})`);
+      }
+
+      const created = createRes.data;
+      notebooklmMapping.notebookId = created?.id || created?.notebook_id || null;
+      notebooklmMapping.notebookUrl = created?.url || created?.notebook_url || null;
+      notebooklmMapping.status = 'created';
+
+      if (!notebooklmMapping.notebookId) {
+        throw new Error('NotebookLM create succeeded but notebookId is missing');
+      }
+
+      // 2) Import sources (async job)
+      const notebookId = notebooklmMapping.notebookId;
+      const importBody =
+        notebookSourceMode === 'url'
+          ? {
+              sources: [
+                {
+                  type: 'url',
+                  url: `${env.MINIO_ENDPOINT}/${env.MINIO_BUCKET}/zones/${zoneId}/notes.md`,
+                },
+              ],
+              idempotency_key: `zone-${zoneId}-import`,
+            }
+          : {
+              sources: [
+                {
+                  type: 'minio',
+                  bucket: env.MINIO_BUCKET,
+                  key: minioKey || `zones/${zoneId}/notes.md`,
+                },
+              ],
+              idempotency_key: `zone-${zoneId}-import`,
+            };
+
+      const importRes = await fetchNotebookLM(env, `/v1/notebooks/${notebookId}/sources/import`, {
+        method: 'POST',
+        body: JSON.stringify(importBody),
+      });
+      if (!importRes.ok) {
+        throw new Error(importRes?.data?.error || importRes?.data?.detail || `Import failed (${importRes.status})`);
+      }
+
+      const imported = importRes.data;
+      notebooklmMapping.importJobId = imported?.job_id || imported?.id || null;
+      notebooklmMapping.status = imported?.status || 'queued';
+
+      // 3) Share notebook (optional, non-fatal)
+      if (Array.isArray(notebookShareEmails) && notebookShareEmails.length > 0) {
+        const shareRes = await fetchNotebookLM(env, `/v1/notebooks/${notebookId}/share`, {
+          method: 'POST',
+          body: JSON.stringify({ emails: notebookShareEmails, role: 'reader' }),
+        });
+        if (!shareRes.ok) {
+          // non-fatal
+          console.error('[NotebookLM] Share failed (non-fatal):', shareRes?.data);
+        }
+      }
+
+      notebooklmResult = {
+        notebookId: notebooklmMapping.notebookId,
+        notebookUrl: notebooklmMapping.notebookUrl,
+        importJobId: notebooklmMapping.importJobId,
+        status: notebooklmMapping.status,
+      };
+    } catch (err) {
+      notebooklmMapping.status = 'failed';
+      notebooklmMapping.lastError = err?.message || String(err);
+      notebooklmResult = {
+        notebookId: notebooklmMapping.notebookId,
+        notebookUrl: notebooklmMapping.notebookUrl,
+        importJobId: notebooklmMapping.importJobId,
+        status: 'failed',
+        error: notebooklmMapping.lastError,
+      };
+    }
+
+    await env.KV.put(`zone_notebooklm:${zoneId}`, JSON.stringify(notebooklmMapping), {
+      expirationTtl: ttlMinutes * 60,
+    });
+  }
+
   return jsonResponse({
     success: true,
     zoneId,
@@ -784,7 +966,147 @@ async function handleZonesCreate(request, env, host) {
     zoneUrl: `https://${host.replace('garden-mcp-server', 'exodus')}/zone/${zoneId}`,
     expiresAt,
     noteCount: notes.length,
+    ...(notebooklmResult ? { notebooklm: notebooklmResult } : {}),
   });
+}
+
+// ============================================
+// NotebookLM Zone Handlers (UI Adapter)
+// ============================================
+
+async function handleZoneNotebookLMStatus(zoneId, env) {
+  const zoneData = await env.KV.get(`zone:${zoneId}`);
+  if (!zoneData) return errorResponse('Zone not found', 404);
+
+  const mappingData = await env.KV.get(`zone_notebooklm:${zoneId}`);
+  if (!mappingData) {
+    return jsonResponse({ success: true, zoneId, notebooklm: null });
+  }
+
+  const mapping = JSON.parse(mappingData);
+  return jsonResponse({
+    success: true,
+    zoneId,
+    notebooklm: {
+      notebookId: mapping.notebookId,
+      notebookUrl: mapping.notebookUrl,
+      importJobId: mapping.importJobId,
+      status: mapping.status,
+      createdAt: mapping.createdAt,
+      lastError: mapping.lastError,
+    },
+  });
+}
+
+async function handleZoneNotebookLMJobStatus(zoneId, jobId, env) {
+  const zoneData = await env.KV.get(`zone:${zoneId}`);
+  if (!zoneData) return errorResponse('Zone not found', 404);
+
+  const jobRes = await fetchNotebookLM(env, `/v1/jobs/${jobId}`, { method: 'GET' });
+  if (!jobRes.ok) {
+    return errorResponse(
+      jobRes?.data?.error || jobRes?.data?.detail || 'Failed to get job status',
+      jobRes.status || 502,
+      jobRes.data,
+      'NOTEBOOKLM_JOB_STATUS_FAILED'
+    );
+  }
+
+  // Best-effort mapping sync (KV is the UI source of truth)
+  const mappingData = await env.KV.get(`zone_notebooklm:${zoneId}`);
+  if (mappingData) {
+    const mapping = JSON.parse(mappingData);
+    if (mapping.importJobId === jobId && jobRes.data?.status) {
+      mapping.status = jobRes.data.status;
+      if (jobRes.data.status === 'failed' && jobRes.data.error) {
+        mapping.lastError = jobRes.data.error;
+      }
+      await env.KV.put(`zone_notebooklm:${zoneId}`, JSON.stringify(mapping));
+    }
+  }
+
+  return jsonResponse({ success: true, zoneId, job: jobRes.data });
+}
+
+async function handleZoneNotebookLMRetryImport(zoneId, env) {
+  const zoneData = await env.KV.get(`zone:${zoneId}`);
+  if (!zoneData) return errorResponse('Zone not found', 404);
+  const zone = JSON.parse(zoneData);
+
+  const mappingData = await env.KV.get(`zone_notebooklm:${zoneId}`);
+  const mapping = mappingData
+    ? JSON.parse(mappingData)
+    : {
+        zoneId,
+        notebookId: null,
+        notebookUrl: null,
+        importJobId: null,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        lastError: null,
+      };
+
+  try {
+    // If notebook not created earlier – create now (allowed by requirements)
+    if (!mapping.notebookId) {
+      const createRes = await fetchNotebookLM(env, '/v1/notebooks', {
+        method: 'POST',
+        body: JSON.stringify({ title: zone.name || `Zone ${zoneId}` }),
+      });
+      if (!createRes.ok) {
+        throw new Error(createRes?.data?.error || createRes?.data?.detail || `Create notebook failed (${createRes.status})`);
+      }
+      mapping.notebookId = createRes.data?.id || createRes.data?.notebook_id || null;
+      mapping.notebookUrl = createRes.data?.url || createRes.data?.notebook_url || null;
+      mapping.status = 'created';
+    }
+
+    if (!mapping.notebookId) {
+      throw new Error('Cannot retry import: missing notebookId');
+    }
+
+    const timestamp = Date.now();
+    const importRes = await fetchNotebookLM(env, `/v1/notebooks/${mapping.notebookId}/sources/import`, {
+      method: 'POST',
+      body: JSON.stringify({
+        sources: [
+          {
+            type: 'minio',
+            bucket: env.MINIO_BUCKET,
+            key: `zones/${zoneId}/notes.md`,
+          },
+        ],
+        idempotency_key: `zone-${zoneId}-import-retry-${timestamp}`,
+      }),
+    });
+    if (!importRes.ok) {
+      throw new Error(importRes?.data?.error || importRes?.data?.detail || `Import failed (${importRes.status})`);
+    }
+
+    mapping.importJobId = importRes.data?.job_id || importRes.data?.id || null;
+    mapping.status = importRes.data?.status || 'queued';
+    mapping.lastError = null;
+
+    await env.KV.put(`zone_notebooklm:${zoneId}`, JSON.stringify(mapping), {
+      expirationTtl: Math.max(60, Math.floor((new Date(zone.expiresAt).getTime() - Date.now()) / 1000)),
+    });
+
+    return jsonResponse({
+      success: true,
+      zoneId,
+      notebooklm: {
+        notebookId: mapping.notebookId,
+        notebookUrl: mapping.notebookUrl,
+        importJobId: mapping.importJobId,
+        status: mapping.status,
+      },
+    });
+  } catch (err) {
+    mapping.status = 'failed';
+    mapping.lastError = err?.message || String(err);
+    await env.KV.put(`zone_notebooklm:${zoneId}`, JSON.stringify(mapping));
+    return errorResponse('Retry import failed', 500, { message: mapping.lastError }, 'NOTEBOOKLM_RETRY_FAILED');
+  }
 }
 
 async function handleZonesDelete(zoneId, env) {
@@ -1454,6 +1776,32 @@ export default {
       const zoneNotesMatch = path.match(/^\/zones\/([^\/]+)\/notes$/);
       if (method === 'GET' && zoneNotesMatch) {
         return await handleZonesNotes(zoneNotesMatch[1], env);
+      }
+
+      // ============================================
+      // NOTEBOOKLM ZONE ENDPOINTS (public)
+      // ============================================
+
+      // GET /zones/:zoneId/notebooklm
+      const zoneNotebookLMMatch = path.match(/^\/zones\/([^\/]+)\/notebooklm$/);
+      if (method === 'GET' && zoneNotebookLMMatch) {
+        return await handleZoneNotebookLMStatus(zoneNotebookLMMatch[1], env);
+      }
+
+      // GET /zones/:zoneId/notebooklm/job/:jobId
+      const zoneNotebookLMJobMatch = path.match(/^\/zones\/([^\/]+)\/notebooklm\/job\/([^\/]+)$/);
+      if (method === 'GET' && zoneNotebookLMJobMatch) {
+        return await handleZoneNotebookLMJobStatus(zoneNotebookLMJobMatch[1], zoneNotebookLMJobMatch[2], env);
+      }
+
+      // POST /zones/:zoneId/notebooklm/retry-import (owner-only)
+      const zoneNotebookLMRetryMatch = path.match(/^\/zones\/([^\/]+)\/notebooklm\/retry-import$/);
+      if (method === 'POST' && zoneNotebookLMRetryMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401);
+        }
+        return await handleZoneNotebookLMRetryImport(zoneNotebookLMRetryMatch[1], env);
       }
 
       // ============================================
