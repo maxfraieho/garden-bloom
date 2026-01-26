@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ExternalLink, RotateCcw, TriangleAlert } from 'lucide-react';
-import type { NotebookLMJobStatus, NotebookLMMapping } from '@/types/mcpGateway';
+import type { ApiError, NotebookLMJobStatus, NotebookLMMapping } from '@/types/mcpGateway';
 import {
   getNotebookLMJobStatus,
   getZoneNotebookLMStatus,
@@ -21,6 +21,68 @@ type Props = {
 };
 
 const HARD_TIMEOUT_MS = 15 * 60 * 1000;
+const MAX_RETRIES = 3;
+const BASE_DELAY = 2000;
+
+function getErrorMessage(error: any): string {
+  if (error?.code === 'NOT_AUTHENTICATED' || error?.errorCode === 'NOT_AUTHENTICATED') {
+    return 'NotebookLM не авторизовано. Зверніться до адміністратора.';
+  }
+
+  if (error?.code === 'NOTEBOOKLM_ERROR' || error?.errorCode === 'NOTEBOOKLM_ERROR') {
+    return 'Помилка сервісу NotebookLM. Спробуйте пізніше.';
+  }
+
+  const status = error?.httpStatus ?? error?.status;
+  if (status === 502 || status === 504) {
+    return 'NotebookLM тимчасово недоступний. Спробуйте через кілька хвилин.';
+  }
+
+  if (typeof error?.message === 'string' && error.message.includes('FileNotFoundError')) {
+    return 'NotebookLM backend не налаштований (відсутній браузер або cookies). Зверніться до адміністратора.';
+  }
+
+  return error?.message || 'Сталася невідома помилка.';
+}
+
+function isConfigError(error: any): boolean {
+  if (!error) return false;
+  if (error?.code === 'NOT_AUTHENTICATED' || error?.errorCode === 'NOT_AUTHENTICATED') return true;
+  if (typeof error?.message === 'string' && error.message.includes('FileNotFoundError')) return true;
+  return false;
+}
+
+function getStageText(
+  opts: {
+    job?: NotebookLMJobStatus;
+    isLoading: boolean;
+    timedOut: boolean;
+  }
+): string | null {
+  const { job, isLoading, timedOut } = opts;
+  if (timedOut) return 'Імпорт триває довше ніж очікувалось…';
+  if (isLoading && !job) return 'Перевірка підключення до NotebookLM…';
+
+  if (job?.current_step && job?.total_steps) {
+    return `Імпорт джерел (${job.current_step}/${job.total_steps})…`;
+  }
+
+  switch (job?.status) {
+    case 'queued':
+      return 'Очікування в черзі…';
+    case 'created':
+      return 'Створення блокнота…';
+    case 'pending':
+    case 'running':
+      return 'Імпорт джерел…';
+    case 'completed':
+      return 'Завершення імпорту…';
+    case 'failed':
+      return 'Помилка імпорту';
+    default:
+      return job?.status ? `Статус: ${job.status}` : null;
+  }
+}
 
 function computeProgress(job: NotebookLMJobStatus | undefined): number {
   if (!job) return 0;
@@ -69,15 +131,22 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
       return backoffMs;
     },
     retry: (failureCount, error) => {
-      // Only keep retrying a bit; backoff will slow polling.
-      if (failureCount >= 3) return false;
-      return true;
+      const e = error as ApiError | any;
+      const status = e?.httpStatus ?? e?.status;
+      const isTransient = status === 502 || status === 504;
+      if (!isTransient) return false;
+      return failureCount < MAX_RETRIES;
     },
+    retryDelay: (attemptIndex) => BASE_DELAY * (attemptIndex + 1),
   });
 
   // Backoff on network-ish errors
   useEffect(() => {
     if (!jobQuery.isError) return;
+    const e = jobQuery.error as ApiError | any;
+    const status = e?.httpStatus ?? e?.status;
+    const isTransient = status === 502 || status === 504;
+    if (!isTransient) return;
     setBackoffMs((prev) => Math.min(30_000, prev * 2));
   }, [jobQuery.isError]);
 
@@ -111,16 +180,15 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
 
     const notebookUrl = job?.notebook_url ?? mapping?.notebookUrl ?? null;
 
-    const stepText =
-      job?.current_step && job?.total_steps
-        ? `Step ${job.current_step}/${job.total_steps}`
-        : job?.status
-          ? `Status: ${job.status}`
-          : null;
+    const stageText = getStageText({ job, isLoading: jobQuery.isLoading, timedOut });
 
-    const errorText = job?.error || mapping?.lastError || null;
-    return { job, progress, done, notebookUrl, stepText, errorText };
-  }, [jobQuery.data, mapping?.notebookUrl, mapping?.lastError]);
+    const rawError = (jobQuery.error as any) || null;
+    const messageFromJobOrMapping = job?.error || mapping?.lastError || null;
+    const errorText = rawError ? getErrorMessage(rawError) : messageFromJobOrMapping;
+
+    const configError = isConfigError(rawError) || (typeof messageFromJobOrMapping === 'string' && messageFromJobOrMapping.includes('FileNotFoundError'));
+    return { job, progress, done, notebookUrl, stageText, errorText, configError };
+  }, [jobQuery.data, jobQuery.isLoading, jobQuery.error, timedOut, mapping?.notebookUrl, mapping?.lastError]);
 
   if (mapping === null) {
     return (
@@ -165,7 +233,7 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
         {!isReady && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{derived.stepText || 'Importing…'}</span>
+              <span className="text-muted-foreground">{derived.stageText || 'Імпорт…'}</span>
               <span className={cn('tabular-nums', isFailed && 'text-destructive')}>{derived.progress}%</span>
             </div>
             <Progress value={derived.progress} />
@@ -176,9 +244,20 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
         {isFailed && (
           <Alert variant="destructive">
             <TriangleAlert className="h-4 w-4" />
-            <AlertTitle>Import failed</AlertTitle>
+            <AlertTitle>Імпорт не вдався</AlertTitle>
             <AlertDescription>
-              {derived.errorText || 'NotebookLM import failed. Please retry.'}
+              {derived.errorText || 'Сталася невідома помилка.'}
+
+              {derived.configError && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm">
+                    Сервіс NotebookLM потребує налаштування адміністратором.
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <a href="/admin/diagnostics">Перейти до діагностики</a>
+                  </Button>
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}
