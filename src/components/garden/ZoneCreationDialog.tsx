@@ -16,12 +16,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Folder, 
   Clock, 
   Globe, 
   Link2, 
   Loader2,
+  TriangleAlert,
   ChevronRight,
   ChevronDown,
 } from 'lucide-react';
@@ -30,6 +32,7 @@ import { getFolderStructure, getAllNotes } from '@/lib/notes/noteLoader';
 import { useLocale } from '@/hooks/useLocale';
 import type { CreateZoneParams } from '@/hooks/useAccessZones';
 import type { AccessType } from '@/types/mcpGateway';
+import { pingHealth } from '@/lib/api/mcpGatewayClient';
 
 interface ZoneCreationDialogProps {
   open: boolean;
@@ -123,6 +126,9 @@ export function ZoneCreationDialog({
   const [showAdvancedNotebook, setShowAdvancedNotebook] = useState(false);
   const [notebookSourceMode, setNotebookSourceMode] = useState<'minio' | 'url'>('minio');
 
+  const [notebookHealthChecking, setNotebookHealthChecking] = useState(false);
+  const [notebookHealthError, setNotebookHealthError] = useState<string | null>(null);
+
   const folders = useMemo(() => getFolderStructure(), []);
   const allNotes = useMemo(() => getAllNotes(), []);
 
@@ -201,10 +207,57 @@ export function ZoneCreationDialog({
 
   const effectiveTTL = isCustomTTL ? parseInt(customTTL) : selectedTTL;
   const isValidTTL = !isNaN(effectiveTTL) && effectiveTTL >= 5 && effectiveTTL <= 10080;
-  const canCreate = name.trim().length > 0 && selectedFolders.size > 0 && isValidTTL && !isCreating;
+  const canCreate =
+    name.trim().length > 0 &&
+    selectedFolders.size > 0 &&
+    isValidTTL &&
+    !isCreating &&
+    !notebookHealthChecking;
 
   const handleCreate = async () => {
     if (!canCreate) return;
+
+    setNotebookHealthError(null);
+
+    // Pre-check NotebookLM backend health BEFORE starting the import flow.
+    // If health is not OK or authenticated!==true, do not create zone with NotebookLM.
+    if (createNotebookLM) {
+      setNotebookHealthChecking(true);
+      try {
+        const MAX_RETRIES = 3;
+        const BASE_DELAY = 2000;
+
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+        const fetchWithRetry = async (attempt = 0): Promise<any> => {
+          try {
+            return await pingHealth();
+          } catch (e: any) {
+            const status = e?.httpStatus ?? e?.status;
+            const isTransient = status === 502 || status === 504;
+            if (isTransient && attempt < MAX_RETRIES - 1) {
+              await sleep(BASE_DELAY * (attempt + 1));
+              return fetchWithRetry(attempt + 1);
+            }
+            throw e;
+          }
+        };
+
+        const health = await fetchWithRetry();
+        if (health?.authenticated !== true) {
+          setNotebookHealthError(
+            'NotebookLM сервіс не авторизовано або не готовий.\nЗверніться до адміністратора для завершення налаштування.'
+          );
+          return;
+        }
+      } catch (e: any) {
+        setNotebookHealthError(
+          'NotebookLM сервіс не авторизовано або не готовий.\nЗверніться до адміністратора для завершення налаштування.'
+        );
+        return;
+      } finally {
+        setNotebookHealthChecking(false);
+      }
+    }
 
     const emails = notebookShareEmails
       .split(',')
@@ -422,6 +475,21 @@ export function ZoneCreationDialog({
 
             {createNotebookLM && (
               <div className="space-y-3 rounded-lg border border-border p-3">
+                {notebookHealthError && (
+                  <Alert>
+                    <TriangleAlert className="h-4 w-4" />
+                    <AlertTitle>NotebookLM</AlertTitle>
+                    <AlertDescription>
+                      <p className="whitespace-pre-line">{notebookHealthError}</p>
+                      <p className="mt-2">
+                        <a href="/admin/diagnostics" className="underline">
+                          Перейти до діагностики
+                        </a>
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="notebook-title">Notebook title (optional)</Label>
                   <Input
