@@ -1025,7 +1025,9 @@ async function handleZoneNotebookLMJobStatus(zoneId, jobId, env) {
     }
   }
 
-  return jsonResponse({ success: true, zoneId, job: jobRes.data });
+  // IMPORTANT: return the raw job object on top-level for frontend compatibility
+  // (NotebookLMJobStatus: { status, progress?, current_step?, total_steps?, notebook_url?, error? })
+  return jsonResponse(jobRes.data);
 }
 
 async function handleZoneNotebookLMRetryImport(zoneId, env) {
