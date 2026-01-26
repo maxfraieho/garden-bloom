@@ -552,9 +552,33 @@ async function handleHealth() {
 
 async function handleAuthStatus(env) {
   const initialized = await env.KV.get('owner_initialized');
+
+  // Check NotebookLM backend status (Replit/FastAPI)
+  let notebookLMReady = false;
+  let notebookLMMessage = null;
+  let notebookCount = null;
+
+  try {
+    const res = await fetchNotebookLM(env, '/auth/status', { method: 'GET' });
+    if (res.ok && res.data) {
+      notebookLMReady = res.data.ok === true;
+      notebookLMMessage = res.data.message || null;
+      notebookCount = res.data.notebook_count || null;
+    } else {
+      notebookLMReady = false;
+      notebookLMMessage = res?.data?.message || res?.data?.error || null;
+    }
+  } catch (e) {
+    notebookLMReady = false;
+    notebookLMMessage = e?.message || String(e);
+  }
+
   return jsonResponse({
     success: true,
     initialized: initialized === 'true',
+    notebookLMReady,
+    notebookLMMessage,
+    notebookCount,
   });
 }
 

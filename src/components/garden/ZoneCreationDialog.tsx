@@ -32,7 +32,7 @@ import { getFolderStructure, getAllNotes } from '@/lib/notes/noteLoader';
 import { useLocale } from '@/hooks/useLocale';
 import type { CreateZoneParams } from '@/hooks/useAccessZones';
 import type { AccessType } from '@/types/mcpGateway';
-import { pingHealth } from '@/lib/api/mcpGatewayClient';
+import { getAuthStatus } from '@/lib/api/mcpGatewayClient';
 
 interface ZoneCreationDialogProps {
   open: boolean;
@@ -230,7 +230,7 @@ export function ZoneCreationDialog({
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
         const fetchWithRetry = async (attempt = 0): Promise<any> => {
           try {
-            return await pingHealth();
+            return await getAuthStatus();
           } catch (e: any) {
             const status = e?.httpStatus ?? e?.status;
             const isTransient = status === 502 || status === 504;
@@ -242,10 +242,17 @@ export function ZoneCreationDialog({
           }
         };
 
-        const health = await fetchWithRetry();
-        if (health?.authenticated !== true) {
+        const authStatus = await fetchWithRetry();
+        const isNotebookLMReady = authStatus?.notebookLMReady === true;
+        if (!isNotebookLMReady) {
           setNotebookHealthError(
-            'NotebookLM сервіс не авторизовано або не готовий.\nЗверніться до адміністратора для завершення налаштування.'
+            [
+              'NotebookLM сервіс не авторизовано або не готовий.',
+              'Зверніться до адміністратора для завершення налаштування.',
+              authStatus?.notebookLMMessage ? `\n${authStatus.notebookLMMessage}` : null,
+            ]
+              .filter(Boolean)
+              .join('\n')
           );
           return;
         }
