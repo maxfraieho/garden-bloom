@@ -130,3 +130,16 @@ export async function retryNotebookLMImport(zoneId: string): Promise<{ notebookl
 export async function pingHealth(): Promise<{ ok: boolean } | any> {
   return requestJson<any>('/health', { method: 'GET' });
 }
+
+export async function getAuthStatus(): Promise<{
+  success: true;
+  initialized: boolean;
+  notebookLMReady?: boolean;
+  notebookLMMessage?: string | null;
+  notebookCount?: number | null;
+} | any> {
+  return requestJson<any>('/auth/status', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
