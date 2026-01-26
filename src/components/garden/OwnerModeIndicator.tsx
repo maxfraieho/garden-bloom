@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Shield, LogOut, Settings, Lock } from 'lucide-react';
+import { Shield, LogOut, Settings, Lock, Activity } from 'lucide-react';
 import { OwnerLoginDialog } from './OwnerLoginDialog';
 import { OwnerSettingsDialog } from './OwnerSettingsDialog';
 
@@ -53,6 +54,13 @@ export function OwnerModeIndicator() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link to="/admin/diagnostics" className="flex items-center">
+              <Activity className="mr-2 h-4 w-4" />
+              Diagnostics
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setShowSettings(true)}>
             <Settings className="mr-2 h-4 w-4" />
             Settings

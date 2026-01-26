@@ -29,12 +29,23 @@ import {
 import { toast } from 'sonner';
 import { useLocale, interpolate } from '@/hooks/useLocale';
 import { useAccessZones, type AccessZone, type CreateZoneParams } from '@/hooks/useAccessZones';
+import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { ZoneCreationDialog } from './ZoneCreationDialog';
 import { ZoneQRDialog } from './ZoneQRDialog';
 import { ExpirationIndicator } from './ExpirationIndicator';
+import { NotebookLMStatusBadge } from '@/components/zones/NotebookLMStatusBadge';
+import { NotebookLMSetupPanel } from '@/components/zones/NotebookLMSetupPanel';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 export function AccessZonesManager() {
   const { t } = useLocale();
+  const { isAuthenticated } = useOwnerAuth();
   const { 
     zones, 
     isLoading, 
@@ -50,6 +61,7 @@ export function AccessZonesManager() {
   const [isCreating, setIsCreating] = useState(false);
   const [zoneToRevoke, setZoneToRevoke] = useState<AccessZone | null>(null);
   const [qrZone, setQrZone] = useState<AccessZone | null>(null);
+  const [setupZone, setSetupZone] = useState<AccessZone | null>(null);
 
   useEffect(() => {
     fetchZones();
@@ -61,6 +73,9 @@ export function AccessZonesManager() {
     setIsCreating(false);
     if (zone) {
       setIsCreateDialogOpen(false);
+      if (zone.notebooklm) {
+        setSetupZone(zone);
+      }
     }
   };
 
@@ -161,10 +176,13 @@ export function AccessZonesManager() {
                           <CardDescription className="truncate">{zone.description}</CardDescription>
                         )}
                       </div>
-                      <Badge variant="outline" className="ml-2 flex-shrink-0">
-                        <AccessIcon className="w-3 h-3 mr-1" />
-                        {getAccessTypeLabel(zone.accessType)}
-                      </Badge>
+                      <div className="ml-2 flex-shrink-0 flex flex-col items-end gap-2">
+                        <Badge variant="outline" className="w-fit">
+                          <AccessIcon className="w-3 h-3 mr-1" />
+                          {getAccessTypeLabel(zone.accessType)}
+                        </Badge>
+                        <NotebookLMStatusBadge zoneId={zone.id} />
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -180,6 +198,16 @@ export function AccessZonesManager() {
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2">
+                      {zone.accessCode && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(zone.accessCode!, 'Access Code')}
+                        >
+                          <Copy className="w-3.5 h-3.5 mr-1" />
+                          Access Code
+                        </Button>
+                      )}
                       {zone.webUrl && (
                         <Button 
                           variant="outline" 
@@ -208,6 +236,16 @@ export function AccessZonesManager() {
                         >
                           <QrCode className="w-3.5 h-3.5 mr-1" />
                           QR
+                        </Button>
+                      )}
+
+                      {zone.notebooklm && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSetupZone(zone)}
+                        >
+                          NotebookLM
                         </Button>
                       )}
                       <Button 
@@ -244,6 +282,25 @@ export function AccessZonesManager() {
           onOpenChange={(open) => !open && setQrZone(null)}
         />
       )}
+
+      {/* NotebookLM Setup */}
+      <Dialog open={!!setupZone} onOpenChange={(open) => !open && setSetupZone(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>NotebookLM setup</DialogTitle>
+            <DialogDescription>
+              Track import progress. Retry is available in owner mode.
+            </DialogDescription>
+          </DialogHeader>
+          {setupZone && (
+            <NotebookLMSetupPanel
+              zoneId={setupZone.id}
+              initialNotebooklm={setupZone.notebooklm ?? null}
+              isOwner={isAuthenticated}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Revoke Confirmation */}
       <AlertDialog open={!!zoneToRevoke} onOpenChange={(open) => !open && setZoneToRevoke(null)}>

@@ -4,8 +4,8 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { getOwnerToken } from './useOwnerAuth';
-
-export type AccessType = 'web' | 'mcp' | 'both';
+import type { AccessType, NotebookLMMapping } from '@/types/mcpGateway';
+import { createZone as apiCreateZone, getGatewayBaseUrl } from '@/lib/api/mcpGatewayClient';
 
 export interface AccessZone {
   id: string;
@@ -19,6 +19,7 @@ export interface AccessZone {
   accessCode?: string;
   webUrl?: string;
   mcpUrl?: string;
+  notebooklm?: NotebookLMMapping | null;
 }
 
 export interface CreateZoneParams {
@@ -29,9 +30,13 @@ export interface CreateZoneParams {
   accessType: AccessType;
   ttlMinutes: number;
   notes?: { slug: string; title: string; content: string; tags: string[] }[];
+  createNotebookLM?: boolean;
+  notebookTitle?: string;
+  notebookShareEmails?: string[];
+  notebookSourceMode?: 'minio' | 'url';
 }
 
-const MCP_GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
+const MCP_GATEWAY_URL = getGatewayBaseUrl();
 const APP_BASE_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
 /**
@@ -96,28 +101,18 @@ export function useAccessZones() {
     setError(null);
 
     try {
-      const response = await fetch(`${MCP_GATEWAY_URL}/zones/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: params.name,
-          description: params.description,
-          allowedPaths: params.folders,
-          accessType: params.accessType,
-          ttlMinutes: params.ttlMinutes,
-          notes: params.notes,
-        }),
+      const data = await apiCreateZone({
+        name: params.name,
+        description: params.description,
+        allowedPaths: params.folders,
+        accessType: params.accessType,
+        ttlMinutes: params.ttlMinutes,
+        notes: params.notes,
+        createNotebookLM: params.createNotebookLM,
+        notebookTitle: params.notebookTitle,
+        notebookShareEmails: params.notebookShareEmails,
+        notebookSourceMode: params.notebookSourceMode,
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create zone');
-      }
-
-      const data = await response.json();
       
       const newZone: AccessZone = {
         id: data.zoneId,
@@ -135,6 +130,7 @@ export function useAccessZones() {
         mcpUrl: params.accessType !== 'web'
           ? `${MCP_GATEWAY_URL}/mcp/${data.zoneId}`
           : undefined,
+        notebooklm: data.notebooklm ?? null,
       };
 
       setZones(prev => [newZone, ...prev]);
