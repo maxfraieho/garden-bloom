@@ -28,7 +28,8 @@ import {
 import { cn } from '@/lib/utils';
 import { getFolderStructure, getAllNotes } from '@/lib/notes/noteLoader';
 import { useLocale } from '@/hooks/useLocale';
-import type { AccessType, CreateZoneParams } from '@/hooks/useAccessZones';
+import type { CreateZoneParams } from '@/hooks/useAccessZones';
+import type { AccessType } from '@/types/mcpGateway';
 
 interface ZoneCreationDialogProps {
   open: boolean;
@@ -116,6 +117,12 @@ export function ZoneCreationDialog({
   const [customTTL, setCustomTTL] = useState('');
   const [isCustomTTL, setIsCustomTTL] = useState(false);
 
+  const [createNotebookLM, setCreateNotebookLM] = useState(false);
+  const [notebookTitle, setNotebookTitle] = useState('');
+  const [notebookShareEmails, setNotebookShareEmails] = useState('');
+  const [showAdvancedNotebook, setShowAdvancedNotebook] = useState(false);
+  const [notebookSourceMode, setNotebookSourceMode] = useState<'minio' | 'url'>('minio');
+
   const folders = useMemo(() => getFolderStructure(), []);
   const allNotes = useMemo(() => getAllNotes(), []);
 
@@ -199,6 +206,11 @@ export function ZoneCreationDialog({
   const handleCreate = async () => {
     if (!canCreate) return;
 
+    const emails = notebookShareEmails
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
     await onCreateZone({
       name: name.trim(),
       description: description.trim() || undefined,
@@ -207,6 +219,10 @@ export function ZoneCreationDialog({
       accessType,
       ttlMinutes: effectiveTTL,
       notes: getNotesForExport(),
+      createNotebookLM,
+      notebookTitle: notebookTitle.trim() || undefined,
+      notebookShareEmails: createNotebookLM ? (emails.length ? emails : undefined) : undefined,
+      notebookSourceMode: createNotebookLM ? notebookSourceMode : undefined,
     });
 
     // Reset form
@@ -217,6 +233,12 @@ export function ZoneCreationDialog({
     setSelectedTTL(1440);
     setIsCustomTTL(false);
     setCustomTTL('');
+
+    setCreateNotebookLM(false);
+    setNotebookTitle('');
+    setNotebookShareEmails('');
+    setShowAdvancedNotebook(false);
+    setNotebookSourceMode('minio');
   };
 
   const renderFolders = (items: typeof folders, depth = 0) => {
@@ -378,6 +400,82 @@ export function ZoneCreationDialog({
                   className="w-32"
                 />
                 <span className="text-sm text-muted-foreground">{t.zones.minutes}</span>
+              </div>
+            )}
+          </div>
+
+          {/* NotebookLM (optional) */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={createNotebookLM}
+                onCheckedChange={(v) => setCreateNotebookLM(Boolean(v))}
+                className="data-[state=checked]:bg-primary"
+              />
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Create NotebookLM</p>
+                <p className="text-xs text-muted-foreground">
+                  Optional: create a Google NotebookLM and import selected sources.
+                </p>
+              </div>
+            </div>
+
+            {createNotebookLM && (
+              <div className="space-y-3 rounded-lg border border-border p-3">
+                <div className="space-y-2">
+                  <Label htmlFor="notebook-title">Notebook title (optional)</Label>
+                  <Input
+                    id="notebook-title"
+                    value={notebookTitle}
+                    onChange={(e) => setNotebookTitle(e.target.value)}
+                    placeholder="e.g. Research pack"
+                    maxLength={80}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notebook-emails">Share emails (optional)</Label>
+                  <Input
+                    id="notebook-emails"
+                    value={notebookShareEmails}
+                    onChange={(e) => setNotebookShareEmails(e.target.value)}
+                    placeholder="email1@domain.com, email2@domain.com"
+                  />
+                  <p className="text-xs text-muted-foreground">Comma-separated. Will be sent to the Worker.</p>
+                </div>
+
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline"
+                  onClick={() => setShowAdvancedNotebook(v => !v)}
+                >
+                  {showAdvancedNotebook ? 'Hide advanced' : 'Advanced'}
+                </button>
+
+                {showAdvancedNotebook && (
+                  <div className="space-y-2">
+                    <Label>Source mode</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={notebookSourceMode === 'minio' ? 'default' : 'outline'}
+                        onClick={() => setNotebookSourceMode('minio')}
+                      >
+                        MinIO
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={notebookSourceMode === 'url' ? 'default' : 'outline'}
+                        onClick={() => setNotebookSourceMode('url')}
+                      >
+                        URL
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Advanced option; keep default unless required.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

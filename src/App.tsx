@@ -17,6 +17,7 @@ import GraphPage from "./pages/GraphPage";
 import FilesPage from "./pages/FilesPage";
 import ZoneViewPage from "./pages/ZoneViewPage";
 import ChatPage from "./pages/ChatPage";
+import AdminDiagnosticsPage from "./pages/AdminDiagnosticsPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -53,6 +54,7 @@ function AppContent() {
             <Route path="/files" element={<FilesPage />} />
             <Route path="/zone/:zoneId" element={<ZoneViewPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/admin/diagnostics" element={<AdminDiagnosticsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
