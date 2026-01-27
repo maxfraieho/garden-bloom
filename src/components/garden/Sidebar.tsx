@@ -176,7 +176,7 @@ export function Sidebar() {
       {/* Mobile toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 p-2 bg-background border border-border rounded-md shadow-sm lg:hidden"
+        className="fixed top-4 left-4 z-40 p-2 bg-background border border-border rounded-md shadow-sm lg:hidden"
         aria-label={t.sidebar.toggleNavigation}
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -185,7 +185,7 @@ export function Sidebar() {
       {/* Mobile overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -193,7 +193,7 @@ export function Sidebar() {
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 w-64 h-full transform transition-transform duration-200 lg:hidden",
+          "fixed top-0 left-0 z-30 w-64 h-full transform transition-transform duration-200 lg:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

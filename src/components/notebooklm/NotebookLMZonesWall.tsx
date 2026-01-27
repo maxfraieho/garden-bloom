@@ -3,13 +3,13 @@ import { Search, MessageSquarePlus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useAccessZones } from '@/hooks/useAccessZones';
 import { NotebookLMStatusBadge } from '@/components/zones/NotebookLMStatusBadge';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
+import { useQueries } from '@tanstack/react-query';
+import { getZoneNotebookLMStatus } from '@/lib/api/mcpGatewayClient';
 
 export function NotebookLMZonesWall(props: {
   onChatForNotebook: (notebookUrl: string, suggestedTitle: string) => void;
@@ -18,7 +18,6 @@ export function NotebookLMZonesWall(props: {
   const { isAuthenticated } = useOwnerAuth();
   const { zones, isLoading, error, fetchZones, isExpired } = useAccessZones();
   const [query, setQuery] = useState('');
-  const [readyOnly, setReadyOnly] = useState(true);
 
   useEffect(() => {
     // owner-only list endpoint
@@ -28,20 +27,47 @@ export function NotebookLMZonesWall(props: {
 
   const activeZones = useMemo(() => zones.filter((z) => !isExpired(z.expiresAt)), [zones, isExpired]);
 
+  // `zones/list` does not include NotebookLM mapping; fetch per-zone status and only show READY ones.
+  const statusQueries = useQueries({
+    queries: activeZones.map((z) => ({
+      queryKey: ['zone-notebooklm', z.id],
+      queryFn: () => getZoneNotebookLMStatus(z.id),
+      staleTime: 30_000,
+      retry: 1,
+    })),
+  });
+
+  const statusByZoneId = useMemo(() => {
+    const map = new Map<string, { status?: string; notebookUrl?: string }>();
+    for (let i = 0; i < activeZones.length; i++) {
+      const zone = activeZones[i];
+      const q = statusQueries[i];
+      const mapping = q?.data?.notebooklm ?? null;
+      if (mapping) {
+        map.set(zone.id, { status: mapping.status, notebookUrl: mapping.notebookUrl ?? undefined });
+      } else {
+        map.set(zone.id, { status: undefined, notebookUrl: undefined });
+      }
+    }
+    return map;
+  }, [activeZones, statusQueries]);
+
+  const isStatusLoading = useMemo(() => statusQueries.some((q) => q.isLoading), [statusQueries]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return activeZones.filter((z) => {
-      // ALWAYS filter out zones without ready NotebookLM
-      const isReady = z.notebooklm?.status === 'completed' && !!z.notebooklm?.notebookUrl;
+      const s = statusByZoneId.get(z.id);
+      const isReady = s?.status === 'completed' && !!s?.notebookUrl;
       if (!isReady) return false;
-      
+
       if (q) {
         const hay = `${z.name} ${z.description ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [activeZones, query]);
+  }, [activeZones, query, statusByZoneId]);
 
   return (
     <Card className={cn('flex flex-col overflow-hidden', props.className)}>
@@ -78,12 +104,16 @@ export function NotebookLMZonesWall(props: {
             <div className="p-4 text-sm text-muted-foreground">Loading…</div>
           )}
 
+          {isAuthenticated && !isLoading && isStatusLoading && filtered.length === 0 && (
+            <div className="p-4 text-sm text-muted-foreground">Checking NotebookLM status…</div>
+          )}
+
           {isAuthenticated && !isLoading && filtered.length === 0 && (
             <div className="p-4 text-sm text-muted-foreground">No matching zones.</div>
           )}
 
           {isAuthenticated && filtered.map((z) => {
-            const notebookUrl = z.notebooklm?.notebookUrl ?? null;
+            const notebookUrl = statusByZoneId.get(z.id)?.notebookUrl ?? null;
             const canChat = !!notebookUrl;
             return (
               <div key={z.id} className="rounded-md border border-border p-3 space-y-2">

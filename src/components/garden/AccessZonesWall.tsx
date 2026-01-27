@@ -79,7 +79,7 @@ export function AccessZonesWall(props: { className?: string }) {
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs text-muted-foreground truncate">📝 {z.noteCount}</p>
                   <Button asChild size="sm" variant="outline" className="gap-2">
-                    <Link to={`/zone/${z.id}`}>
+                    <Link to={`/zone/${z.id}${z.accessCode ? `?code=${encodeURIComponent(z.accessCode)}` : ''}`}>
                       <ArrowRight className="h-4 w-4" />
                       Open
                     </Link>
