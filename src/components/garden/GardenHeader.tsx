@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Network, FolderTree, Home } from 'lucide-react';
+import { Network, FolderTree, Home, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from './SearchBar';
 import { ThemeToggle } from './ThemeToggle';
@@ -48,6 +48,12 @@ export function GardenHeader() {
           <OwnerModeIndicator />
           <LanguageSwitcher />
           <ThemeToggle />
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to="/chat">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Chat</span>
+            </Link>
+          </Button>
           <Button asChild variant="default" size="sm" className="gap-2">
             <Link to="/graph">
               <Network className="w-4 h-4" />
