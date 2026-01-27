@@ -31,6 +31,13 @@ function getErrorCode(err: unknown) {
   return undefined;
 }
 
+function getErrorZoneId(err: unknown): string | undefined {
+  if (!err || typeof err !== 'object') return undefined;
+  const details = (err as MaybeApiError).details as any;
+  const zoneId = details?.zoneId;
+  return typeof zoneId === 'string' && zoneId.trim() ? zoneId : undefined;
+}
+
 export interface AccessZone {
   id: string;
   name: string;
@@ -83,6 +90,25 @@ export function useAccessZones() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const listZones = useCallback(async (): Promise<AccessZone[]> => {
+    const token = getOwnerToken();
+    if (!token) return [];
+
+    const response = await fetch(`${MCP_GATEWAY_URL}/zones/list`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch zones');
+    }
+
+    const data = await response.json();
+    return (data.zones || []).map(generateZoneUrls);
+  }, []);
+
   const fetchZones = useCallback(async () => {
     const token = getOwnerToken();
     if (!token) return;
@@ -91,20 +117,7 @@ export function useAccessZones() {
     setError(null);
 
     try {
-      const response = await fetch(`${MCP_GATEWAY_URL}/zones/list`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch zones');
-      }
-
-      const data = await response.json();
-      // Generate URLs on frontend from accessCode
-      const zonesWithUrls = (data.zones || []).map(generateZoneUrls);
+      const zonesWithUrls = await listZones();
       setZones(zonesWithUrls);
     } catch (err) {
       console.error('[AccessZones] Fetch error:', err);
@@ -112,7 +125,7 @@ export function useAccessZones() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [listZones]);
 
   const createZone = useCallback(async (params: CreateZoneParams): Promise<AccessZone | null> => {
     const token = getOwnerToken();
@@ -164,6 +177,24 @@ export function useAccessZones() {
       const message = getErrorMessage(err, 'Failed to create zone');
       const code = getErrorCode(err);
       const description = code ? `[${code}] ${message}` : message;
+
+      // Partial success case: Worker may have already persisted zone in KV and then failed on NotebookLM/MinIO step.
+      // If backend returns details.zoneId, refresh the zone list and return the created zone so UI can proceed.
+      const zoneId = getErrorZoneId(err);
+      if (zoneId) {
+        try {
+          const refreshed = await listZones();
+          setZones(refreshed);
+          const created = refreshed.find((z) => z.id === zoneId) ?? null;
+
+          toast.error('NotebookLM step failed (zone created)', { description });
+          setError(description);
+          return created;
+        } catch {
+          // Fall through to generic error
+        }
+      }
+
       setError(description);
       toast.error('Failed to create zone', { description });
       return null;
