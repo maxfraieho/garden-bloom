@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { NewNotebookLMChatDialog } from '@/components/notebooklm/NewNotebookLMChatDialog';
@@ -6,19 +6,8 @@ import { NotebookLMChatsWall } from '@/components/notebooklm/NotebookLMChatsWall
 import { NotebookLMZonesWall } from '@/components/notebooklm/NotebookLMZonesWall';
 import { NotebookLMChatPanel } from '@/components/notebooklm/NotebookLMChatPanel';
 import { useNotebookLMChats } from '@/hooks/useNotebookLMChats';
-
-function notImplementedMessage(kind: 'answer' | 'summary' | 'study_guide' | 'flashcards') {
-  switch (kind) {
-    case 'summary':
-      return '🧾 **Підсумок**\n\n(Поки що чат із NotebookLM у цьому інтерфейсі не підключено. Можна відкривати сам NotebookLM за посиланням зони.)';
-    case 'study_guide':
-      return '📘 **Навчальний план**\n\n(Поки що чат із NotebookLM у цьому інтерфейсі не підключено. Можна відкривати сам NotebookLM за посиланням зони.)';
-    case 'flashcards':
-      return '🃏 **Флешкарти**\n\n(Поки що чат із NotebookLM у цьому інтерфейсі не підключено. Можна відкривати сам NotebookLM за посиланням зони.)';
-    default:
-      return '⚠️ Поки що чат із NotebookLM у цьому інтерфейсі не підключено (лише список зон + локальна історія).';
-  }
-}
+import { chatNotebookLM } from '@/lib/api/mcpGatewayClient';
+import type { NotebookLMChatKind } from '@/types/mcpGateway';
 
 export function NotebookLMChatTab({ className }: { className?: string }) {
   const {
@@ -37,6 +26,7 @@ export function NotebookLMChatTab({ className }: { className?: string }) {
 
   const [newOpen, setNewOpen] = useState(false);
   const [initialUrl, setInitialUrl] = useState<string | undefined>(undefined);
+  const sendingRef = useRef(false);
 
   const canClear = !!activeChat && messages.length > 0;
 
@@ -44,6 +34,49 @@ export function NotebookLMChatTab({ className }: { className?: string }) {
     const n = chats.length + 1;
     return `Notebook chat ${n}`;
   }, [chats.length]);
+
+  const buildHistory = (limit = 12) => {
+    // backend expects only user/assistant history (without ids)
+    return messages
+      .slice(Math.max(0, messages.length - limit))
+      .map((m) => ({ role: m.role, content: m.content }));
+  };
+
+  const sendToNotebookLM = async (kind: NotebookLMChatKind, content: string) => {
+    if (!activeChat) return;
+    const trimmed = content.trim();
+    if (!trimmed) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+
+    try {
+      // Persist user message locally
+      appendMessage({ chatId: activeChat.id, role: 'user', content: trimmed });
+
+      const res = await chatNotebookLM({
+        notebookUrl: activeChat.notebookUrl,
+        message: trimmed,
+        kind,
+        history: buildHistory(),
+      });
+
+      appendMessage({
+        chatId: activeChat.id,
+        role: 'assistant',
+        content: res.answer || '(empty response)',
+      });
+    } catch (e) {
+      const msg = e && typeof e === 'object' && 'message' in (e as any) ? String((e as any).message) : 'Chat failed';
+      toast.error(msg);
+      appendMessage({
+        chatId: activeChat.id,
+        role: 'assistant',
+        content: `⚠️ **Помилка NotebookLM**\n\n${msg}`,
+      });
+    } finally {
+      sendingRef.current = false;
+    }
+  };
 
   return (
     <div className={cn('h-full grid grid-cols-1 lg:grid-cols-[280px_1fr_340px] gap-4', className)}>
@@ -73,15 +106,16 @@ export function NotebookLMChatTab({ className }: { className?: string }) {
         chat={activeChat}
         messages={messages}
         onSend={(content) => {
-          if (!activeChat) return;
-          const trimmed = content.trim();
-          if (!trimmed) return;
-          appendMessage({ chatId: activeChat.id, role: 'user', content: trimmed });
-          appendMessage({ chatId: activeChat.id, role: 'assistant', content: notImplementedMessage('answer') });
+          void sendToNotebookLM('answer', content);
         }}
         onQuickAction={(kind) => {
-          if (!activeChat) return;
-          appendMessage({ chatId: activeChat.id, role: 'assistant', content: notImplementedMessage(kind) });
+          // For quick actions, treat the latest user message as the question; if absent, ask for one.
+          const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content;
+          if (!lastUser) {
+            toast.error('Спочатку введіть питання в чаті.');
+            return;
+          }
+          void sendToNotebookLM(kind, lastUser);
         }}
         onClear={() => {
           if (!activeChat || !canClear) return;

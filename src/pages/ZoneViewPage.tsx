@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ZoneNoteRenderer } from '@/components/garden/ZoneNoteRenderer';
 import { ZoneCommentSection } from '@/components/garden/ZoneCommentSection';
+import { GardenHeader } from '@/components/garden/GardenHeader';
 
 export default function ZoneViewPage() {
   const { zoneId } = useParams<{ zoneId: string }>();
@@ -129,9 +130,12 @@ export default function ZoneViewPage() {
 
   // Valid zone - show content
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Always keep cyclic navigation available */}
+      <GardenHeader />
+
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-14 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">

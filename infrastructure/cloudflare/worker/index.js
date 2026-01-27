@@ -402,6 +402,60 @@ async function fetchNotebookLM(env, path, init = {}) {
 }
 
 // ============================================
+// NotebookLM Chat (UI Adapter)
+// ============================================
+
+/**
+ * Owner-only: proxy chat requests to the NotebookLM backend.
+ * Frontend talks to Worker; Worker talks to Replit/FastAPI.
+ *
+ * Expected request body (frontend):
+ * {
+ *   notebookUrl: string;
+ *   message: string;
+ *   kind?: 'answer' | 'summary' | 'study_guide' | 'flashcards';
+ *   history?: Array<{ role: 'user' | 'assistant'; content: string }>
+ * }
+ */
+async function handleNotebookLMChat(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse('Invalid JSON', 400, undefined, 'INVALID_JSON');
+  }
+
+  const notebookUrl = typeof body?.notebookUrl === 'string' ? body.notebookUrl.trim() : '';
+  const message = typeof body?.message === 'string' ? body.message.trim() : '';
+  const kind = typeof body?.kind === 'string' ? body.kind : 'answer';
+  const history = Array.isArray(body?.history) ? body.history : [];
+
+  if (!notebookUrl) return errorResponse('notebookUrl is required', 400, body, 'NOTEBOOKLM_CHAT_INVALID');
+  if (!message) return errorResponse('message is required', 400, body, 'NOTEBOOKLM_CHAT_INVALID');
+
+  const chatRes = await fetchNotebookLM(env, '/v1/chat', {
+    method: 'POST',
+    body: JSON.stringify({
+      notebook_url: notebookUrl,
+      message,
+      kind,
+      history,
+    }),
+  });
+
+  if (!chatRes.ok) {
+    return errorResponse(
+      chatRes?.data?.error || chatRes?.data?.detail || 'NotebookLM chat failed',
+      chatRes.status || 502,
+      chatRes.data,
+      'NOTEBOOKLM_CHAT_FAILED'
+    );
+  }
+
+  return jsonResponse({ success: true, ...chatRes.data });
+}
+
+// ============================================
 // MCP JSON-RPC Helpers
 // ============================================
 
@@ -1920,6 +1974,15 @@ export default {
         return await handleZoneNotebookLMRetryImport(zoneNotebookLMRetryMatch[1], env);
       }
 
+      // POST /notebooklm/chat (owner-only)
+      if (method === 'POST' && path === '/notebooklm/chat') {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401);
+        }
+        return await handleNotebookLMChat(request, env);
+      }
+
       // ============================================
       // SESSION-BASED ENDPOINTS
       // ============================================
@@ -2004,6 +2067,7 @@ export default {
         (method === 'POST' && path === '/sessions/revoke') ||
         (method === 'GET' && path === '/sessions/list') ||
         (method === 'POST' && path === '/zones/create') ||
+        (method === 'POST' && path === '/notebooklm/chat') ||
         (method === 'DELETE' && path.match(/^\/zones\/[^\/]+$/)) ||
         (method === 'GET' && path === '/zones/list');
 
