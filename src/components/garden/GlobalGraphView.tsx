@@ -229,6 +229,9 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   const viewBoxX = (width - viewBoxWidth) / 2 - viewState.panX / viewState.zoom;
   const viewBoxY = (height - viewBoxHeight) / 2 - viewState.panY / viewState.zoom;
 
+  // Labels should be visible by default (requested). Keep them subtle on low zoom.
+  const showLabels = viewState.zoom >= 0.75;
+
   return (
     <div className="w-full overflow-hidden rounded-lg border border-border bg-card">
       {/* Zoom controls */}
@@ -344,13 +347,16 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
                   className="transition-all duration-150"
                 />
 
-                {/* Node label (shown on hover or always for small graphs) */}
-                {(isHovered || nodes.length <= 15) && (
+                {/* Node label */}
+                {(isHovered || showLabels) && (
                   <text
                     y={nodeRadius + 14}
                     textAnchor="middle"
                     className="text-[10px] font-sans fill-foreground"
-                    style={{ pointerEvents: 'none' }}
+                    style={{
+                      pointerEvents: 'none',
+                      opacity: isHovered ? 1 : viewState.zoom < 1 ? 0.6 : 0.85,
+                    }}
                   >
                     {truncateTitle(node.title, isHovered ? 30 : 16)}
                   </text>
