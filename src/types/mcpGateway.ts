@@ -47,6 +47,23 @@ export interface NotebookLMJobStatus {
   }> | null;
 }
 
+export type NotebookLMChatKind = 'answer' | 'summary' | 'study_guide' | 'flashcards';
+
+export interface NotebookLMChatRequest {
+  notebookUrl: string;
+  message: string;
+  kind?: NotebookLMChatKind;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+}
+
+export interface NotebookLMChatResponse {
+  success: true;
+  answer: string;
+  // Optional extra fields from backend (future-proof)
+  citations?: Array<{ title?: string; url?: string; snippet?: string }>;
+  raw?: unknown;
+}
+
 export interface CreateZoneRequest {
   name: string;
   description?: string;

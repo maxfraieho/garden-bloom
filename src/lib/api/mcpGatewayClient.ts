@@ -2,6 +2,8 @@ import type {
   ApiError,
   CreateZoneRequest,
   CreateZoneResponse,
+  NotebookLMChatRequest,
+  NotebookLMChatResponse,
   NotebookLMJobStatus,
   NotebookLMMapping,
 } from '@/types/mcpGateway';
@@ -123,6 +125,14 @@ export async function retryNotebookLMImport(zoneId: string): Promise<{ notebookl
   return requestJson<{ notebooklm: NotebookLMMapping }>(`/zones/${zoneId}/notebooklm/retry-import`, {
     method: 'POST',
     body: JSON.stringify({}),
+    requireAuth: true,
+  });
+}
+
+export async function chatNotebookLM(payload: NotebookLMChatRequest): Promise<NotebookLMChatResponse> {
+  return requestJson<NotebookLMChatResponse>('/notebooklm/chat', {
+    method: 'POST',
+    body: JSON.stringify(payload),
     requireAuth: true,
   });
 }
