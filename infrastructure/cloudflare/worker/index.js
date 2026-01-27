@@ -130,6 +130,16 @@ async function hashPassword(password, secret) {
 // MinIO Storage (AWS S3-compatible with Signature V4)
 // ============================================
 
+// Encode an S3 object key for use in the request path and CanonicalURI.
+// SigV4 requires the CanonicalURI to be URI-encoded consistently with the actual request.
+// We encode each path segment (preserving '/') to avoid SignatureDoesNotMatch for spaces/utf-8/%2F, etc.
+function encodeS3KeyForPath(key) {
+  return String(key || '')
+    .split('/')
+    .map((seg) => encodeURIComponent(seg))
+    .join('/');
+}
+
 async function sha256(message) {
   const msgBuffer = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -158,14 +168,16 @@ async function uploadToMinIO(env, path, content, contentType = 'application/json
   const endpoint = env.MINIO_ENDPOINT;
   const bucket = env.MINIO_BUCKET;
   const key = path;
-  const url = `${endpoint}/${bucket}/${key}`;
+  const encodedKey = encodeS3KeyForPath(key);
+  const base = String(endpoint || '').replace(/\/+$/, '');
+  const url = `${base}/${bucket}/${encodedKey}`;
   
   const date = new Date().toISOString().replace(/[-:]/g, '').substring(0, 15) + 'Z';
   const dateStamp = date.substring(0, 8);
   const method = 'PUT';
   const payloadHash = await sha256(content);
   
-  const canonicalUri = `/${bucket}/${key}`;
+  const canonicalUri = `/${bucket}/${encodedKey}`;
   const host = new URL(endpoint).host;
   const canonicalHeaders = [
     `content-type:${contentType}`,
@@ -229,7 +241,14 @@ async function uploadToMinIO(env, path, content, contentType = 'application/json
 function safeNoteSlug(slug) {
   // Keep it deterministic and S3-key-friendly.
   // User preference: use slug; we only normalize path separators to avoid unintended folders.
-  return String(slug || 'untitled').trim().replace(/^\/+/, '').replace(/[\\/]/g, '_');
+  let s = String(slug || 'untitled').trim();
+  // Frontend often sends URL-encoded slugs; decode so %2F becomes '/', then normalize separators.
+  try {
+    s = decodeURIComponent(s);
+  } catch {
+    // keep as-is
+  }
+  return s.replace(/^\/+/, '').replace(/[\\/]/g, '_');
 }
 
 function convertNoteToMarkdown(note) {
@@ -265,14 +284,16 @@ async function deleteFromMinIO(env, path) {
   const endpoint = env.MINIO_ENDPOINT;
   const bucket = env.MINIO_BUCKET;
   const key = path;
-  const url = `${endpoint}/${bucket}/${key}`;
+  const encodedKey = encodeS3KeyForPath(key);
+  const base = String(endpoint || '').replace(/\/+$/, '');
+  const url = `${base}/${bucket}/${encodedKey}`;
   
   const date = new Date().toISOString().replace(/[-:]/g, '').substring(0, 15) + 'Z';
   const dateStamp = date.substring(0, 8);
   const method = 'DELETE';
   const payloadHash = await sha256('');
   
-  const canonicalUri = `/${bucket}/${key}`;
+  const canonicalUri = `/${bucket}/${encodedKey}`;
   const host = new URL(endpoint).host;
   const canonicalHeaders = [
     `host:${host}`,
