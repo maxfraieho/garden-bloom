@@ -7,13 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { getApiErrors } from '@/lib/api/apiErrorStore';
-import { getGatewayBaseUrl, pingHealth } from '@/lib/api/mcpGatewayClient';
+import { getAuthStatus, getGatewayBaseUrl, pingHealth } from '@/lib/api/mcpGatewayClient';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 
 export default function AdminDiagnosticsPage() {
   const { isAuthenticated, gatewayAvailable } = useOwnerAuth();
   const [health, setHealth] = useState<any>(null);
+  const [authStatus, setAuthStatus] = useState<any>(null);
   const baseUrl = getGatewayBaseUrl();
 
   const errors = useMemo(() => getApiErrors(), [health]);
@@ -77,11 +78,33 @@ export default function AdminDiagnosticsPage() {
               >
                 Ping /health
               </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const res = await getAuthStatus();
+                    setAuthStatus(res);
+                    toast.success('Auth status loaded');
+                  } catch {
+                    toast.error('Auth status failed');
+                  }
+                }}
+              >
+                Check /auth/status
+              </Button>
             </div>
 
             {health && (
               <pre className="text-xs bg-muted/50 border border-border rounded-md p-3 overflow-auto">
                 {JSON.stringify(health, null, 2)}
+              </pre>
+            )}
+
+            {authStatus && (
+              <pre className="text-xs bg-muted/50 border border-border rounded-md p-3 overflow-auto">
+                {JSON.stringify(authStatus, null, 2)}
               </pre>
             )}
           </CardContent>

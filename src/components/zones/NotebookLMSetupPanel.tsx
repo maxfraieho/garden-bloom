@@ -98,6 +98,20 @@ function stopPollingFor(job: NotebookLMJobStatus | undefined): boolean {
   return job.status === 'completed' || job.status === 'failed';
 }
 
+function hasMinioLocalhostFailure(job: NotebookLMJobStatus | undefined): boolean {
+  const results = job?.results;
+  if (!Array.isArray(results)) return false;
+  return results.some((r) => typeof r?.error === 'string' && r.error.includes("host='localhost'") && r.error.includes('port=9000'));
+}
+
+function formatSourceLabel(r: NonNullable<NonNullable<NotebookLMJobStatus['results']>[number]>): string {
+  const key = r?.source?.key;
+  const url = r?.source?.url;
+  if (typeof key === 'string' && key.trim()) return key;
+  if (typeof url === 'string' && url.trim()) return url;
+  return 'source';
+}
+
 export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Props) {
   const [mapping, setMapping] = useState<NotebookLMMapping | null>(initialNotebooklm ?? null);
   const [backoffMs, setBackoffMs] = useState(2500);
@@ -187,7 +201,9 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
     const errorText = rawError ? getErrorMessage(rawError) : messageFromJobOrMapping;
 
     const configError = isConfigError(rawError) || (typeof messageFromJobOrMapping === 'string' && messageFromJobOrMapping.includes('FileNotFoundError'));
-    return { job, progress, done, notebookUrl, stageText, errorText, configError };
+    const minioLocalhost = hasMinioLocalhostFailure(job);
+
+    return { job, progress, done, notebookUrl, stageText, errorText, configError, minioLocalhost };
   }, [jobQuery.data, jobQuery.isLoading, jobQuery.error, timedOut, mapping?.notebookUrl, mapping?.lastError]);
 
   if (mapping === null) {
@@ -205,6 +221,7 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
 
   const isReady = derived.job?.status === 'completed' || mapping.status === 'completed';
   const isFailed = derived.job?.status === 'failed' || mapping.status === 'failed';
+  const jobResults = derived.job?.results;
 
   return (
     <Card>
@@ -247,6 +264,42 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
             <AlertTitle>Імпорт не вдався</AlertTitle>
             <AlertDescription>
               {derived.errorText || 'Сталася невідома помилка.'}
+
+              {derived.minioLocalhost && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm">
+                    Схоже, NotebookLM-backend намагається підключитись до MinIO за адресою <span className="font-mono">localhost:9000</span> і не може.
+                    Це проблема конфігурації бекенду (повинен бути доступний реальний MinIO endpoint, не localhost).
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <a href="/admin/diagnostics">Перейти до діагностики</a>
+                  </Button>
+                </div>
+              )}
+
+              {Array.isArray(jobResults) && jobResults.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium">Деталі по джерелах</p>
+                  <div className="max-h-40 overflow-auto rounded-md border border-border bg-muted/30 p-2">
+                    <ul className="space-y-2">
+                      {jobResults.slice(0, 10).map((r, idx) => (
+                        <li key={idx} className="text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate font-mono">{formatSourceLabel(r as any)}</span>
+                            <span className="tabular-nums text-muted-foreground">{typeof r?.retries === 'number' ? `${r.retries} retries` : ''}</span>
+                          </div>
+                          {typeof r?.error === 'string' && r.error.trim() && (
+                            <div className="mt-1 text-muted-foreground break-words">{r.error}</div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    {jobResults.length > 10 && (
+                      <p className="mt-2 text-xs text-muted-foreground">Показано 10 з {jobResults.length}.</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {derived.configError && (
                 <div className="mt-3 space-y-2">

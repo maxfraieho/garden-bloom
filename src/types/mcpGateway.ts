@@ -33,6 +33,18 @@ export interface NotebookLMJobStatus {
   total_steps?: number | null;
   notebook_url?: string | null;
   error?: string | null;
+  results?: Array<{
+    source?: {
+      type?: string;
+      bucket?: string | null;
+      key?: string | null;
+      url?: string | null;
+    } | null;
+    status?: string | null;
+    source_id?: string | null;
+    error?: string | null;
+    retries?: number | null;
+  }> | null;
 }
 
 export interface CreateZoneRequest {
