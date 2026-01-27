@@ -31,15 +31,17 @@ export function NotebookLMZonesWall(props: {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return activeZones.filter((z) => {
+      // ALWAYS filter out zones without ready NotebookLM
+      const isReady = z.notebooklm?.status === 'completed' && !!z.notebooklm?.notebookUrl;
+      if (!isReady) return false;
+      
       if (q) {
         const hay = `${z.name} ${z.description ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (!readyOnly) return true;
-      // best-effort: only show zones that already have notebooklm mapping with completed status
-      return z.notebooklm?.status === 'completed' && !!z.notebooklm?.notebookUrl;
+      return true;
     });
-  }, [activeZones, query, readyOnly]);
+  }, [activeZones, query]);
 
   return (
     <Card className={cn('flex flex-col overflow-hidden', props.className)}>
@@ -57,12 +59,6 @@ export function NotebookLMZonesWall(props: {
             placeholder="Search zones…"
             className="pl-8"
           />
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="nlm-ready" className="text-xs text-muted-foreground">
-            Ready only
-          </Label>
-          <Switch id="nlm-ready" checked={readyOnly} onCheckedChange={setReadyOnly} />
         </div>
       </div>
 
