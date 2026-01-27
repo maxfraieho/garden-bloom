@@ -1,15 +1,30 @@
 import { Layout } from '@/components/garden/Layout';
 import { ChatCanvas } from '@/components/garden/ChatCanvas';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NotebookLMChatTab } from '@/components/notebooklm/NotebookLMChatTab';
 
 export default function ChatPage() {
   return (
     <Layout>
       <div className="container py-6">
-        <div className="max-w-4xl mx-auto h-[calc(100vh-200px)]">
-          <ChatCanvas 
-            title="💬 Colleagues Chat" 
-            className="h-full"
-          />
+        <div className="max-w-6xl mx-auto h-[calc(100vh-200px)]">
+          <Tabs defaultValue="people" className="h-full flex flex-col">
+            <TabsList className="w-fit">
+              <TabsTrigger value="people">People</TabsTrigger>
+              <TabsTrigger value="notebooklm">NotebookLM</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="people" className="flex-1 mt-4">
+              <ChatCanvas 
+                title="💬 Colleagues Chat" 
+                className="h-full"
+              />
+            </TabsContent>
+
+            <TabsContent value="notebooklm" className="flex-1 mt-4">
+              <NotebookLMChatTab className="h-full" />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </Layout>
