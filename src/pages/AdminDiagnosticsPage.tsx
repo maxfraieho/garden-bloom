@@ -5,16 +5,33 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { getApiErrors } from '@/lib/api/apiErrorStore';
-import { getAuthStatus, getGatewayBaseUrl, pingHealth } from '@/lib/api/mcpGatewayClient';
+import { chatNotebookLM, getAuthStatus, getGatewayBaseUrl, pingHealth } from '@/lib/api/mcpGatewayClient';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
+import { z } from 'zod';
+
+const chatTestSchema = z.object({
+  notebookUrl: z.string().trim().url(),
+  message: z.string().trim().min(1).max(5000),
+  kind: z.enum(['answer', 'summary', 'study_guide', 'flashcards']),
+});
 
 export default function AdminDiagnosticsPage() {
   const { isAuthenticated, gatewayAvailable } = useOwnerAuth();
   const [health, setHealth] = useState<any>(null);
   const [authStatus, setAuthStatus] = useState<any>(null);
+  const [chatTest, setChatTest] = useState({
+    notebookUrl: '',
+    message: 'Сформуй стислий підсумок основних тез.',
+    kind: 'summary' as 'answer' | 'summary' | 'study_guide' | 'flashcards',
+  });
+  const [chatResult, setChatResult] = useState<any>(null);
+  const [chatError, setChatError] = useState<any>(null);
+  const [chatLoading, setChatLoading] = useState(false);
   const baseUrl = getGatewayBaseUrl();
 
   const errors = useMemo(() => getApiErrors(), [health]);
@@ -105,6 +122,117 @@ export default function AdminDiagnosticsPage() {
             {authStatus && (
               <pre className="text-xs bg-muted/50 border border-border rounded-md p-3 overflow-auto">
                 {JSON.stringify(authStatus, null, 2)}
+              </pre>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Test NotebookLM Chat</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Sends a test request via the gateway <span className="font-mono">POST /notebooklm/chat</span> (owner-only).
+            </p>
+
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Notebook URL</p>
+                <Input
+                  value={chatTest.notebookUrl}
+                  onChange={(e) => setChatTest((s) => ({ ...s, notebookUrl: e.target.value }))}
+                  placeholder="https://notebooklm.google.com/notebook/..."
+                />
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Kind</p>
+                <div className="flex flex-wrap gap-2">
+                  {(['answer', 'summary', 'study_guide', 'flashcards'] as const).map((k) => (
+                    <Button
+                      key={k}
+                      type="button"
+                      variant={chatTest.kind === k ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setChatTest((s) => ({ ...s, kind: k }))}
+                    >
+                      {k}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Message</p>
+                <Textarea
+                  value={chatTest.message}
+                  onChange={(e) => setChatTest((s) => ({ ...s, message: e.target.value }))}
+                  rows={4}
+                  placeholder="Type a question..."
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                disabled={chatLoading}
+                onClick={async () => {
+                  setChatResult(null);
+                  setChatError(null);
+
+                  const parsed = chatTestSchema.safeParse(chatTest);
+                  if (!parsed.success) {
+                    toast.error('Invalid input');
+                    setChatError(parsed.error.format());
+                    return;
+                  }
+
+                  setChatLoading(true);
+                  try {
+                    const res = await chatNotebookLM({
+                      notebookUrl: parsed.data.notebookUrl,
+                      message: parsed.data.message,
+                      kind: parsed.data.kind,
+                      history: [],
+                    });
+                    setChatResult(res);
+                    toast.success('Chat OK');
+                  } catch (e) {
+                    setChatError(e);
+                    const msg = e && typeof e === 'object' && 'message' in (e as any) ? String((e as any).message) : 'Chat failed';
+                    toast.error(msg);
+                  } finally {
+                    setChatLoading(false);
+                  }
+                }}
+              >
+                {chatLoading ? 'Sending…' : 'Send test message'}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setChatResult(null);
+                  setChatError(null);
+                }}
+              >
+                Clear
+              </Button>
+            </div>
+
+            {chatResult && (
+              <pre className="text-xs bg-muted/50 border border-border rounded-md p-3 overflow-auto">
+                {JSON.stringify(chatResult, null, 2)}
+              </pre>
+            )}
+
+            {chatError && (
+              <pre className="text-xs bg-muted/50 border border-border rounded-md p-3 overflow-auto">
+                {JSON.stringify(chatError, null, 2)}
               </pre>
             )}
           </CardContent>
