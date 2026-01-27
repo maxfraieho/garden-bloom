@@ -15,7 +15,37 @@ import {
 export function GardenHeader() {
   const { t } = useLocale();
   const location = useLocation();
-  const isFilesPage = location.pathname === '/files';
+
+  // Cycle between: Home -> Files -> Chat -> Home
+  const cycle = (() => {
+    switch (location.pathname) {
+      case '/':
+        return {
+          to: '/files',
+          icon: FolderTree,
+          tooltip: t.sidebar.fileStructure || 'File Structure',
+        };
+      case '/files':
+        return {
+          to: '/chat',
+          icon: MessageSquare,
+          tooltip: t.sidebar.chat || 'Chat',
+        };
+      case '/chat':
+        return {
+          to: '/',
+          icon: Home,
+          tooltip: t.sidebar.home || 'Home',
+        };
+      default:
+        return {
+          to: '/files',
+          icon: FolderTree,
+          tooltip: t.sidebar.fileStructure || 'File Structure',
+        };
+    }
+  })();
+  const CycleIcon = cycle.icon;
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
@@ -24,17 +54,13 @@ export function GardenHeader() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button asChild variant="ghost" size="icon" className="shrink-0">
-              <Link to={isFilesPage ? '/' : '/files'}>
-                {isFilesPage ? (
-                  <Home className="w-5 h-5" />
-                ) : (
-                  <FolderTree className="w-5 h-5" />
-                )}
+              <Link to={cycle.to} aria-label={cycle.tooltip}>
+                <CycleIcon className="w-5 h-5" />
               </Link>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {isFilesPage ? (t.sidebar.home || 'Home') : (t.sidebar.fileStructure || 'File Structure')}
+            {cycle.tooltip}
           </TooltipContent>
         </Tooltip>
 
