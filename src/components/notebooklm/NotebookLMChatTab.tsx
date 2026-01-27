@@ -7,16 +7,16 @@ import { NotebookLMZonesWall } from '@/components/notebooklm/NotebookLMZonesWall
 import { NotebookLMChatPanel } from '@/components/notebooklm/NotebookLMChatPanel';
 import { useNotebookLMChats } from '@/hooks/useNotebookLMChats';
 
-function stubAssistant(kind: 'answer' | 'summary' | 'study_guide' | 'flashcards') {
+function notImplementedMessage(kind: 'answer' | 'summary' | 'study_guide' | 'flashcards') {
   switch (kind) {
     case 'summary':
-      return '🧾 **Summary (stub)**\n\n(Поки що це UI-заготовка. Далі підключимо реальний чат до NotebookLM через gateway.)';
+      return '🧾 **Підсумок**\n\n(Поки що чат із NotebookLM у цьому інтерфейсі не підключено. Можна відкривати сам NotebookLM за посиланням зони.)';
     case 'study_guide':
-      return '📘 **Study guide (stub)**\n\n- Key concepts…\n- Questions…\n\n(Далі буде реальна генерація.)';
+      return '📘 **Навчальний план**\n\n(Поки що чат із NotebookLM у цьому інтерфейсі не підключено. Можна відкривати сам NotebookLM за посиланням зони.)';
     case 'flashcards':
-      return '🃏 **Flashcards (stub)**\n\n1. Q: …\n   A: …\n\n(Далі буде реальна генерація.)';
+      return '🃏 **Флешкарти**\n\n(Поки що чат із NotebookLM у цьому інтерфейсі не підключено. Можна відкривати сам NotebookLM за посиланням зони.)';
     default:
-      return '🤖 (stub) NotebookLM chat backend is not connected yet. UI is ready; next step is wiring the gateway endpoint.';
+      return '⚠️ Поки що чат із NotebookLM у цьому інтерфейсі не підключено (лише список зон + локальна історія).';
   }
 }
 
@@ -77,12 +77,11 @@ export function NotebookLMChatTab({ className }: { className?: string }) {
           const trimmed = content.trim();
           if (!trimmed) return;
           appendMessage({ chatId: activeChat.id, role: 'user', content: trimmed });
-          // MVP: local stub assistant reply
-          appendMessage({ chatId: activeChat.id, role: 'assistant', content: stubAssistant('answer') });
+          appendMessage({ chatId: activeChat.id, role: 'assistant', content: notImplementedMessage('answer') });
         }}
         onQuickAction={(kind) => {
           if (!activeChat) return;
-          appendMessage({ chatId: activeChat.id, role: 'assistant', content: stubAssistant(kind) });
+          appendMessage({ chatId: activeChat.id, role: 'assistant', content: notImplementedMessage(kind) });
         }}
         onClear={() => {
           if (!activeChat || !canClear) return;
