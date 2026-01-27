@@ -54,7 +54,7 @@ export function GardenHeader() {
   const CycleIcon = cycle.icon;
 
   return (
-    <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
+    <header className="sticky top-0 z-[60] bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
         {/* File structure / Home toggle button */}
         <Tooltip>
