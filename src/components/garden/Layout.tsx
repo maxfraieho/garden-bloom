@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { Sidebar } from './Sidebar';
 
 interface LayoutProps {
   children: ReactNode;
@@ -7,11 +6,8 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen flex w-full bg-background">
-      <Sidebar />
-      <main className="flex-1 min-w-0">
-        {children}
-      </main>
+    <div className="min-h-screen w-full bg-background">
+      <main className="min-w-0">{children}</main>
     </div>
   );
 }
