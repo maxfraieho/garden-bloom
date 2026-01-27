@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useColleagueChat } from '@/hooks/useColleagueChat';
 import { ChatMessage } from './ChatMessage';
-import { ColleaguePicker } from './ColleaguePicker';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,10 +20,8 @@ export function ChatCanvas({ chatId, className, title = 'Colleagues Chat' }: Cha
     isLoading,
     error,
     selectedColleague,
-    setSelectedColleague,
     sendMessage,
     clearChat,
-    availableColleagues,
   } = useColleagueChat(chatId);
 
   const [inputValue, setInputValue] = useState('');
@@ -61,12 +58,7 @@ export function ChatCanvas({ chatId, className, title = 'Colleagues Chat' }: Cha
             {title}
           </CardTitle>
           <div className="flex items-center gap-2">
-            <ColleaguePicker
-              selected={selectedColleague}
-              colleagues={availableColleagues}
-              onSelect={setSelectedColleague}
-              disabled={isLoading}
-            />
+            {/* Role/colleague selection removed per UX request */}
             <Button
               variant="ghost"
               size="icon"
