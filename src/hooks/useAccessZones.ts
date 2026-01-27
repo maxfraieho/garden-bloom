@@ -7,6 +7,30 @@ import { getOwnerToken } from './useOwnerAuth';
 import type { AccessType, NotebookLMMapping } from '@/types/mcpGateway';
 import { createZone as apiCreateZone, getGatewayBaseUrl } from '@/lib/api/mcpGatewayClient';
 
+type MaybeApiError = {
+  message?: string;
+  code?: string;
+  httpStatus?: number;
+  details?: unknown;
+};
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  if (err && typeof err === 'object' && 'message' in err) {
+    const m = (err as MaybeApiError).message;
+    if (typeof m === 'string' && m.trim()) return m;
+  }
+  return fallback;
+}
+
+function getErrorCode(err: unknown) {
+  if (err && typeof err === 'object' && 'code' in err) {
+    const code = (err as MaybeApiError).code;
+    return typeof code === 'string' && code.trim() ? code : undefined;
+  }
+  return undefined;
+}
+
 export interface AccessZone {
   id: string;
   name: string;
@@ -137,9 +161,11 @@ export function useAccessZones() {
       toast.success('Access zone created');
       return newZone;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create zone';
-      setError(message);
-      toast.error('Failed to create zone', { description: message });
+      const message = getErrorMessage(err, 'Failed to create zone');
+      const code = getErrorCode(err);
+      const description = code ? `[${code}] ${message}` : message;
+      setError(description);
+      toast.error('Failed to create zone', { description });
       return null;
     } finally {
       setIsLoading(false);
