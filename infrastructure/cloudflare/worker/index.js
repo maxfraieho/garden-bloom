@@ -226,25 +226,39 @@ async function uploadToMinIO(env, path, content, contentType = 'application/json
   return { bucket, key, url };
 }
 
-function convertZoneNotesToMarkdown({ name, description, notes }) {
-  return (
-    `# ${name}\n\n${description || ''}\n\n---\n\n` +
-    (Array.isArray(notes) ? notes : [])
-      .map((n) => `## ${n.title}\n\n${n.content}`)
-      .join('\n\n---\n\n')
-  );
+function safeNoteSlug(slug) {
+  // Keep it deterministic and S3-key-friendly.
+  // User preference: use slug; we only normalize path separators to avoid unintended folders.
+  return String(slug || 'untitled').trim().replace(/^\/+/, '').replace(/[\\/]/g, '_');
+}
+
+function convertNoteToMarkdown(note) {
+  const title = note?.title || note?.slug || 'Untitled';
+  const tags = Array.isArray(note?.tags) && note.tags.length ? note.tags : [];
+  const tagsLine = tags.length ? `\n\nTags: ${tags.map((t) => `#${t}`).join(' ')}` : '';
+  return `# ${title}\n\n${note?.content || ''}${tagsLine}`;
 }
 
 /**
- * Ensures zones/{zoneId}/notes.md exists in MinIO.
+ * Ensures per-note Markdown files exist in MinIO:
+ *   zones/{zoneId}/notes/{slug}.md
  * IMPORTANT: This is a hard requirement before triggering NotebookLM import,
  * otherwise the NotebookLM backend may fail with NoSuchKey.
  */
-async function syncZoneMarkdownToMinIO(env, zoneId, { name, description, notes }) {
-  const minioKey = `zones/${zoneId}/notes.md`;
-  const markdown = convertZoneNotesToMarkdown({ name, description, notes });
-  await uploadToMinIO(env, minioKey, markdown, 'text/markdown');
-  return minioKey;
+async function syncZoneNotesToMinIO(env, zoneId, notes) {
+  const list = Array.isArray(notes) ? notes : [];
+  const keys = [];
+
+  // Upload sequentially to keep memory small and simplify tracing.
+  for (const n of list) {
+    const slug = safeNoteSlug(n?.slug || n?.title);
+    const key = `zones/${zoneId}/notes/${slug}.md`;
+    const markdown = convertNoteToMarkdown(n);
+    await uploadToMinIO(env, key, markdown, 'text/markdown');
+    keys.push(key);
+  }
+
+  return keys;
 }
 
 async function deleteFromMinIO(env, path) {
@@ -859,18 +873,18 @@ async function handleZonesCreate(request, env, host) {
   // ============================================
   // Upload zone content to MinIO for MCP access
   // ============================================
-  let minioKey = null;
-  // IMPORTANT: If NotebookLM is requested, notes.md must exist before we call import.
+  let minioNoteKeys = null;
+  // IMPORTANT: If NotebookLM is requested, per-note files must exist before we call import.
   if (createNotebookLM) {
     try {
-      minioKey = await syncZoneMarkdownToMinIO(env, zoneId, { name, description, notes });
-      console.log(`[Zones] Synced Markdown to MinIO for NotebookLM: ${zoneId} -> ${minioKey}`);
+      minioNoteKeys = await syncZoneNotesToMinIO(env, zoneId, notes);
+      console.log(`[Zones] Synced per-note Markdown to MinIO for NotebookLM: ${zoneId} -> ${minioNoteKeys.length} files`);
     } catch (err) {
       console.error('[Zones] MinIO sync required for NotebookLM failed:', err);
       return errorResponse(
         'Failed to sync notes to MinIO (required for NotebookLM import)',
         502,
-        { message: err?.message || String(err), zoneId, key: `zones/${zoneId}/notes.md` },
+        { message: err?.message || String(err), zoneId, prefix: `zones/${zoneId}/notes/` },
         'MINIO_SYNC_FAILED'
       );
     }
@@ -905,9 +919,9 @@ async function handleZonesCreate(request, env, host) {
       'application/x-ndjson'
     );
 
-    // Markdown format (if not already synced above)
-    if (!minioKey) {
-      minioKey = await syncZoneMarkdownToMinIO(env, zoneId, { name, description, notes });
+    // Per-note Markdown files (best-effort if NotebookLM not requested)
+    if (!minioNoteKeys) {
+      minioNoteKeys = await syncZoneNotesToMinIO(env, zoneId, notes);
     }
 
     console.log(`[Zones] Uploaded zone ${zoneId} to MinIO`);
@@ -956,24 +970,24 @@ async function handleZonesCreate(request, env, host) {
       const importBody =
         notebookSourceMode === 'url'
           ? {
-              sources: [
-                {
-                  type: 'url',
-                  url: `${env.MINIO_ENDPOINT}/${env.MINIO_BUCKET}/zones/${zoneId}/notes.md`,
-                },
-              ],
+              sources: (minioNoteKeys || []).map((key) => ({
+                type: 'url',
+                url: `${env.MINIO_ENDPOINT}/${env.MINIO_BUCKET}/${key}`,
+              })),
               idempotency_key: `zone-${zoneId}-import`,
             }
           : {
-              sources: [
-                {
-                  type: 'minio',
-                  bucket: env.MINIO_BUCKET,
-                  key: minioKey || `zones/${zoneId}/notes.md`,
-                },
-              ],
+              sources: (minioNoteKeys || []).map((key) => ({
+                type: 'minio',
+                bucket: env.MINIO_BUCKET,
+                key,
+              })),
               idempotency_key: `zone-${zoneId}-import`,
             };
+
+      if (!importBody.sources || importBody.sources.length === 0) {
+        throw new Error('NotebookLM import blocked: no notes were exported to MinIO');
+      }
 
       const importRes = await fetchNotebookLM(env, `/v1/notebooks/${notebookId}/sources/import`, {
         method: 'POST',
@@ -1112,18 +1126,14 @@ async function handleZoneNotebookLMRetryImport(zoneId, env) {
       };
 
   try {
-    // Ensure notes.md exists before retry import
+    // Ensure per-note markdown exists before retry import
     try {
-      await syncZoneMarkdownToMinIO(env, zoneId, {
-        name: zone.name || `Zone ${zoneId}`,
-        description: zone.description,
-        notes: zone.notes || [],
-      });
+      await syncZoneNotesToMinIO(env, zoneId, zone.notes || []);
     } catch (err) {
       return errorResponse(
         'Retry import blocked: failed to sync notes to MinIO',
         502,
-        { message: err?.message || String(err), zoneId, key: `zones/${zoneId}/notes.md` },
+        { message: err?.message || String(err), zoneId, prefix: `zones/${zoneId}/notes/` },
         'MINIO_SYNC_FAILED'
       );
     }
@@ -1147,16 +1157,11 @@ async function handleZoneNotebookLMRetryImport(zoneId, env) {
     }
 
     const timestamp = Date.now();
+    const noteKeys = (zone.notes || []).map((n) => `zones/${zoneId}/notes/${safeNoteSlug(n?.slug || n?.title)}.md`);
     const importRes = await fetchNotebookLM(env, `/v1/notebooks/${mapping.notebookId}/sources/import`, {
       method: 'POST',
       body: JSON.stringify({
-        sources: [
-          {
-            type: 'minio',
-            bucket: env.MINIO_BUCKET,
-            key: `zones/${zoneId}/notes.md`,
-          },
-        ],
+        sources: noteKeys.map((key) => ({ type: 'minio', bucket: env.MINIO_BUCKET, key })),
         idempotency_key: `zone-${zoneId}-import-retry-${timestamp}`,
       }),
     });
@@ -1191,6 +1196,10 @@ async function handleZoneNotebookLMRetryImport(zoneId, env) {
 }
 
 async function handleZonesDelete(zoneId, env) {
+  // Read zone before deleting so we can remove per-note objects from MinIO.
+  const zoneData = await env.KV.get(`zone:${zoneId}`);
+  const zone = zoneData ? JSON.parse(zoneData) : null;
+
   await env.KV.delete(`zone:${zoneId}`);
 
   // Remove from zones index
@@ -1203,10 +1212,15 @@ async function handleZonesDelete(zoneId, env) {
 
   // Delete from MinIO
   try {
+    const perNoteDeletes = Array.isArray(zone?.notes)
+      ? zone.notes.map((n) => deleteFromMinIO(env, `zones/${zoneId}/notes/${safeNoteSlug(n?.slug || n?.title)}.md`))
+      : [];
     await Promise.all([
       deleteFromMinIO(env, `zones/${zoneId}/notes.json`),
       deleteFromMinIO(env, `zones/${zoneId}/notes.jsonl`),
-      deleteFromMinIO(env, `zones/${zoneId}/notes.md`),
+      // Backward-compat cleanup (old aggregated path)
+      deleteFromMinIO(env, `zones/${zoneId}/notes.md`).catch(() => null),
+      ...perNoteDeletes,
     ]);
     console.log(`[Zones] Deleted zone ${zoneId} from MinIO`);
   } catch (err) {
