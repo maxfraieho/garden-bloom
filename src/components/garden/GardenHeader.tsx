@@ -33,6 +33,12 @@ export function GardenHeader() {
         };
       case '/chat':
         return {
+          to: '/graph',
+          icon: Network,
+          tooltip: t.index.viewGraph || 'Graph',
+        };
+      case '/graph':
+        return {
           to: '/',
           icon: Home,
           tooltip: t.sidebar.home || 'Home',

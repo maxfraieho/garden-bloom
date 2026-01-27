@@ -2,6 +2,7 @@ import { Layout } from '@/components/garden/Layout';
 import { ChatCanvas } from '@/components/garden/ChatCanvas';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotebookLMChatTab } from '@/components/notebooklm/NotebookLMChatTab';
+import { AccessZonesWall } from '@/components/garden/AccessZonesWall';
 
 export default function ChatPage() {
   return (
@@ -15,10 +16,10 @@ export default function ChatPage() {
             </TabsList>
 
             <TabsContent value="people" className="flex-1 mt-4">
-              <ChatCanvas 
-                title="💬 Colleagues Chat" 
-                className="h-full"
-              />
+              <div className="h-full grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
+                <ChatCanvas title="💬 Colleagues Chat" className="h-full" />
+                <AccessZonesWall className="h-full" />
+              </div>
             </TabsContent>
 
             <TabsContent value="notebooklm" className="flex-1 mt-4">
