@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -161,109 +160,107 @@ export function AccessZonesManager() {
 
       {/* Zones List */}
       {activeZones.length > 0 && (
-        <ScrollArea className="max-h-[500px]">
-          <div className="space-y-3">
-            {activeZones.map(zone => {
-              const AccessIcon = getAccessTypeIcon(zone.accessType);
-              
-              return (
-                <Card key={zone.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base truncate">{zone.name}</CardTitle>
-                        {zone.description && (
-                          <CardDescription className="truncate">{zone.description}</CardDescription>
-                        )}
-                      </div>
-                      <div className="ml-2 flex-shrink-0 flex flex-col items-end gap-2">
-                        <Badge variant="outline" className="w-fit">
-                          <AccessIcon className="w-3 h-3 mr-1" />
-                          {getAccessTypeLabel(zone.accessType)}
-                        </Badge>
-                        <NotebookLMStatusBadge zoneId={zone.id} />
-                      </div>
+        <div className="space-y-3">
+          {activeZones.map(zone => {
+            const AccessIcon = getAccessTypeIcon(zone.accessType);
+            
+            return (
+              <Card key={zone.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base truncate">{zone.name}</CardTitle>
+                      {zone.description && (
+                        <CardDescription className="truncate">{zone.description}</CardDescription>
+                      )}
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>📁 {zone.folders.length} {t.export.folders}</span>
-                      <span>📝 {zone.noteCount} {t.common.notes}</span>
-                      <ExpirationIndicator 
-                        expiresAt={zone.expiresAt}
-                        createdAt={zone.createdAt}
-                      />
+                    <div className="ml-2 flex-shrink-0 flex flex-col items-end gap-2">
+                      <Badge variant="outline" className="w-fit">
+                        <AccessIcon className="w-3 h-3 mr-1" />
+                        {getAccessTypeLabel(zone.accessType)}
+                      </Badge>
+                      <NotebookLMStatusBadge zoneId={zone.id} />
                     </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Stats */}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>📁 {zone.folders.length} {t.export.folders}</span>
+                    <span>📝 {zone.noteCount} {t.common.notes}</span>
+                    <ExpirationIndicator 
+                      expiresAt={zone.expiresAt}
+                      createdAt={zone.createdAt}
+                    />
+                  </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-wrap gap-2">
-                      {zone.accessCode && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(zone.accessCode!, 'Access Code')}
-                        >
-                          <Copy className="w-3.5 h-3.5 mr-1" />
-                          Access Code
-                        </Button>
-                      )}
-                      {zone.webUrl && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => copyToClipboard(zone.webUrl!, 'Web URL')}
-                        >
-                          <Copy className="w-3.5 h-3.5 mr-1" />
-                          Web URL
-                        </Button>
-                      )}
-                      {zone.mcpUrl && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => copyToClipboard(zone.mcpUrl!, 'MCP URL')}
-                        >
-                          <Copy className="w-3.5 h-3.5 mr-1" />
-                          MCP URL
-                        </Button>
-                      )}
-                      {zone.webUrl && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setQrZone(zone)}
-                        >
-                          <QrCode className="w-3.5 h-3.5 mr-1" />
-                          QR
-                        </Button>
-                      )}
-
-                      {zone.notebooklm && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSetupZone(zone)}
-                        >
-                          NotebookLM
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost" 
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-2">
+                    {zone.accessCode && (
+                      <Button
+                        variant="outline"
                         size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setZoneToRevoke(zone)}
+                        onClick={() => copyToClipboard(zone.accessCode!, 'Access Code')}
                       >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        {t.zones.revoke}
+                        <Copy className="w-3.5 h-3.5 mr-1" />
+                        Access Code
                       </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </ScrollArea>
+                    )}
+                    {zone.webUrl && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => copyToClipboard(zone.webUrl!, 'Web URL')}
+                      >
+                        <Copy className="w-3.5 h-3.5 mr-1" />
+                        Web URL
+                      </Button>
+                    )}
+                    {zone.mcpUrl && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => copyToClipboard(zone.mcpUrl!, 'MCP URL')}
+                      >
+                        <Copy className="w-3.5 h-3.5 mr-1" />
+                        MCP URL
+                      </Button>
+                    )}
+                    {zone.webUrl && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setQrZone(zone)}
+                      >
+                        <QrCode className="w-3.5 h-3.5 mr-1" />
+                        QR
+                      </Button>
+                    )}
+
+                    {zone.notebooklm && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSetupZone(zone)}
+                      >
+                        NotebookLM
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setZoneToRevoke(zone)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      {t.zones.revoke}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {/* Create Dialog */}
