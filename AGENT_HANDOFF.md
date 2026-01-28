@@ -1,227 +1,196 @@
-# 🌱 Digital Garden — Agent Handoff Instructions
+# 🌱 Digital Garden (Sweet Brain Share Hub) — AGENT HANDOFF
 
-> Інструкція для Lovable агента для продовження розробки проекту
+> Цей документ — «передача зміни» для наступного Lovable агента/акаунта.
+> Мета: швидко відновити контекст, зрозуміти актуальний стан, не зламати інтеграції, та продовжити розробку.
 
-## ✅ Статус виправлень (2026-01-18)
-
-### Виправлено
-- ✅ Rollback коміту `1882c3f8` ("Migrate MCP gateway to Replit") — URL повернуто до Cloudflare Worker
-- ✅ `gatewayAvailable: boolean` додано до `OwnerAuthState` interface
-- ✅ Worker доступний і відповідає правильно (`/auth/status` → `initialized: true`)
-
-### 🔍 Перевірити при наступному сеансі
-
-1. **OwnerModeIndicator** — чи показується кнопка "Owner Login" в header?
-2. **AccessGateUI** — цей компонент НЕ інтегрований в `Index.tsx` (можливо так і задумано?)
-3. **OwnerSetupWizard** — чи показується при першому запуску (якщо `initialized: false`)?
-
-### 📁 Файли для першочергового перегляду
-
-```
-КРИТИЧНІ (auth/access):
-1. src/hooks/useOwnerAuth.tsx         # Auth hook - gatewayAvailable тепер boolean
-2. src/components/garden/OwnerModeIndicator.tsx  # Admin menu в header
-3. src/components/garden/GardenHeader.tsx  # Header з OwnerModeIndicator
-
-ЯКЩО потрібен access gate:
-4. src/components/AccessGateUI.tsx    # Форма входу за кодом (не інтегрована!)
-5. src/components/AccessGuard.tsx     # Guard wrapper
-6. src/pages/Index.tsx                # Головна сторінка
-```
+**Останнє оновлення:** 2026-01-28
 
 ---
 
-## 📋 Крок 1: Ознайомлення з проектом
+## 0) TL;DR (що це за проєкт)
 
-Прочитай ці ключові файли для розуміння архітектури:
+Це **Digital Garden** (веб-застосунок на Lovable/React) для перегляду та навігації по markdown-нотатках з:
 
-```
-Прочитай файли:
-- src/App.tsx (головний роутинг та providers)
-- src/hooks/useOwnerAuth.tsx (система автентифікації власника)
-- src/hooks/useAccessZones.ts (управління делегованим доступом)
-- src/lib/notes/noteLoader.ts (завантаження markdown нотаток)
-- src/lib/i18n/types.ts (структура локалізації)
-```
+- wiki-посиланнями (`[[...]]`), тегами, пошуком, графами звʼязків;
+- **Owner Mode** (власник/адмін): логін, налаштування, керування зонами доступу;
+- **Access Zones**: гостьовий/делегований доступ до підмножини нотаток по коду + строк дії;
+- інтеграціями через **Cloudflare Worker gateway** (зовнішній бекенд): auth/zones/sessions/MCP;
+- окремою фічею **NotebookLM Chat** (через worker → Replit backend), з діагностикою в адмінці.
 
-## 🏗️ Архітектура проекту
+Проєкт дотримується підходу **Agentic Triad Pipeline**:
+- *Lovable* — фронтенд/UI інтеграція
+- *Comet* — інфра/деплой (Cloudflare Worker, n8n і т.д.)
+- *Claude/Replit* — бекенд/автоматизація/безпека (у межах того, що живе поза Lovable)
 
-### Технологічний стек
-- **Frontend**: React 18 + Vite + TypeScript + Tailwind CSS
-- **UI**: shadcn/ui компоненти
-- **Routing**: React Router DOM
-- **State**: React Query + Custom Hooks
-- **Backend**: Cloudflare Worker (зовнішній, не в Lovable)
+---
 
-### Структура папок
-```
-src/
-├── components/garden/    # Основні UI компоненти
-├── hooks/                # Custom React hooks
-├── lib/
-│   ├── i18n/            # Локалізація (uk, en, fr, de, it)
-│   ├── notes/           # Логіка роботи з нотатками
-│   └── export/          # Експорт для AI контексту
-├── pages/               # Сторінки роутингу
-└── site/notes/          # Markdown нотатки (контент)
-```
+## 1) Архітектура (актуальна)
 
-## 🔐 Система автентифікації
+### Frontend (цей репозиторій, Lovable)
+- **React 18 + Vite + TypeScript + Tailwind + shadcn/ui**
+- **React Router**: `src/App.tsx`
+- **React Query** для серверного стану
+- Контент — markdown файли під `src/site/notes/**`
 
-### MCP Gateway URL
-**ВАЖЛИВО**: Правильний URL для Cloudflare Worker:
-```
-https://garden-mcp.exodus.pp.ua
-```
+### Backend gateway (поза Lovable)
+**Cloudflare Worker** — єдиний «вхід» для фронтенда:
+- Owner Auth (setup/login/validate/refresh)
+- Access Zones (create/list/validate/notes)
+- MCP sessions (create/list/revoke) + JSON-RPC + SSE
+- NotebookLM proxy (`/notebooklm/*`) до Replit backend
 
-Альтернативний (якщо CNAME не працює):
-```
-https://garden-mcp-server.maxfraieho.workers.dev
-```
+### NotebookLM backend (поза Lovable)
+FastAPI сервіс на Replit (прокситься через worker):
+- base URL (див. Memory): `https://notebooklm-gateway.replit.app`
 
-### Owner Mode (Режим власника)
-- **Hook**: `useOwnerAuth.tsx` — керує станом автентифікації
-- **Backend**: Cloudflare Worker
-- **Endpoints**: `/auth/status`, `/auth/setup`, `/auth/login`, `/auth/validate`, `/auth/logout`
-- **UI компоненти**:
-  - `OwnerSetupWizard.tsx` — перший запуск (налаштування пароля)
-  - `OwnerLoginDialog.tsx` — вхід власника
-  - `OwnerModeIndicator.tsx` — індикатор в хедері
-  - `OwnerSettingsDialog.tsx` — налаштування (зміна пароля)
+---
 
-### Access Zones (Делегований доступ)
-- **Hook**: `useAccessZones.ts` — CRUD для зон доступу
-- **Концепція**: Власник створює тимчасові зони з обмеженим доступом до папок
-- **Типи доступу**: `web` | `mcp` | `both`
-- **UI компоненти**:
-  - `ZoneCreationDialog.tsx` — створення нової зони
-  - `AccessZonesManager.tsx` — список активних зон
-  - `ZoneQRDialog.tsx` — QR-код для швидкого доступу
+## 2) Важливі URL та маршрути
 
-## 📝 Система нотаток
+### App URLs
+- Preview: `https://id-preview--74acbf87-8cbe-4642-9ee8-ea1d18869969.lovable.app`
+- Published: `https://sweet-brain-share-hub.lovable.app`
 
-### Завантаження контенту
-- `noteLoader.ts` — динамічний імпорт `.md` файлів з `src/site/notes/`
-- Підтримка YAML frontmatter
-- Wikilinks: `[[назва нотатки]]`
-- Теги: `#tag1 #tag2`
+### Gateway URLs (Cloudflare Worker)
+**Основний (CNAME):** `https://garden-mcp.exodus.pp.ua`
 
-### Ключові компоненти
-- `NoteRenderer.tsx` — рендеринг markdown з підтримкою wikilinks
-- `WikiLink.tsx` — інтерактивні посилання між нотатками
-- `BacklinksSection.tsx` — зворотні посилання
-- `LocalGraphView.tsx` / `GlobalGraphView.tsx` — візуалізація зв'язків
+**Fallback (workers.dev):** `https://garden-mcp-server.maxfraieho.workers.dev`
 
-## 🌍 Локалізація
+### Важливі сторінки фронтенду
+- `/` — головна сторінка garden
+- `/notes/:slug` — нотатка
+- `/tags` та `/tags/:tag`
+- `/graph`
+- `/files`
+- `/zone/:zoneId` — гостьовий перегляд зони
+- `/chat` — Chat UI (в т.ч. NotebookLM)
+- `/admin/diagnostics` — адмін-діагностика (включно з тестом NotebookLM)
 
-### Підтримувані мови
-- Українська (uk) — основна
-- English (en)
-- Français (fr)
-- Deutsch (de)
-- Italiano (it)
+---
 
-### Файли
-- `src/lib/i18n/types.ts` — TypeScript інтерфейси
-- `src/lib/i18n/locales/*.ts` — переклади
-- `useLocale.tsx` — hook для використання
+## 3) ENV/Secrets (критично при переносі між акаунтами)
 
-### ⚠️ При додаванні нових рядків
-Завжди оновлюй ВСІ 5 файлів локалізації!
-
-## 🔄 Поточний стан розробки
-
-### ✅ Завершено
-1. **Owner Authentication** — повний цикл (setup → login → validate → logout)
-2. **Access Zones UI** — створення, перегляд, відкликання зон
-3. **QR Code генерація** — для швидкого доступу до зон
-4. **MCP Sessions** — інтегровано в `/sessions/create` endpoint
-5. **Export Context** — експорт нотаток для AI (JSON, Markdown, JSONL)
-6. **Локалізація** — повна підтримка 5 мов
-7. **AccessZonesManager в OwnerSettingsDialog** — ✅ інтегровано як вкладка
-
-### 🚧 В процесі / Наступні кроки
-1. ⚠️ **Виправити auth UI** — `OwnerModeIndicator` та `AccessGateUI` не відображаються
-2. ⚠️ **Worker v2.0 deploy** — потребує оновлення (див. `garden-mcp-worker-auth.md`)
-3. **Zone View Mode** — режим перегляду для гостей з обмеженим контентом
-
-## 🔧 Cloudflare Worker
-
-### Документація коду
-Повний код Worker v2.0 з інструкціями розгортання для Comet агента:
-```
-src/site/notes/exodus.pp.ua/Сервіси/MCP/Конфігурації/garden-mcp-worker-auth.md
-```
-
-### KV Namespaces
-- `garden-mcp-kv` — MCP сесії та snapshots
-- `garden-auth-kv` — автентифікація власника
-
-### Ключові endpoints
-- `/auth/*` — owner authentication
-- `/sessions/create` — створення MCP сесії з notes snapshot
-- `/sessions/revoke` — видалення сесії
-- `/mcp/{sessionId}` — отримання snapshot (JSON)
-- `/mcp/{sessionId}?format=markdown` — Markdown формат
-- `/mcp/{sessionId}?format=jsonl` — JSONL формат
-- `/health` — health check з версією
-
-## 📌 Важливі ENV змінні
+### Frontend (.env у Lovable settings)
+Мінімум:
 
 ```env
 VITE_MCP_GATEWAY_URL=https://garden-mcp.exodus.pp.ua
 ```
 
-## 🎯 Пріоритетні задачі для продовження
+> Якщо є проблеми з DNS/CNAME — тимчасово ставити fallback URL на workers.dev.
 
-1. **🔴 Виправити UI auth** — OwnerModeIndicator та AccessGateUI не рендеряться
-2. **Deploy Worker v2.0** — скопіюй код з `garden-mcp-worker-auth.md` в Cloudflare Dashboard
-3. **Створи Zone View** — сторінка `/zone/:zoneId` для гостьового доступу
-4. **Тестування** — перевір повний flow: створення сесії → доступ до snapshot → expiration
+### Cloudflare Worker (Variables/Secrets в Cloudflare Dashboard)
+Обовʼязкові для роботи MCP/Storage (як було раніше):
+- `JWT_SECRET`
+- `MINIO_ENDPOINT`, `MINIO_BUCKET`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
+- KV binding: `KV` (namespace для сесій/метаданих)
 
-## 🗺️ План розвитку (Roadmap)
+Для **NotebookLM Chat** (актуально зараз):
+- `NOTEBOOKLM_BASE_URL` → `https://notebooklm-gateway.replit.app`
+- `NOTEBOOKLM_SERVICE_TOKEN` → секрет, який Replit backend очікує як Bearer
 
-Детальний roadmap з фазами та термінами:
-```
-docs/ai-agent-system/06-roadmap.md
-```
-
-### Phase 1: MVP (4 тижні)
-- Task Queue API (Worker)
-- Archivist role (summarize)
-- RPi polling daemon
-- Basic UI for task creation
-
-### Phase 2: Extended Roles
-- Technical Writer, Architect roles
-- Proposal system
-
-### Phase 3: Cloud Integration
-- Replit backend (FastAPI + LanceDB)
-- Advanced vector search
-
-## 💡 Поради для агента
-
-1. **Читай контекст** — Memory в `<useful-context>` містить важливу інформацію
-2. **Паралельні виклики** — завжди роби кілька read/write одночасно
-3. **Локалізація** — не забувай про всі 5 мов при зміні тексту
-4. **Semantic tokens** — використовуй кольори з design system, не hardcode
-5. **Маленькі компоненти** — краще багато малих файлів ніж один великий
-
-## 🐛 Debugging Tips
-
-### Якщо admin menu не показується:
-1. Перевір console на помилки `useOwnerAuth`
-2. Перевір network request до `/auth/status`
-3. Переконайся що `gatewayAvailable` = true в state
-4. Перевір що `OwnerModeIndicator` є в `GardenHeader`
-
-### Якщо форма входу не показується:
-1. Перевір `AccessGateUI` рендеринг в `Index.tsx`
-2. Перевір умови показу (зазвичай залежить від route)
+> ВАЖЛИВО: після зміни secrets у Cloudflare Worker — зробити **Deploy/Redeploy**, інакше зміни можуть не застосуватися.
 
 ---
 
-*Останнє оновлення: 2026-01-18*
-*Версія проекту: Digital Garden with Owner Auth & MCP Sessions v2.0*
-*Статус: 🔴 Auth UI не працює після rollback*
+## 4) Ключові модулі/файли у фронтенді (де що шукати)
+
+### Роутинг/Providers
+- `src/App.tsx`
+
+### Owner Auth
+- `src/hooks/useOwnerAuth.tsx`
+- UI:
+  - `src/components/garden/OwnerSetupWizard.tsx`
+  - `src/components/garden/OwnerLoginDialog.tsx`
+  - `src/components/garden/OwnerModeIndicator.tsx`
+  - `src/components/garden/OwnerSettingsDialog.tsx`
+
+### Access Zones
+- `src/hooks/useAccessZones.ts`
+- UI:
+  - `src/components/garden/AccessZonesManager.tsx`
+  - `src/components/garden/ZoneCreationDialog.tsx`
+  - `src/components/garden/ZoneQRDialog.tsx`
+  - `src/components/garden/AccessZonesWall.tsx`
+
+### NotebookLM
+- UI:
+  - `src/components/notebooklm/*`
+  - `src/components/zones/NotebookLMStatusBadge.tsx`
+- API client:
+  - `src/lib/api/mcpGatewayClient.ts`
+
+### Нотатки/рендеринг
+- Loader: `src/lib/notes/noteLoader.ts`
+- Parser: `src/lib/notes/wikilinkParser.ts`
+- UI: `src/components/garden/NoteRenderer.tsx`, `WikiLink.tsx`, `BacklinksSection.tsx`
+
+### Локалізація
+- `src/lib/i18n/*` та `src/hooks/useLocale.tsx`
+
+---
+
+## 5) Поточний стан (що працює / що важливо перевірити після переносу)
+
+### ✅ Працює/є в наявності
+- Основний перегляд нотаток, теги, графи, пошук
+- Owner initialization/login flow (через worker)
+- CRUD для Access Zones (через worker)
+- MCP sessions інтеграція
+- NotebookLM Chat інтеграція через gateway (worker → Replit)
+- `/admin/diagnostics` має інструменти для швидкого дебагу (включно з тестом NotebookLM)
+
+### 🔍 Перевірити відразу після переносу в інший Lovable акаунт
+1) **ENV `VITE_MCP_GATEWAY_URL`** в новому Lovable проєкті
+2) **CORS/origin allowlist** у worker (якщо він його перевіряє) — додати нові preview/published домени
+3) **Owner auth status**: відкрий `/admin/diagnostics` і перевір `/auth/status`
+4) **NotebookLM Test Chat** в `/admin/diagnostics`
+   - якщо `NOT_AUTHENTICATED`: проблема на стороні Replit (немає/протермінований `storage_state.json` або не залогінений Google/NotebookLM)
+   - якщо `401/403`: перевір `NOTEBOOKLM_SERVICE_TOKEN` в worker та відповідність очікуванням Replit
+
+---
+
+## 6) Відомі больові точки / типові фейли
+
+### NotebookLM: `NOT_AUTHENTICATED`
+Сигналізує, що Replit backend не має валідної авторизації до NotebookLM UI (Playwright/Google session).
+
+Що робити:
+- оновити/перегенерувати `storage_state.json` у Replit (ручний браузерний логін або процес, який ви там використовуєте)
+- повторити тест через `/admin/diagnostics`
+
+### Gateway: `gatewayAvailable=false` або помилки `/auth/status`
+Зазвичай причина:
+- неправильний `VITE_MCP_GATEWAY_URL`
+- Cloudflare worker не деплоєний/зламаний
+- CORS/origin restrictions
+
+---
+
+## 7) Перспективні напрями розвитку (найближчі та стратегічні)
+
+### Найближчі (практичні)
+1) **Уніфікована діагностика в UI**
+   - стандартизувати показ помилок NotebookLM (401/403/NOT_AUTHENTICATED/timeout) + короткі CTA
+2) **Полірування Zone experience**
+   - чіткий “Zone-only” режим: навігація, пошук/теги тільки в межах зони, зрозумілий banner “You are in zone X”
+3) **Покриття тестами критичних флоу**
+   - хоча б smoke-тести (Vitest) для i18n, note parsing, link graph
+4) **Performance для великих garden**
+   - оптимізація індексів пошуку/тегів/графа на фронті, lazy-loading важких view
+
+### Стратегічні (з roadmap AI Agent System)
+1) **Task Queue API (через Worker)** + UI для створення задач
+2) **Agent roles (Archivist/Tech Writer/Architect)** з pipeline та approvals
+3) **Збереження результатів агентів як draft-notes** в garden
+
+---
+
+## 8) Мінімальний чеклист для нового агента перед будь-якими змінами
+
+1) Перевірити, що app відкривається без runtime errors
+2) Відкрити `/admin/diagnostics` → пройтись по ключових checks
+3) Перевірити, що зміна UI не ламає access model (Owner vs Zone vs Public)
+4) Якщо торкаємось текстів — оновити всі локалі (uk/en/fr/de/it)
+
