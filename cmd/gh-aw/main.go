@@ -551,6 +551,7 @@ Use "` + string(constants.CLIExtensionPrefix) + ` help all" to show help for all
 	mcpCmd := cli.NewMCPCommand()
 	logsCmd := cli.NewLogsCommand()
 	auditCmd := cli.NewAuditCommand()
+	healthCmd := cli.NewHealthCommand()
 	mcpServerCmd := cli.NewMCPServerCommand()
 	prCmd := cli.NewPRCommand()
 	campaignCmd := campaign.NewCommand()
@@ -585,6 +586,7 @@ Use "` + string(constants.CLIExtensionPrefix) + ` help all" to show help for all
 	// Analysis Commands
 	logsCmd.GroupID = "analysis"
 	auditCmd.GroupID = "analysis"
+	healthCmd.GroupID = "analysis"
 	campaignCmd.GroupID = "analysis"
 
 	// Utilities
@@ -610,6 +612,7 @@ Use "` + string(constants.CLIExtensionPrefix) + ` help all" to show help for all
 	rootCmd.AddCommand(disableCmd)
 	rootCmd.AddCommand(logsCmd)
 	rootCmd.AddCommand(auditCmd)
+	rootCmd.AddCommand(healthCmd)
 	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(mcpServerCmd)
 	rootCmd.AddCommand(prCmd)
