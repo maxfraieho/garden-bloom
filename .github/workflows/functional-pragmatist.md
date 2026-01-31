@@ -1,5 +1,5 @@
 ---
-name: Functional Enhancer
+name: Functional Pragmatist
 description: Identifies opportunities to apply moderate functional programming techniques systematically - immutability, functional options, pure functions, reducing mutation and reusable logic wrappers
 on:
   schedule:
@@ -11,7 +11,7 @@ permissions:
   issues: read
   pull-requests: read
 
-tracker-id: functional-enhancer
+tracker-id: functional-pragmatist
 
 network:
   allowed:
