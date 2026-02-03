@@ -1975,11 +1975,12 @@ safe-outputs:
         # (optional)
         description: "Description of the workflow"
 
-    # Optional array of project custom fields to create up-front.
+    # Optional array of project custom fields to create up-front. Useful for project
+    # setups that require a fixed set of fields.
     # (optional)
     field-definitions: []
       # Array items:
-        # The field name to create (e.g., 'status', 'priority')
+        # The field name to create (e.g., 'status', 'tracker_id')
         name: "My Workflow"
 
         # The GitHub Projects v2 custom field type
@@ -2023,8 +2024,8 @@ safe-outputs:
     # (optional)
     target-owner: "example-value"
 
-    # Optional prefix for auto-generated project titles (default: 'Project'). When the
-    # agent doesn't provide a title, the project title is auto-generated as
+    # Optional prefix for auto-generated project titles (default: 'Project'). When
+    # the agent doesn't provide a title, the project title is auto-generated as
     # '<title-prefix>: <issue-title>' or '<title-prefix> #<issue-number>' based on the
     # issue context.
     # (optional)
@@ -2057,11 +2058,11 @@ safe-outputs:
         description: "Description of the workflow"
 
     # Optional array of project custom fields to create automatically after project
-    # creation.
+    # creation. Useful for projects that require a fixed set of fields.
     # (optional)
     field-definitions: []
       # Array items:
-        # The field name to create (e.g., 'Priority', 'Classification')
+        # The field name to create (e.g., 'Tracker Id', 'Priority')
         name: "My Workflow"
 
         # The GitHub Projects v2 custom field type
@@ -2087,8 +2088,8 @@ safe-outputs:
   # progress. Requires a Personal Access Token (PAT) or GitHub App token with
   # Projects: Read+Write permission. The GITHUB_TOKEN cannot be used for Projects
   # v2. Status updates are created on the specified project board and appear in the
-  # Updates tab. Typically used by orchestrators to post run summaries with
-  # progress, findings, and next steps.
+  # Updates tab. Often used by scheduled workflows and orchestrator workflows to
+  # post run summaries with progress, findings, and next steps.
   create-project-status-update:
     # Maximum number of status updates to create (default: 1). Typically 1 per
     # orchestrator run.
