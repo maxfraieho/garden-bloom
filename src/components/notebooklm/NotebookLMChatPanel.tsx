@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ConnectionBanner, type ConnectionState } from '@/components/ui/connection-banner';
 import { ZoneContextHeader } from '@/components/zones/ZoneContextHeader';
+import { ZoneAccessBanner, ZoneAccessLabel, type ZoneAccessState } from '@/components/zones/ZoneAccessBanner';
 import { cn } from '@/lib/utils';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { NotebookLMChat, NotebookLMMessage } from '@/hooks/useNotebookLMChats';
@@ -21,6 +22,8 @@ export interface ZoneContext {
   createdAt?: number;
   accessType: AccessType;
   noteCount?: number;
+  isReadOnly?: boolean;
+  ownerEmail?: string;
 }
 
 function asMarkdown(chat: NotebookLMChat, messages: NotebookLMMessage[]) {
@@ -52,6 +55,7 @@ export function NotebookLMChatPanel(props: {
   error?: string | null;
   zoneContext?: ZoneContext | null;
   showDiagnostics?: boolean;
+  onRequestRenewal?: () => void;
   className?: string;
 }) {
   const [input, setInput] = useState('');
@@ -63,7 +67,17 @@ export function NotebookLMChatPanel(props: {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [props.messages.length, props.chat?.id]);
 
-  const canSend = !!props.chat && input.trim().length > 0 && isOnline && !props.isLoading;
+  // Zone access state
+  const zoneAccessState: ZoneAccessState = useMemo(() => {
+    if (!props.zoneContext) return 'active';
+    if (props.zoneContext.expiresAt < Date.now()) return 'expired';
+    if (props.zoneContext.isReadOnly) return 'read-only';
+    return 'active';
+  }, [props.zoneContext]);
+
+  const isZoneBlocked = zoneAccessState !== 'active';
+
+  const canSend = !!props.chat && input.trim().length > 0 && isOnline && !props.isLoading && !isZoneBlocked;
 
   const exportJson = useMemo(() => {
     if (!props.chat) return null;
@@ -101,6 +115,16 @@ export function NotebookLMChatPanel(props: {
           accessType={props.zoneContext.accessType}
           noteCount={props.zoneContext.noteCount}
           showDiagnostics={props.showDiagnostics}
+        />
+      )}
+
+      {/* Zone Access Banner - expired/read-only */}
+      {isZoneBlocked && props.zoneContext && (
+        <ZoneAccessBanner
+          state={zoneAccessState}
+          zoneName={props.zoneContext.zoneName}
+          ownerEmail={props.zoneContext.ownerEmail}
+          onRequestRenewal={props.onRequestRenewal}
         />
       )}
 
@@ -259,14 +283,21 @@ export function NotebookLMChatPanel(props: {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={
-              !isOnline
+              isZoneBlocked
+                ? zoneAccessState === 'expired'
+                  ? 'Zone expired — cannot send messages'
+                  : 'Read-only — cannot send messages'
+                : !isOnline
                 ? 'Offline — check your connection'
                 : props.chat
                 ? 'Ask NotebookLM…'
                 : 'Select a chat first…'
             }
-            className="min-h-[60px] max-h-[120px] resize-none"
-            disabled={!props.chat || !isOnline || props.isLoading}
+            className={cn(
+              "min-h-[60px] max-h-[120px] resize-none",
+              isZoneBlocked && "opacity-60 cursor-not-allowed"
+            )}
+            disabled={!props.chat || !isOnline || props.isLoading || isZoneBlocked}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -293,13 +324,17 @@ export function NotebookLMChatPanel(props: {
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {!isOnline ? (
-            <span className="text-destructive">Waiting for connection…</span>
+
+        {/* Status label */}
+        <div className="mt-2">
+          {isZoneBlocked ? (
+            <ZoneAccessLabel state={zoneAccessState} />
+          ) : !isOnline ? (
+            <p className="text-xs text-destructive">Waiting for connection…</p>
           ) : (
-            'Enter to send, Shift+Enter for new line'
+            <p className="text-xs text-muted-foreground">Enter to send, Shift+Enter for new line</p>
           )}
-        </p>
+        </div>
       </div>
     </Card>
   );
