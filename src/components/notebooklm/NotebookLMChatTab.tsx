@@ -19,6 +19,7 @@ export function NotebookLMChatTab({ className }: { className?: string }) {
     createChat,
     deleteChat,
     renameChat,
+    togglePinChat,
     ensureChatForNotebook,
     appendMessage,
     clearMessages,
@@ -99,6 +100,7 @@ export function NotebookLMChatTab({ className }: { className?: string }) {
             // ignore until valid
           }
         }}
+        onTogglePin={(id) => togglePinChat(id)}
         className="h-full"
       />
 
