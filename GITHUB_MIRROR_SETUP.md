@@ -25,10 +25,11 @@ Click "New repository secret", name it `SSH_PRIVATE_KEY`, paste this value:
 ```
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACDX7MNzjWX9T6nfobb7XvWkQ8mWgtkndEPZIKeSYEtOmwAAAJgxfLKOMXyy
-jgAAAAtzc2gtZWQyNTUxOQAAACDX7MNzjWX9T6nfobb7XvWkQ8mWgtkndEPZIKeSYEtOmw
-AAAEAxdTj7Ni4UgNlcsg5epounziXkEF6yVNOxEIgoLRyrjdfsw3ONZf1Pqd+htvte9aRD
-yZaC2Sd0Q9kgp5JgS06bAAAAEHJwaTRiLW1heGZyYWllaG8BAgMEBQ==
+QyNTUxOQAAACCZESqPS60PahPXF2/AzbocHfv27NhDS8SnhMaVWn7MlQAAAKhljmKFZY5i
+hQAAAAtzc2gtZWQyNTUxOQAAACCZESqPS60PahPXF2/AzbocHfv27NhDS8SnhMaVWn7MlQ
+AAAECzRnRXmE53321hlthkVEIT4obISyssWLT1nyveVTihpJkRKo9LrQ9qE9cXb8DNuhwd
++/bs2ENLxKeExpVafsyVAAAAH2dhcmRlbi1ibG9vbS10by1wcm9qZWN0LWdlbmVzaXMBAg
+MEBQY=
 -----END OPENSSH PRIVATE KEY-----
 ```
 
@@ -54,7 +55,7 @@ Click "Add deploy key":
 - **Key**: (paste exactly as shown below, single line)
 
 ```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfsw3ONZf1Pqd+htvte9aRDyZaC2Sd0Q9kgp5JgS06b rpi4b-maxfraieho
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJkRKo9LrQ9qE9cXb8DNuhwd+/bs2ENLxKeExpVafsyV garden-bloom-to-project-genesis
 ```
 
 - **Allow write access**: YES (check the box)
@@ -129,5 +130,5 @@ Host github-maxfraieho
 | Source repo | `maxfraieho/project-genesis` |
 | Target repo | `maxfraieho/garden-bloom` |
 | Workflow file | `.github/workflows/mirror.yml` |
-| SSH key file | `~/.ssh/id_ed25519_maxfraieho` |
+| SSH key file | `~/.ssh/mirror_project_genesis` |
 | Deploy target | Cloudflare Pages (from garden-bloom) |
