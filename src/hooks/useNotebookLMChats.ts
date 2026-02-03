@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
+import { touchChat, patchChat } from '@/lib/api/mcpGatewayClient';
 
 export type NotebookLMChatStatus = 'active' | 'archived';
 
@@ -16,6 +17,10 @@ export type NotebookLMChat = {
   zoneName?: string;
   zoneExpiresAt?: number;
   accessType?: 'web' | 'mcp' | 'both';
+  // Inbox fields
+  unreadCount?: number;
+  lastMessagePreview?: string;
+  lastMessageAt?: number;
 };
 
 export type NotebookLMMessage = {
@@ -52,20 +57,29 @@ function writeJson(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-// Sort helper: pinned first, then by updatedAt
-function sortChats(chats: NotebookLMChat[]): NotebookLMChat[] {
+// Sort helper: unread first (if enabled), pinned, then by lastMessageAt/updatedAt
+function sortChats(chats: NotebookLMChat[], unreadFirst = true): NotebookLMChat[] {
   return [...chats].sort((a, b) => {
+    // Unread first (chats with unreadCount > 0)
+    if (unreadFirst) {
+      const aUnread = (a.unreadCount ?? 0) > 0;
+      const bUnread = (b.unreadCount ?? 0) > 0;
+      if (aUnread && !bUnread) return -1;
+      if (!aUnread && bUnread) return 1;
+    }
     // Pinned first
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    // Then by updatedAt
-    return b.updatedAt - a.updatedAt;
+    // Then by lastMessageAt (or updatedAt as fallback)
+    const aTime = a.lastMessageAt ?? a.updatedAt;
+    const bTime = b.lastMessageAt ?? b.updatedAt;
+    return bTime - aTime;
   });
 }
 
 export function useNotebookLMChats() {
   const [chats, setChats] = useState<NotebookLMChat[]>([]);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeChatId, setActiveChatIdRaw] = useState<string | null>(null);
   const [messages, setMessages] = useState<NotebookLMMessage[]>([]);
 
   // Load chats list once
@@ -74,7 +88,7 @@ export function useNotebookLMChats() {
     if (Array.isArray(stored)) {
       const sorted = sortChats(stored);
       setChats(sorted);
-      setActiveChatId(sorted[0]?.id ?? null);
+      setActiveChatIdRaw(sorted[0]?.id ?? null);
     }
   }, []);
 
@@ -104,6 +118,29 @@ export function useNotebookLMChats() {
     [chats, activeChatId]
   );
 
+  // When selecting a chat, reset unread count
+  const setActiveChatId = useCallback((chatId: string | null) => {
+    setActiveChatIdRaw(chatId);
+    
+    if (!chatId) return;
+    
+    // Find the chat and check if it has unread messages
+    const chat = chats.find((c) => c.id === chatId);
+    if (chat && (chat.unreadCount ?? 0) > 0) {
+      // Reset unread locally
+      const now = Date.now();
+      const updated = chats.map((c) =>
+        c.id === chatId ? { ...c, unreadCount: 0, updatedAt: now } : c
+      );
+      persistChats(updated);
+      
+      // Sync to server (fire and forget)
+      patchChat(chatId, { unreadCount: 0 }).catch(() => {
+        // Ignore errors - local state is source of truth
+      });
+    }
+  }, [chats, persistChats]);
+
   const createChat = useCallback((input: { title: string; notebookUrl: string }) => {
     const parsed = chatSchema.parse(input);
     const now = Date.now();
@@ -113,9 +150,11 @@ export function useNotebookLMChats() {
       notebookUrl: parsed.notebookUrl,
       createdAt: now,
       updatedAt: now,
+      lastMessageAt: now,
+      unreadCount: 0,
     };
     persistChats([chat, ...chats]);
-    setActiveChatId(chat.id);
+    setActiveChatIdRaw(chat.id);
     persistMessages(chat.id, []);
     return chat;
   }, [chats, persistChats, persistMessages]);
@@ -129,7 +168,7 @@ export function useNotebookLMChats() {
       // ignore
     }
     if (activeChatId === chatId) {
-      setActiveChatId(next[0]?.id ?? null);
+      setActiveChatIdRaw(next[0]?.id ?? null);
     }
   }, [chats, persistChats, activeChatId]);
 
@@ -142,10 +181,17 @@ export function useNotebookLMChats() {
   }, [chats, persistChats]);
 
   const togglePinChat = useCallback((chatId: string) => {
+    const chat = chats.find((c) => c.id === chatId);
+    const newPinned = !chat?.pinned;
+    
     persistChats(
-      chats.map((c) => (c.id === chatId ? { ...c, pinned: !c.pinned } : c))
+      chats.map((c) => (c.id === chatId ? { ...c, pinned: newPinned } : c))
     );
+    
+    // Sync to server
+    patchChat(chatId, { pinned: newPinned }).catch(() => {});
   }, [chats, persistChats]);
+
   const ensureChatForNotebook = useCallback((opts: { notebookUrl: string; suggestedTitle?: string }) => {
     const notebookUrl = z.string().trim().url().parse(opts.notebookUrl);
     const existing = chats.find((c) => c.notebookUrl === notebookUrl);
@@ -155,7 +201,7 @@ export function useNotebookLMChats() {
     }
     const title = (opts.suggestedTitle ?? 'Notebook chat').trim() || 'Notebook chat';
     return createChat({ title, notebookUrl });
-  }, [chats, createChat]);
+  }, [chats, createChat, setActiveChatId]);
 
   const appendMessage = useCallback((msg: Omit<NotebookLMMessage, 'id' | 'createdAt'>) => {
     const now = Date.now();
@@ -167,18 +213,52 @@ export function useNotebookLMChats() {
     const chatId = msg.chatId;
     const nextMsgs = [...messages, message];
     persistMessages(chatId, nextMsgs);
-    // bump chat updatedAt
-    persistChats(
-      chats.map((c) => (c.id === chatId ? { ...c, updatedAt: now } : c))
-    );
+    
+    // Determine if this is an incoming message (assistant) or outgoing (user)
+    const isIncoming = msg.role === 'assistant';
+    const isActive = chatId === activeChatId;
+    
+    // Create preview (first 100 chars)
+    const preview = msg.content.slice(0, 100);
+    
+    // Update chat metadata
+    const updated = chats.map((c) => {
+      if (c.id !== chatId) return c;
+      return {
+        ...c,
+        updatedAt: now,
+        lastMessageAt: now,
+        lastMessagePreview: preview,
+        // Increment unread only for incoming messages when chat is not active
+        unreadCount: isIncoming && !isActive 
+          ? (c.unreadCount ?? 0) + 1 
+          : (c.unreadCount ?? 0),
+      };
+    });
+    persistChats(updated);
+    
+    // Sync to server (fire and forget)
+    touchChat(chatId, {
+      lastMessagePreview: preview,
+      lastMessageAt: now,
+      unreadCount: isIncoming && !isActive ? 1 : 0,
+    }).catch(() => {
+      // Server sync failed - local state is still valid
+    });
+    
     return message;
-  }, [messages, persistMessages, chats, persistChats]);
+  }, [messages, persistMessages, chats, persistChats, activeChatId]);
 
   const clearMessages = useCallback((chatId: string) => {
     persistMessages(chatId, []);
     const now = Date.now();
-    persistChats(chats.map((c) => (c.id === chatId ? { ...c, updatedAt: now } : c)));
+    persistChats(chats.map((c) => (c.id === chatId ? { ...c, updatedAt: now, lastMessagePreview: null } : c)));
   }, [persistMessages, chats, persistChats]);
+
+  // Calculate total unread count
+  const totalUnreadCount = useMemo(() => {
+    return chats.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+  }, [chats]);
 
   return {
     chats,
@@ -193,5 +273,6 @@ export function useNotebookLMChats() {
     ensureChatForNotebook,
     appendMessage,
     clearMessages,
+    totalUnreadCount,
   };
 }
