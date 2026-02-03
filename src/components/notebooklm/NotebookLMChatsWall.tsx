@@ -1,19 +1,26 @@
 import { useMemo, useState } from 'react';
-import { Plus, Trash2, MessageSquare, Archive, Clock, Globe, Laptop, Search } from 'lucide-react';
+import { Plus, Trash2, MessageSquare, Archive, Clock, Globe, Laptop, SearchX } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { ChatsWallFilters, applyChatsFilters, type ChatsWallFiltersState } from './ChatsWallFilters';
 import type { NotebookLMChat, NotebookLMChatStatus } from '@/hooks/useNotebookLMChats';
 
 type TabFilter = 'active' | 'archived' | 'all';
+
+const DEFAULT_FILTERS: ChatsWallFiltersState = {
+  query: '',
+  accessType: 'all',
+  zoneId: 'all',
+  sort: 'recent',
+};
 
 function ChatSkeleton() {
   return (
@@ -33,7 +40,30 @@ function ChatSkeleton() {
   );
 }
 
-function EmptyChatsState({ onNew, tab }: { onNew: () => void; tab: TabFilter }) {
+function EmptyChatsState({ 
+  onNew, 
+  tab, 
+  hasFilters 
+}: { 
+  onNew: () => void; 
+  tab: TabFilter;
+  hasFilters: boolean;
+}) {
+  // Different message when filters are applied vs no chats at all
+  if (hasFilters) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+          <SearchX className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-medium">No matching chats</p>
+          <p className="text-xs text-muted-foreground">Try adjusting your filters or search</p>
+        </div>
+      </div>
+    );
+  }
+
   const messages: Record<TabFilter, { title: string; desc: string }> = {
     active: { title: 'No active chats', desc: 'Start a conversation with your notebook' },
     archived: { title: 'No archived chats', desc: 'Archived chats will appear here' },
@@ -185,9 +215,20 @@ export function NotebookLMChatsWall(props: {
   isLoading?: boolean;
   className?: string;
 }) {
-  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<ChatsWallFiltersState>(DEFAULT_FILTERS);
   const [tab, setTab] = useState<TabFilter>('active');
   const [toDelete, setToDelete] = useState<NotebookLMChat | null>(null);
+
+  // Extract unique zones from chats for filter dropdown
+  const availableZones = useMemo(() => {
+    const zonesMap = new Map<string, string>();
+    props.chats.forEach((c) => {
+      if (c.zoneId && c.zoneName) {
+        zonesMap.set(c.zoneId, c.zoneName);
+      }
+    });
+    return Array.from(zonesMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [props.chats]);
 
   // Count by status
   const counts = useMemo(() => {
@@ -196,28 +237,23 @@ export function NotebookLMChatsWall(props: {
     return { active, archived, all: props.chats.length };
   }, [props.chats]);
 
-  // Filter by tab and search
+  // Count active filters (excluding defaults)
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.accessType !== 'all') count++;
+    if (filters.zoneId !== 'all') count++;
+    if (filters.query.trim()) count++;
+    if (filters.sort !== 'recent') count++;
+    return count;
+  }, [filters]);
+
+  // Apply all filters
   const filtered = useMemo(() => {
-    let list = props.chats;
+    return applyChatsFilters(props.chats, filters, tab);
+  }, [props.chats, filters, tab]);
 
-    // Filter by tab
-    if (tab === 'active') {
-      list = list.filter((c) => c.status !== 'archived');
-    } else if (tab === 'archived') {
-      list = list.filter((c) => c.status === 'archived');
-    }
-
-    // Filter by search
-    const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter((c) => {
-        const hay = `${c.title} ${c.zoneName || ''} ${c.notebookUrl}`.toLowerCase();
-        return hay.includes(q);
-      });
-    }
-
-    return list;
-  }, [props.chats, tab, query]);
+  // Check if any filters are active (for empty state messaging)
+  const hasActiveFilters = activeFiltersCount > 0;
 
   return (
     <Card className={cn('flex flex-col overflow-hidden', props.className)}>
@@ -259,17 +295,14 @@ export function NotebookLMChatsWall(props: {
         </Tabs>
       </div>
 
-      {/* Search */}
+      {/* Filters */}
       <div className="p-3 border-b">
-        <div className="relative">
-          <Search className="h-4 w-4 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search chats…"
-            className="pl-8 h-9"
-          />
-        </div>
+        <ChatsWallFilters
+          filters={filters}
+          onChange={setFilters}
+          availableZones={availableZones}
+          activeFiltersCount={activeFiltersCount}
+        />
       </div>
 
       {/* Chat list */}
@@ -283,14 +316,8 @@ export function NotebookLMChatsWall(props: {
             </>
           )}
 
-          {!props.isLoading && filtered.length === 0 && !query && (
-            <EmptyChatsState onNew={props.onNew} tab={tab} />
-          )}
-
-          {!props.isLoading && filtered.length === 0 && query && (
-            <div className="p-4 text-sm text-muted-foreground text-center">
-              No matching chats.
-            </div>
+          {!props.isLoading && filtered.length === 0 && (
+            <EmptyChatsState onNew={props.onNew} tab={tab} hasFilters={hasActiveFilters} />
           )}
 
           {!props.isLoading &&
