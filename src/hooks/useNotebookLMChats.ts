@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 
+export type NotebookLMChatStatus = 'active' | 'archived';
+
 export type NotebookLMChat = {
   id: string;
   title: string;
   notebookUrl: string;
   createdAt: number;
   updatedAt: number;
+  status?: NotebookLMChatStatus;
+  // Optional zone context (may be set when creating from a zone)
+  zoneId?: string;
+  zoneName?: string;
+  zoneExpiresAt?: number;
+  accessType?: 'web' | 'mcp' | 'both';
 };
 
 export type NotebookLMMessage = {
