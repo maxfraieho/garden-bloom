@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useColleagueChat } from '@/hooks/useColleagueChat';
-import { ChatMessage } from './ChatMessage';
+import { ChatMessage, DateSeparator, shouldShowDateSeparator } from './ChatMessage';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -49,6 +49,14 @@ export function ChatCanvas({ chatId, className, title = 'Colleagues Chat' }: Cha
     }
   };
 
+  // Group messages with date separators
+  const messagesWithSeparators = useMemo(() => {
+    return messages.map((msg, idx) => ({
+      message: msg,
+      showDateSeparator: shouldShowDateSeparator(msg, messages[idx - 1]),
+    }));
+  }, [messages]);
+
   return (
     <Card className={cn('flex flex-col h-full', className)}>
       <CardHeader className="flex-shrink-0 pb-3 border-b">
@@ -74,7 +82,7 @@ export function ChatCanvas({ chatId, className, title = 'Colleagues Chat' }: Cha
 
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
         {/* Messages Area */}
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 px-3 py-2 sm:p-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-12">
               <div className="text-4xl mb-4">{selectedColleague.avatar}</div>
@@ -88,12 +96,16 @@ export function ChatCanvas({ chatId, className, title = 'Colleagues Chat' }: Cha
             </div>
           ) : (
             <>
-              {messages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  isOwn={message.participant.role === 'owner'}
-                />
+              {messagesWithSeparators.map(({ message, showDateSeparator }) => (
+                <div key={message.id}>
+                  {showDateSeparator && (
+                    <DateSeparator date={new Date(message.createdAt)} />
+                  )}
+                  <ChatMessage
+                    message={message}
+                    isOwn={message.participant.role === 'owner'}
+                  />
+                </div>
               ))}
               {isLoading && (
                 <div className="flex items-center gap-2 text-muted-foreground text-sm px-4 py-2">
