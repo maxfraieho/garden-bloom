@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Trash2, MessageSquare, Archive, Clock, Globe, Laptop, SearchX } from 'lucide-react';
+import { Plus, Trash2, MessageSquare, Archive, Clock, Globe, Laptop, SearchX, Pin } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { ChatsWallFilters, applyChatsFilters, type ChatsWallFiltersState } from './ChatsWallFilters';
@@ -142,12 +143,14 @@ function ChatCard({
   onSelect,
   onDelete,
   onRename,
+  onTogglePin,
 }: {
   chat: NotebookLMChat;
   isActive: boolean;
   onSelect: () => void;
   onDelete: () => void;
   onRename: (title: string) => void;
+  onTogglePin: () => void;
 }) {
   const lastActivity = formatDistanceToNow(chat.updatedAt, { addSuffix: true, locale: uk });
 
@@ -155,12 +158,18 @@ function ChatCard({
     <div
       className={cn(
         'group rounded-md border border-border p-2.5 cursor-pointer transition-colors animate-fade-in',
-        isActive ? 'bg-muted border-primary/50' : 'hover:bg-muted/50'
+        isActive ? 'bg-muted border-primary/50' : 'hover:bg-muted/50',
+        chat.pinned && 'ring-1 ring-primary/20 bg-primary/5'
       )}
       onClick={onSelect}
     >
       {/* Header row */}
       <div className="flex items-start gap-2">
+        {/* Pin indicator (visible when pinned) */}
+        {chat.pinned && (
+          <Pin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5 fill-primary" />
+        )}
+        
         <div className="flex-1 min-w-0">
           <input
             className="w-full bg-transparent text-sm font-medium outline-none truncate"
@@ -173,18 +182,43 @@ function ChatCard({
           </p>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          title="Delete chat"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {/* Actions */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-7 w-7 shrink-0',
+                  chat.pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin();
+                }}
+              >
+                <Pin className={cn('h-3.5 w-3.5', chat.pinned && 'fill-current')} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              {chat.pinned ? 'Unpin chat' : 'Pin chat'}
+            </TooltipContent>
+          </Tooltip>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            title="Delete chat"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       {/* Badges row */}
@@ -211,6 +245,7 @@ export function NotebookLMChatsWall(props: {
   onNew: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
+  onTogglePin: (id: string) => void;
   onArchive?: (id: string) => void;
   isLoading?: boolean;
   className?: string;
@@ -329,6 +364,7 @@ export function NotebookLMChatsWall(props: {
                 onSelect={() => props.onSelect(c.id)}
                 onDelete={() => setToDelete(c)}
                 onRename={(title) => props.onRename(c.id, title)}
+                onTogglePin={() => props.onTogglePin(c.id)}
               />
             ))}
         </div>

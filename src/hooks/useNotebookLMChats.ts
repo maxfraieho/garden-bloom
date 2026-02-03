@@ -10,6 +10,7 @@ export type NotebookLMChat = {
   createdAt: number;
   updatedAt: number;
   status?: NotebookLMChatStatus;
+  pinned?: boolean;
   // Optional zone context (may be set when creating from a zone)
   zoneId?: string;
   zoneName?: string;
@@ -51,6 +52,17 @@ function writeJson(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+// Sort helper: pinned first, then by updatedAt
+function sortChats(chats: NotebookLMChat[]): NotebookLMChat[] {
+  return [...chats].sort((a, b) => {
+    // Pinned first
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    // Then by updatedAt
+    return b.updatedAt - a.updatedAt;
+  });
+}
+
 export function useNotebookLMChats() {
   const [chats, setChats] = useState<NotebookLMChat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -60,7 +72,7 @@ export function useNotebookLMChats() {
   useEffect(() => {
     const stored = readJson<NotebookLMChat[]>(STORAGE_CHATS);
     if (Array.isArray(stored)) {
-      const sorted = [...stored].sort((a, b) => b.updatedAt - a.updatedAt);
+      const sorted = sortChats(stored);
       setChats(sorted);
       setActiveChatId(sorted[0]?.id ?? null);
     }
@@ -77,7 +89,7 @@ export function useNotebookLMChats() {
   }, [activeChatId]);
 
   const persistChats = useCallback((next: NotebookLMChat[]) => {
-    const sorted = [...next].sort((a, b) => b.updatedAt - a.updatedAt);
+    const sorted = sortChats(next);
     setChats(sorted);
     writeJson(STORAGE_CHATS, sorted);
   }, []);
@@ -129,6 +141,11 @@ export function useNotebookLMChats() {
     );
   }, [chats, persistChats]);
 
+  const togglePinChat = useCallback((chatId: string) => {
+    persistChats(
+      chats.map((c) => (c.id === chatId ? { ...c, pinned: !c.pinned } : c))
+    );
+  }, [chats, persistChats]);
   const ensureChatForNotebook = useCallback((opts: { notebookUrl: string; suggestedTitle?: string }) => {
     const notebookUrl = z.string().trim().url().parse(opts.notebookUrl);
     const existing = chats.find((c) => c.notebookUrl === notebookUrl);
@@ -172,6 +189,7 @@ export function useNotebookLMChats() {
     createChat,
     deleteChat,
     renameChat,
+    togglePinChat,
     ensureChatForNotebook,
     appendMessage,
     clearMessages,

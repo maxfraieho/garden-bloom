@@ -330,21 +330,28 @@ export function applyChatsFilters(
     result = result.filter((c) => c.zoneId === filters.zoneId);
   }
 
-  // Sort
-  switch (filters.sort) {
-    case 'recent':
-      result.sort((a, b) => b.updatedAt - a.updatedAt);
-      break;
-    case 'oldest':
-      result.sort((a, b) => a.updatedAt - b.updatedAt);
-      break;
-    case 'name-asc':
-      result.sort((a, b) => a.title.localeCompare(b.title));
-      break;
-    case 'name-desc':
-      result.sort((a, b) => b.title.localeCompare(a.title));
-      break;
-  }
+  // Sort (always pinned first, then by selected sort)
+  const sortFn = (a: NotebookLMChat, b: NotebookLMChat): number => {
+    // Pinned always first
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    
+    // Then apply selected sort
+    switch (filters.sort) {
+      case 'recent':
+        return b.updatedAt - a.updatedAt;
+      case 'oldest':
+        return a.updatedAt - b.updatedAt;
+      case 'name-asc':
+        return a.title.localeCompare(b.title);
+      case 'name-desc':
+        return b.title.localeCompare(a.title);
+      default:
+        return 0;
+    }
+  };
+
+  result.sort(sortFn);
 
   return result;
 }
