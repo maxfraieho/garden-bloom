@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
-import { Download, FileJson, FileText, Send, Sparkles, Trash2 } from 'lucide-react';
+import { Download, FileJson, FileText, Send, Sparkles, Trash2, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ConnectionBanner, type ConnectionState } from '@/components/ui/connection-banner';
 import { cn } from '@/lib/utils';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { NotebookLMChat, NotebookLMMessage } from '@/hooks/useNotebookLMChats';
 
 function asMarkdown(chat: NotebookLMChat, messages: NotebookLMMessage[]) {
@@ -34,21 +36,45 @@ export function NotebookLMChatPanel(props: {
   onSend: (content: string) => void;
   onQuickAction: (kind: 'summary' | 'study_guide' | 'flashcards') => void;
   onClear: () => void;
+  onRetry?: () => void;
+  isLoading?: boolean;
+  error?: string | null;
   className?: string;
 }) {
   const [input, setInput] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  const { isOnline } = useOnlineStatus();
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [props.messages.length, props.chat?.id]);
 
-  const canSend = !!props.chat && input.trim().length > 0;
+  const canSend = !!props.chat && input.trim().length > 0 && isOnline && !props.isLoading;
 
   const exportJson = useMemo(() => {
     if (!props.chat) return null;
     return JSON.stringify({ chat: props.chat, messages: props.messages }, null, 2);
   }, [props.chat, props.messages]);
+
+  // Determine connection state
+  const connectionState: ConnectionState = !isOnline
+    ? 'offline'
+    : props.error
+    ? 'error'
+    : isRetrying
+    ? 'retrying'
+    : 'online';
+
+  const handleRetry = async () => {
+    if (!props.onRetry) return;
+    setIsRetrying(true);
+    try {
+      await props.onRetry();
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   return (
     <Card className={cn('flex flex-col overflow-hidden', props.className)}>
@@ -63,7 +89,7 @@ export function NotebookLMChatPanel(props: {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2" disabled={!props.chat}>
+              <Button variant="outline" size="sm" className="gap-2" disabled={!props.chat || !isOnline}>
                 <Sparkles className="h-4 w-4" />
                 Actions
               </Button>
@@ -144,6 +170,17 @@ export function NotebookLMChatPanel(props: {
         </div>
       </div>
 
+      {/* Connection Banner */}
+      {connectionState !== 'online' && (
+        <ConnectionBanner
+          state={connectionState}
+          errorMessage={props.error || undefined}
+          onRetry={props.onRetry ? handleRetry : undefined}
+          isRetrying={isRetrying}
+          className="mx-3 mt-3"
+        />
+      )}
+
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="p-4 space-y-3 animate-enter">
@@ -176,6 +213,15 @@ export function NotebookLMChatPanel(props: {
                 </div>
               ))
             )}
+
+            {/* Loading indicator */}
+            {props.isLoading && (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm px-4 py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Thinking...</span>
+              </div>
+            )}
+
             <div ref={endRef} />
           </div>
         </ScrollArea>
@@ -186,9 +232,15 @@ export function NotebookLMChatPanel(props: {
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={props.chat ? 'Ask NotebookLM…' : 'Select a chat first…'}
+            placeholder={
+              !isOnline
+                ? 'Offline — check your connection'
+                : props.chat
+                ? 'Ask NotebookLM…'
+                : 'Select a chat first…'
+            }
             className="min-h-[60px] max-h-[120px] resize-none"
-            disabled={!props.chat}
+            disabled={!props.chat || !isOnline || props.isLoading}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -208,10 +260,20 @@ export function NotebookLMChatPanel(props: {
               setInput('');
             }}
           >
-            <Send className="h-5 w-5" />
+            {props.isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">Enter to send, Shift+Enter for new line</p>
+        <p className="text-xs text-muted-foreground mt-2">
+          {!isOnline ? (
+            <span className="text-destructive">Waiting for connection…</span>
+          ) : (
+            'Enter to send, Shift+Enter for new line'
+          )}
+        </p>
       </div>
     </Card>
   );
