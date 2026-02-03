@@ -8,9 +8,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ConnectionBanner, type ConnectionState } from '@/components/ui/connection-banner';
+import { ZoneContextHeader } from '@/components/zones/ZoneContextHeader';
 import { cn } from '@/lib/utils';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { NotebookLMChat, NotebookLMMessage } from '@/hooks/useNotebookLMChats';
+import type { AccessType } from '@/types/mcpGateway';
+
+export interface ZoneContext {
+  zoneId: string;
+  zoneName: string;
+  expiresAt: number;
+  createdAt?: number;
+  accessType: AccessType;
+  noteCount?: number;
+}
 
 function asMarkdown(chat: NotebookLMChat, messages: NotebookLMMessage[]) {
   const header = `# ${chat.title}\n\nNotebook: ${chat.notebookUrl}\n`;
@@ -39,6 +50,8 @@ export function NotebookLMChatPanel(props: {
   onRetry?: () => void;
   isLoading?: boolean;
   error?: string | null;
+  zoneContext?: ZoneContext | null;
+  showDiagnostics?: boolean;
   className?: string;
 }) {
   const [input, setInput] = useState('');
@@ -78,6 +91,19 @@ export function NotebookLMChatPanel(props: {
 
   return (
     <Card className={cn('flex flex-col overflow-hidden', props.className)}>
+      {/* Zone Context Header - sticky */}
+      {props.zoneContext && (
+        <ZoneContextHeader
+          zoneId={props.zoneContext.zoneId}
+          zoneName={props.zoneContext.zoneName}
+          expiresAt={props.zoneContext.expiresAt}
+          createdAt={props.zoneContext.createdAt}
+          accessType={props.zoneContext.accessType}
+          noteCount={props.zoneContext.noteCount}
+          showDiagnostics={props.showDiagnostics}
+        />
+      )}
+
       <div className="p-3 border-b flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{props.chat ? props.chat.title : 'NotebookLM chat'}</p>
