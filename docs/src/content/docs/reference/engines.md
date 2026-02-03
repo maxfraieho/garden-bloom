@@ -5,159 +5,69 @@ sidebar:
   order: 600
 ---
 
-GitHub Agentic Workflows use AI [coding agents or engines](/gh-aw/reference/glossary/#engine) to interpret and execute natural language instructions. Each engine has unique capabilities and configuration options.
+GitHub Agentic Workflows use AI [coding agents](/gh-aw/reference/glossary/#engine) to interpret and execute natural language instructions. Each coding agent has unique capabilities and configuration options.
 
-## GitHub Copilot CLI
+## Using Copilot CLI
 
-[GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-copilot-cli) is the default and recommended AI [coding agent engine](/gh-aw/reference/glossary/#engine).
+[GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-copilot-cli) is the default AI [coding agent engine](/gh-aw/reference/glossary/#engine).
 
-## GitHub Copilot CLI Setup
+1. Copilot CLI is the default. You can optionally request the use of of the Copilot CLI in your workflow frontmatter:
 
-GitHub Copilot CLI is the default engine. You can also request the use of of the GitHub Copilot CLI engine in your workflow frontmatter:
+   ```yaml wrap
+   engine: copilot
+   ```
 
-```yaml wrap
-engine: copilot
-```
+2. Configure `COPILOT_GITHUB_TOKEN` repository secret
 
-or use extended configuration:
+   You need a GitHub Personal Access Token (PAT) with the `copilot-requests` scope to authenticate Copilot CLI. Create a fine-grained PAT at <https://github.com/settings/personal-access-tokens/new>.
 
-```yaml wrap
-engine:
-  id: copilot
-  version: latest                       # defaults to latest
-  model: gpt-5                          # defaults to claude-sonnet-4
-  args: ["--add-dir", "/workspace"]     # custom CLI arguments
-```
+   - **IMPORTANT:** Select your user account, NOT an organization
+   - **IMPORTANT:** Choose "Public repositories" access, even if adding to a private repo. Yes that's right just do it
+   - **IMPORTANT:** Enable "Copilot Requests" permissions.
 
-Configuration options: `model` (gpt-5 or claude-sonnet-4), `version` (CLI version), `args` (command-line arguments). Alternatively set model via `COPILOT_MODEL` environment variable.
+   You **must** have "Public repositories" selected; otherwise, you will not have access to the Copilot Requests permission option.
 
-### Running Copilot CLI Locally
+3. Add it to your repository:
 
-To run the GitHub Copilot CLI on your local machine, use the `gh copilot` command:
+   ```bash wrap
+   gh aw secrets set COPILOT_GITHUB_TOKEN --value "<your-github-pat>"
+   ```
 
-```bash wrap
-gh copilot
-```
+You **must** have "Public repositories" selected; otherwise, you will not have access to the Copilot Requests permission option.
 
-The `gh copilot` command is built into the GitHub CLI and automatically downloads and manages the Copilot CLI installation. No additional installation required - just install the [GitHub CLI](https://cli.github.com/)!
-
-### Required Secrets
-
-Create a fine-grained PAT at <https://github.com/settings/personal-access-tokens/new>.
-
-- **IMPORTANT:** Select your user account, NOT an organization
-- **IMPORTANT:** Choose "Public repositories" access, even if adding to a private repo. Yes that's right just do it
-- **IMPORTANT:** Enable "Copilot Requests" permissions.
-
-Then add it to your repository:
-
-```bash wrap
-gh aw secrets set COPILOT_GITHUB_TOKEN --value "<your-github-pat>"
-```
-
-> [!NOTE]
-> You **must** have "Public repositories" selected; otherwise, you will not have access to the Copilot Requests permission option.
-
-**`COPILOT_GITHUB_TOKEN`**: GitHub [Personal Access Token](/gh-aw/reference/glossary/#personal-access-token-pat) (PAT, a token that authenticates you to GitHub's APIs) with "Copilot Requests" permission. **`GH_AW_GITHUB_TOKEN`** (optional): Required for [GitHub Tools Remote Mode](/gh-aw/reference/tools/#modes-and-restrictions).
-
-For more information about GitHub Copilot CLI, see the [official documentation](https://gh.io/copilot-cli).
-
-> [!NOTE]
-> The Copilot engine does not have built-in `web-search` support. You can add web search capabilities using third-party MCP servers. See the [Using Web Search](/gh-aw/guides/web-search/) for available options and setup instructions.
-
-For GitHub Tools Remote Mode, also configure:
-
-```bash wrap
-gh aw secrets set GH_AW_GITHUB_MCP_SERVER_TOKEN --value "<your-github-pat>"
-```
-
-## Anthropic Claude
+## Using Claude Code
 
 [Anthropic Claude Code](https://www.anthropic.com/index/claude) is an AI engine option that provides full MCP tool support and allow-listing capabilities.
 
-### Claude Setup
+1. Request the use of the Claude engine in your workflow frontmatter:
 
-Request the use of the Claude engine in your workflow frontmatter:
+   ```yaml wrap
+   engine: claude
+   ```
 
-```yaml wrap
-engine: claude
-```
+2. Configuring `ANTHROPIC_API_KEY`
 
-Extended configuration is also supported.
+   Create an Anthropic API key at <https://console.anthropic.com/api-keys> and add it to your repository:
 
-Create an Anthropic API key at <https://console.anthropic.com/api-keys> and add it to your repository:
-
-```bash wrap
-gh aw secrets set ANTHROPIC_API_KEY --value "<your-anthropic-api-key>"
-```
-
-### Quick Example with Claude
-
-Here's a minimal workflow that uses Claude to analyze GitHub issues:
-
-**File**: `.github/workflows/issue-analyzer.md`
-
-```yaml wrap
----
-engine: claude
-on: 
-  issues:
-    types: [opened]
-permissions:
-  contents: read
-  issues: read
-safe-outputs:
-  add-comment:
----
-
-# Issue Analysis
-
-Analyze this issue and provide:
-1. Summary of the problem
-2. Suggested labels
-3. Any immediate concerns
-```
-
-**Setup:**
-
-1. Get your API key from [Anthropic Console](https://console.anthropic.com/api-keys)
-2. Set the secret:
    ```bash wrap
    gh aw secrets set ANTHROPIC_API_KEY --value "<your-anthropic-api-key>"
    ```
-3. Compile and run:
-   ```bash wrap
-   gh aw compile issue-analyzer.md
-   git add .github/workflows/issue-analyzer.lock.yml
-   git commit -m "Add issue analyzer workflow"
-   git push
-   ```
 
-**What it does:**
-- Triggers on new issues
-- Claude analyzes the issue content
-- Posts a comment with analysis
-- Uses same safe-outputs system as all engines
-
-## OpenAI Codex
+## Using OpenAI Codex
 
 [OpenAI Codex](https://openai.com/blog/openai-codex) is a coding agent engine option.
 
-### Codex Setup
+1. Request the use of the Codex engine in your workflow frontmatter:
 
-Request the use of the Codex engine in your workflow frontmatter:
+   ```yaml wrap
+   engine: codex
+   ```
 
-```yaml wrap
-engine: codex
-```
+2. Create an OpenAI API key at <https://platform.openai.com/account/api-keys> and add it to your repository:
 
-Extended configuration is also supported.
-
-Create an OpenAI API key at <https://platform.openai.com/account/api-keys> and add it to your repository:
-
-```bash wrap
-gh aw secrets set OPENAI_API_KEY --value "<your-openai-api-key>"
-```
+   ```bash wrap
+   gh aw secrets set OPENAI_API_KEY --value "<your-openai-api-key>"
+   ```
 
 ## Engine Environment Variables
 
@@ -174,7 +84,17 @@ engine:
 
 Environment variables can also be defined at workflow, job, step, and other scopes. See [Environment Variables](/gh-aw/reference/environment-variables/) for complete documentation on precedence and all 13 env scopes.
 
-## Engine Command-Line Arguments
+## Extended Coding Agent Configuration
+
+Workflows can specify extended configuration for the coding agent:
+
+```yaml wrap
+engine:
+  id: copilot
+  version: latest                       # defaults to latest
+  model: gpt-5                          # defaults to claude-sonnet-4
+  args: ["--add-dir", "/workspace"]     # custom CLI arguments
+```
 
 All engines support custom command-line arguments through the `args` field, injected before the prompt:
 
