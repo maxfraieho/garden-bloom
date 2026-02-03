@@ -9,11 +9,27 @@ export type NotebookLMStatus =
   | 'completed'
   | 'failed';
 
+// Unified error codes for UI mapping
+export type GatewayErrorCode =
+  | 'NETWORK_OFFLINE'
+  | 'TIMEOUT'
+  | 'AUTH_REQUIRED'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'ZONE_EXPIRED'
+  | 'ZONE_NOT_FOUND'
+  | 'NOT_FOUND'
+  | 'RATE_LIMITED'
+  | 'SERVER_ERROR'
+  | 'BAD_REQUEST'
+  | 'UNKNOWN';
+
 export interface ApiError {
   message: string;
-  code?: string;
+  code: GatewayErrorCode;
   details?: unknown;
   httpStatus?: number;
+  retryable: boolean;
 }
 
 export interface NotebookLMMapping {
