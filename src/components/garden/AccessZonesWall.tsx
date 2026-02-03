@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ArrowRight, Plus, FolderOpen } from 'lucide-react';
+import { Search, ArrowRight, FolderOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,12 +35,6 @@ function EmptyZonesState() {
         <p className="text-sm font-medium">No zones yet</p>
         <p className="text-xs text-muted-foreground">Create a zone to share notes with colleagues</p>
       </div>
-      <Button size="sm" variant="outline" className="gap-2" asChild>
-        <Link to="/zones/new">
-          <Plus className="h-4 w-4" />
-          Create zone
-        </Link>
-      </Button>
     </div>
   );
 }
