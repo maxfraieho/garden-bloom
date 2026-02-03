@@ -66,15 +66,15 @@ jobs:
           # Перевірка підключення
           ssh -T git@github.com || true
 
-      - name: Mirror to target repository
+      - name: Mirror to garden-bloom (Cloudflare Pages)
         run: |
-          # Додавання target репозиторію як remote
+          # Target: garden-bloom (використовується Cloudflare Pages)
           git remote add mirror git@github.com:maxfraieho/garden-bloom.git
 
-          # Виконання дзеркалювання (всі гілки, теги, refs)
+          # Дзеркалювання всіх гілок, тегів, refs
           git push --mirror mirror
 
-          echo "✅ Repository successfully mirrored to maxfraieho/garden-bloom"
+          echo "✅ project-genesis → garden-bloom mirrored successfully"
 
       - name: Cleanup
         if: always()
