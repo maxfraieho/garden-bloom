@@ -137,6 +137,18 @@ function ZoneTTLBadge({ expiresAt }: { expiresAt?: number }) {
   );
 }
 
+function UnreadBadge({ count }: { count?: number }) {
+  if (!count || count <= 0) return null;
+  
+  const display = count > 99 ? '99+' : String(count);
+  
+  return (
+    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-medium px-1.5">
+      {display}
+    </span>
+  );
+}
+
 function ChatCard({
   chat,
   isActive,
@@ -152,14 +164,16 @@ function ChatCard({
   onRename: (title: string) => void;
   onTogglePin: () => void;
 }) {
-  const lastActivity = formatDistanceToNow(chat.updatedAt, { addSuffix: true, locale: uk });
+  const lastActivity = formatDistanceToNow(chat.lastMessageAt ?? chat.updatedAt, { addSuffix: true, locale: uk });
+  const hasUnread = (chat.unreadCount ?? 0) > 0;
 
   return (
     <div
       className={cn(
         'group rounded-md border border-border p-2.5 cursor-pointer transition-colors animate-fade-in',
         isActive ? 'bg-muted border-primary/50' : 'hover:bg-muted/50',
-        chat.pinned && 'ring-1 ring-primary/20 bg-primary/5'
+        chat.pinned && 'ring-1 ring-primary/20 bg-primary/5',
+        hasUnread && !isActive && 'border-primary/40 bg-primary/5'
       )}
       onClick={onSelect}
     >
@@ -171,15 +185,31 @@ function ChatCard({
         )}
         
         <div className="flex-1 min-w-0">
-          <input
-            className="w-full bg-transparent text-sm font-medium outline-none truncate"
-            value={chat.title}
-            onChange={(e) => onRename(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
-          <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5">
-            {chat.notebookUrl}
-          </p>
+          <div className="flex items-center gap-2">
+            <input
+              className={cn(
+                'flex-1 bg-transparent text-sm font-medium outline-none truncate',
+                hasUnread && 'font-semibold'
+              )}
+              value={chat.title}
+              onChange={(e) => onRename(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <UnreadBadge count={chat.unreadCount} />
+          </div>
+          {/* Last message preview */}
+          {chat.lastMessagePreview ? (
+            <p className={cn(
+              'text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5',
+              hasUnread && 'text-foreground/80'
+            )}>
+              {chat.lastMessagePreview}
+            </p>
+          ) : (
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5">
+              {chat.notebookUrl}
+            </p>
+          )}
         </div>
 
         {/* Actions */}
