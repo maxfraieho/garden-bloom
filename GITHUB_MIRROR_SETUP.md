@@ -1,387 +1,133 @@
-# 🔄 Налаштування автоматичного дзеркалювання Git-репозиторію
+# GitHub Mirror Setup: project-genesis → garden-bloom
 
-## 📋 Огляд
+## Architecture
 
-Цей документ містить повні інструкції з налаштування автоматичного дзеркалювання між:
-- **Source**: `vdykimppua/share-sweet-brains`
-- **Target**: `maxfraieho/garden-bloom`
-
----
-
-## 🔑 Крок 1: Генерація SSH ключа
-
-### 1.1 Створення нового SSH ключа ED25519 (без passphrase)
-
-```bash
-# Генерація SSH ключа ED25519 без passphrase для GitHub Actions
-ssh-keygen -t ed25519 -C "github-actions-mirror" -f ~/.ssh/github_mirror_key -N ""
 ```
-
-Це створить два файли:
-- `~/.ssh/github_mirror_key` - приватний ключ (для GitHub Secrets)
-- `~/.ssh/github_mirror_key.pub` - публічний ключ (для Deploy Keys)
-
-### 1.2 Перегляд згенерованих ключів
-
-```bash
-# Приватний ключ (для копіювання в GitHub Secrets)
-cat ~/.ssh/github_mirror_key
-
-# Публічний ключ (для Deploy Keys)
-cat ~/.ssh/github_mirror_key.pub
+Local Development
+       ↓ git push
+project-genesis (maxfraieho)
+       ↓ GitHub Action (automatic)
+garden-bloom (maxfraieho)
+       ↓ auto deploy
+Cloudflare Pages
 ```
 
 ---
 
-## 🔐 Крок 2: Налаштування Deploy Keys на GitHub
+## Step 1: Add Secrets to `project-genesis`
 
-### 2.1 Source Repository (vdykimppua/share-sweet-brains)
+URL: https://github.com/maxfraieho/project-genesis/settings/secrets/actions
 
-1. Перейдіть до: `https://github.com/vdykimppua/share-sweet-brains/settings/keys`
-2. Натисніть **"Add deploy key"**
-3. Заповніть форму:
-   - **Title**: `GitHub Actions Mirror - Read Access`
-   - **Key**: Вставте вміст `~/.ssh/github_mirror_key.pub`
-   - **Allow write access**: ❌ НЕ ставте галочку (тільки читання)
-4. Натисніть **"Add key"**
+### Secret 1: `SSH_PRIVATE_KEY`
 
-### 2.2 Target Repository (maxfraieho/garden-bloom)
-
-1. Перейдіть до: `https://github.com/maxfraieho/garden-bloom/settings/keys`
-2. Натисніть **"Add deploy key"**
-3. Заповніть форму:
-   - **Title**: `GitHub Actions Mirror - Write Access`
-   - **Key**: Вставте вміст `~/.ssh/github_mirror_key.pub`
-   - **Allow write access**: ✅ ОБОВ'ЯЗКОВО поставте галочку (для запису)
-4. Натисніть **"Add key"**
-
-> ⚠️ **ВАЖЛИВО**: Один і той самий публічний ключ використовується для обох репозиторіїв, але з різними правами доступу.
-
----
-
-## 🔒 Крок 3: Додавання Secrets до Source Repository
-
-### 3.1 Генерація SSH_KNOWN_HOSTS
-
-```bash
-# Генерація known_hosts для GitHub
-ssh-keyscan -H github.com > github_known_hosts.txt
-
-# Перегляд вмісту для копіювання
-cat github_known_hosts.txt
-```
-
-### 3.2 Додавання Secrets на GitHub
-
-1. Перейдіть до: `https://github.com/vdykimppua/share-sweet-brains/settings/secrets/actions`
-2. Натисніть **"New repository secret"**
-
-#### Secret 1: SSH_PRIVATE_KEY
-
-- **Name**: `SSH_PRIVATE_KEY`
-- **Value**: Вставте ВЕСЬ вміст файлу `~/.ssh/github_mirror_key` (включно з рядками BEGIN і END)
+Click "New repository secret", name it `SSH_PRIVATE_KEY`, paste this value:
 
 ```
 -----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtz...
-[весь вміст приватного ключа]
-...AAAAAEC5lbm9uZQAAAAECAwQF
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACDX7MNzjWX9T6nfobb7XvWkQ8mWgtkndEPZIKeSYEtOmwAAAJgxfLKOMXyy
+jgAAAAtzc2gtZWQyNTUxOQAAACDX7MNzjWX9T6nfobb7XvWkQ8mWgtkndEPZIKeSYEtOmw
+AAAEAxdTj7Ni4UgNlcsg5epounziXkEF6yVNOxEIgoLRyrjdfsw3ONZf1Pqd+htvte9aRD
+yZaC2Sd0Q9kgp5JgS06bAAAAEHJwaTRiLW1heGZyYWllaG8BAgMEBQ==
 -----END OPENSSH PRIVATE KEY-----
 ```
 
-Натисніть **"Add secret"**
+### Secret 2: `SSH_KNOWN_HOSTS`
 
-#### Secret 2: SSH_KNOWN_HOSTS
-
-- **Name**: `SSH_KNOWN_HOSTS`
-- **Value**: Вставте вміст файлу `github_known_hosts.txt`
+Click "New repository secret", name it `SSH_KNOWN_HOSTS`, paste this value:
 
 ```
-|1|AbC123...= ssh-rsa AAAAB3NzaC1yc2...
-|1|XyZ789...= ecdsa-sha2-nistp256 AAAAE2VjZHNh...
-|1|DeF456...= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...
+|1|UsRgJZ/VdMFbnQbH8L47QYI9GLY=|Z66+FnNi39c3OXGfhVCPsENBS3Q= ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+|1|Ndeo7l9PCmmsadDWR1z7+kGaoHQ=|bkY2Ba8MLE7ZP1ukc3eSAk8rbSw= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+|1|NjaZTcKRJkDJ4HnUsW2W2hEgSew=|ANJz1UEyby0Mm4my0FvIIbeLdKQ= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
 ```
-
-Натисніть **"Add secret"**
-
-### 3.3 Перевірка доданих Secrets
-
-Після додавання ви побачите два secrets:
-- ✅ `SSH_PRIVATE_KEY`
-- ✅ `SSH_KNOWN_HOSTS`
 
 ---
 
-## 📤 Крок 4: Завантаження Workflow файлу
+## Step 2: Add Deploy Key to `garden-bloom`
 
-### 4.1 Додавання файлу до репозиторію
+URL: https://github.com/maxfraieho/garden-bloom/settings/keys
+
+Click "Add deploy key":
+
+- **Title**: `Mirror from project-genesis`
+- **Key**: (paste exactly as shown below, single line)
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfsw3ONZf1Pqd+htvte9aRDyZaC2Sd0Q9kgp5JgS06b rpi4b-maxfraieho
+```
+
+- **Allow write access**: YES (check the box)
+
+---
+
+## Step 3: Verify Setup
+
+After configuring secrets and deploy key:
+
+1. Go to: https://github.com/maxfraieho/project-genesis/actions
+2. Find workflow "Mirror Repository to Target"
+3. Click "Run workflow" → "Run workflow"
+4. Check that it completes successfully (green checkmark)
+
+---
+
+## How It Works
+
+The workflow file `.github/workflows/mirror.yml` triggers on:
+- Every push to any branch
+- Every tag creation
+- Every branch/tag deletion
+
+It uses `git push --mirror` to sync all refs to garden-bloom.
+
+---
+
+## Troubleshooting
+
+### "Permission denied (publickey)"
+
+- Verify deploy key is added to garden-bloom with **write access**
+- Verify SSH_PRIVATE_KEY secret contains the full key including BEGIN/END lines
+
+### "Host key verification failed"
+
+- Verify SSH_KNOWN_HOSTS secret is set correctly
+- Regenerate if needed: `ssh-keyscan -H github.com`
+
+### Workflow not triggering
+
+- Check Actions are enabled: https://github.com/maxfraieho/project-genesis/settings/actions
+- Verify workflow file exists at `.github/workflows/mirror.yml`
+
+---
+
+## Local Git Configuration
+
+Your local remote should point to project-genesis:
 
 ```bash
-# Переконайтеся, що ви в директорії source репозиторію
-cd /path/to/share-sweet-brains
+git remote set-url origin git@github-maxfraieho:maxfraieho/project-genesis.git
+```
 
-# Додавання workflow файлу
-git add .github/workflows/mirror.yml
+SSH config (`~/.ssh/config`) should have:
 
-# Створення коміту
-git commit -m "Add GitHub Actions workflow for automatic repository mirroring
-
-- Auto-mirror to maxfraieho/garden-bloom on push/create/delete events
-- SSH authentication with deploy keys
-- Concurrency control to prevent parallel mirroring jobs"
-
-# Відправка до GitHub
-git push origin master
+```
+Host github-maxfraieho
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_maxfraieho
+  IdentitiesOnly yes
 ```
 
 ---
 
-## 🚀 Крок 5: Перша синхронізація
-
-### 5.1 Автоматичний запуск
-
-Workflow автоматично запуститься після push коміту з файлом `mirror.yml`.
-
-### 5.2 Ручний запуск (опціонально)
-
-1. Перейдіть до: `https://github.com/vdykimppua/share-sweet-brains/actions`
-2. Виберіть workflow **"Mirror Repository to Target"**
-3. Натисніть **"Run workflow"** → **"Run workflow"**
-
-### 5.3 Моніторинг виконання
-
-1. Перейдіть до Actions: `https://github.com/vdykimppua/share-sweet-brains/actions`
-2. Оберіть останній запуск workflow
-3. Перегляньте логи кроків:
-   - ✅ Checkout source repository
-   - ✅ Setup SSH
-   - ✅ Mirror to target repository
-   - ✅ Cleanup
-
----
-
-## ✅ Крок 6: Перевірка результатів
-
-### 6.1 Перевірка target репозиторію
-
-```bash
-# Клонування target репозиторію для перевірки
-git clone git@github.com:maxfraieho/garden-bloom.git
-cd garden-bloom
-
-# Перевірка всіх гілок
-git branch -a
-
-# Перевірка всіх тегів
-git tag -l
-
-# Перевірка останніх комітів
-git log --oneline -10
-
-# Порівняння з source репозиторієм
-git remote add source git@github.com:vdykimppua/share-sweet-brains.git
-git fetch source
-git log --oneline --graph --all --decorate -20
-```
-
-### 6.2 Що очікувати після успішного дзеркалювання
-
-✅ Всі гілки з source репозиторію скопійовані до target
-✅ Всі теги скопійовані
-✅ Вся історія комітів ідентична
-✅ Refs синхронізовані
-
----
-
-## 🧪 Крок 7: Тестування дзеркалювання
-
-### 7.1 Тест 1: Push нового коміту
-
-```bash
-# В source репозиторії
-cd /path/to/share-sweet-brains
-
-# Створення тестового коміту
-echo "Test mirror" >> test_mirror.txt
-git add test_mirror.txt
-git commit -m "Test: Mirror workflow verification"
-git push origin master
-
-# Очікування: GitHub Actions автоматично запуститься і задзеркалює зміни
-# Перевірка через 1-2 хвилини в target репозиторії
-```
-
-### 7.2 Тест 2: Створення нової гілки
-
-```bash
-# В source репозиторії
-git checkout -b feature/test-mirror
-echo "Feature branch test" > feature_test.txt
-git add feature_test.txt
-git commit -m "Test: Feature branch mirroring"
-git push origin feature/test-mirror
-
-# Очікування: Нова гілка з'явиться в target репозиторії
-```
-
-### 7.3 Тест 3: Створення тегу
-
-```bash
-# В source репозиторії
-git tag -a v1.0.0-mirror-test -m "Test tag for mirror verification"
-git push origin v1.0.0-mirror-test
-
-# Очікування: Тег з'явиться в target репозиторії
-```
-
-### 7.4 Перевірка результатів тестів
-
-```bash
-# В target репозиторії
-cd /path/to/garden-bloom
-git fetch --all
-
-# Перевірка нового коміту
-git log master --oneline -5
-
-# Перевірка нової гілки
-git branch -r | grep feature/test-mirror
-
-# Перевірка тегу
-git tag -l | grep v1.0.0-mirror-test
-```
-
----
-
-## 🔍 Troubleshooting
-
-### Помилка: "Permission denied (publickey)"
-
-**Причина**: Неправильно налаштовані SSH ключі або Deploy Keys.
-
-**Рішення**:
-1. Перевірте, що публічний ключ доданий як Deploy Key в обох репозиторіях
-2. Переконайтеся, що для target репозиторію ввімкнено "Allow write access"
-3. Перевірте, що приватний ключ правильно доданий в GitHub Secrets
-
-### Помилка: "Host key verification failed"
-
-**Причина**: Відсутній або невірний SSH_KNOWN_HOSTS.
-
-**Рішення**:
-```bash
-# Перегенеруйте known_hosts
-ssh-keyscan -H github.com > github_known_hosts.txt
-
-# Оновіть secret SSH_KNOWN_HOSTS на GitHub
-cat github_known_hosts.txt
-```
-
-### Workflow не запускається
-
-**Причина**: Workflow файл може мати синтаксичні помилки.
-
-**Рішення**:
-1. Перевірте YAML синтаксис: `https://www.yamllint.com/`
-2. Переконайтеся, що файл знаходиться в `.github/workflows/mirror.yml`
-3. Перевірте права доступу до Actions в налаштуваннях репозиторію
-
-### Дзеркалювання виконується повільно
-
-**Причина**: Великий розмір репозиторію або багато refs.
-
-**Рішення**: Це нормально для першого запуску. Наступні синхронізації будуть швидшими, оскільки передаються лише зміни.
-
----
-
-## 📊 Моніторинг та обслуговування
-
-### Регулярна перевірка
-
-```bash
-# Скрипт для автоматичної перевірки синхронізації
-#!/bin/bash
-
-echo "🔍 Checking repository sync status..."
-
-# Клонування обох репозиторіїв
-git clone git@github.com:vdykimppua/share-sweet-brains.git source_repo
-git clone git@github.com:maxfraieho/garden-bloom.git target_repo
-
-# Перевірка останніх комітів
-cd source_repo
-SOURCE_COMMIT=$(git rev-parse HEAD)
-cd ../target_repo
-TARGET_COMMIT=$(git rev-parse HEAD)
-
-if [ "$SOURCE_COMMIT" == "$TARGET_COMMIT" ]; then
-    echo "✅ Repositories are in sync!"
-    echo "   Latest commit: $SOURCE_COMMIT"
-else
-    echo "⚠️  Repositories are OUT OF SYNC!"
-    echo "   Source: $SOURCE_COMMIT"
-    echo "   Target: $TARGET_COMMIT"
-fi
-
-# Очищення
-cd ..
-rm -rf source_repo target_repo
-```
-
-### Логи GitHub Actions
-
-Регулярно переглядайте логи Actions для виявлення проблем:
-`https://github.com/vdykimppua/share-sweet-brains/actions`
-
----
-
-## 🔄 Альтернативний варіант: Використання готового Action
-
-Якщо виникають проблеми з власною конфігурацією, можна використати готовий action:
-
-```yaml
-name: Mirror Repository
-
-on:
-  push:
-    branches: ['**']
-    tags: ['**']
-  delete:
-    branches: ['**']
-    tags: ['**']
-
-jobs:
-  mirror:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: wearerequired/git-mirror-action@v1
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        with:
-          source-repo: git@github.com:vdykimppua/share-sweet-brains.git
-          destination-repo: git@github.com:maxfraieho/garden-bloom.git
-```
-
----
-
-## 📝 Важливі примітки
-
-1. **Безпека**: Ніколи не публікуйте приватні SSH ключі в коді або логах
-2. **Concurrency**: Налаштований `concurrency group` запобігає конфліктам при одночасних push
-3. **Повне дзеркалювання**: `--mirror` копіює ВСЕ (включно з видаленими гілками)
-4. **Односторонність**: Зміни в target репозиторії НЕ синхронізуються назад до source
-5. **Затримка**: Дзеркалювання відбувається через 10-30 секунд після push (залежно від завантаження GitHub Actions)
-
----
-
-## 🎯 Висновок
-
-Після виконання всіх кроків у вас буде:
-
-✅ Автоматичне дзеркалювання при кожному push/create/delete
-✅ Безпечна SSH аутентифікація через Deploy Keys
-✅ Захист від паралельного виконання через concurrency groups
-✅ Повна копія всіх гілок, тегів і історії
-✅ Можливість ручного запуску через GitHub UI
-
-**Успішного дзеркалювання! 🚀**
+## Quick Reference
+
+| Item | Value |
+|------|-------|
+| Source repo | `maxfraieho/project-genesis` |
+| Target repo | `maxfraieho/garden-bloom` |
+| Workflow file | `.github/workflows/mirror.yml` |
+| SSH key file | `~/.ssh/id_ed25519_maxfraieho` |
+| Deploy target | Cloudflare Pages (from garden-bloom) |
