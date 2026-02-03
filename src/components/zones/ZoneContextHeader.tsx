@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ExpirationIndicator } from "@/components/garden/ExpirationIndicator";
 import { NotebookLMStatusBadge } from "@/components/zones/NotebookLMStatusBadge";
+import { ZoneDiagnosticsSheet } from "@/components/zones/ZoneDiagnosticsSheet";
 import { cn } from "@/lib/utils";
 import type { AccessType } from "@/types/mcpGateway";
 
@@ -123,12 +124,16 @@ export function ZoneContextHeader({
             </Button>
 
             {showDiagnostics && (
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" asChild>
-                <Link to="/admin/diagnostics">
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Diagnostics
-                </Link>
-              </Button>
+              <ZoneDiagnosticsSheet
+                zoneId={zoneId}
+                zoneName={zoneName}
+                trigger={
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                    <Settings2 className="h-3.5 w-3.5" />
+                    Diagnostics
+                  </Button>
+                }
+              />
             )}
           </div>
         </CollapsibleContent>
