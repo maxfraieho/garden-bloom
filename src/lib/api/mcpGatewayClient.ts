@@ -289,3 +289,119 @@ export async function getAuthStatus(): Promise<{
     body: JSON.stringify({}),
   });
 }
+
+// ============================================
+// Chats API
+// ============================================
+
+export interface ChatListItem {
+  chatId: string;
+  title: string;
+  zoneId: string | null;
+  zoneName: string | null;
+  notebookUrl: string | null;
+  lastMessagePreview: string | null;
+  lastMessageAt: number;
+  unreadCount: number;
+  status: 'active' | 'archived';
+  accessType: 'web' | 'mcp' | 'both';
+  expiresAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+  pinned: boolean;
+}
+
+export interface ChatsListResponse {
+  success: true;
+  chats: ChatListItem[];
+  total: number;
+  zoneId?: string;
+  zoneName?: string;
+}
+
+export async function getRecentChats(options?: {
+  limit?: number;
+  status?: 'active' | 'archived' | 'all';
+}): Promise<ChatsListResponse> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.status) params.set('status', options.status);
+  
+  const query = params.toString();
+  return requestJson<ChatsListResponse>(`/v1/chats/recent${query ? `?${query}` : ''}`, {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
+export async function getZoneChats(
+  zoneId: string,
+  options?: {
+    limit?: number;
+    status?: 'active' | 'archived' | 'all';
+    zoneCode?: string;
+  }
+): Promise<ChatsListResponse> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.status) params.set('status', options.status);
+
+  const query = params.toString();
+  const headers: Record<string, string> = {};
+  
+  // Guest access via zone code
+  if (options?.zoneCode) {
+    headers['X-Zone-Code'] = options.zoneCode;
+  }
+
+  return requestJson<ChatsListResponse>(`/v1/zones/${zoneId}/chats${query ? `?${query}` : ''}`, {
+    method: 'GET',
+    headers,
+  });
+}
+
+export async function createServerChat(data: {
+  title: string;
+  zoneId?: string;
+  zoneName?: string;
+  notebookUrl?: string;
+  accessType?: 'web' | 'mcp' | 'both';
+  expiresAt?: number;
+}): Promise<{ success: true; chat: ChatListItem }> {
+  return requestJson<{ success: true; chat: ChatListItem }>('/v1/chats', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    requireAuth: true,
+  });
+}
+
+export async function touchChat(
+  chatId: string,
+  data: {
+    lastMessagePreview?: string;
+    lastMessageAt?: number;
+    unreadCount?: number;
+  }
+): Promise<{ success: true; chat: ChatListItem }> {
+  return requestJson<{ success: true; chat: ChatListItem }>(`/v1/chats/${chatId}/touch`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    requireAuth: true,
+  });
+}
+
+export async function patchChat(
+  chatId: string,
+  data: {
+    pinned?: boolean;
+    status?: 'active' | 'archived';
+    unreadCount?: number;
+    title?: string;
+  }
+): Promise<{ success: true; chat: ChatListItem }> {
+  return requestJson<{ success: true; chat: ChatListItem }>(`/v1/chats/${chatId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+    requireAuth: true,
+  });
+}

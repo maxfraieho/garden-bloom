@@ -1861,6 +1861,245 @@ async function handleSSE(request, env, ctx) {
 }
 
 // ============================================
+// Chats API Handlers
+// ============================================
+
+/**
+ * Chat metadata stored in KV:
+ * - chat:{chatId} → full chat object
+ * - chats:recent → array of last 100 chatIds (ordered by lastMessageAt desc)
+ * - zone_chats:{zoneId} → array of chatIds for that zone
+ *
+ * Chat object shape:
+ * {
+ *   chatId, title, zoneId, zoneName, notebookUrl,
+ *   lastMessagePreview, lastMessageAt, unreadCount,
+ *   status: 'active' | 'archived',
+ *   accessType: 'web' | 'mcp' | 'both',
+ *   expiresAt, createdAt, updatedAt, pinned
+ * }
+ */
+
+async function getOrCreateChatsIndex(env, key) {
+  const data = await env.KV.get(key);
+  return data ? JSON.parse(data) : [];
+}
+
+async function handleChatsRecent(env, request) {
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
+  const status = url.searchParams.get('status') || 'all'; // active, archived, all
+
+  const recentIndex = await getOrCreateChatsIndex(env, 'chats:recent');
+  
+  // Fetch chat objects
+  const chats = [];
+  for (const chatId of recentIndex.slice(0, 100)) {
+    const chatData = await env.KV.get(`chat:${chatId}`);
+    if (chatData) {
+      const chat = JSON.parse(chatData);
+      // Filter by status
+      if (status === 'all' || chat.status === status || (!chat.status && status === 'active')) {
+        chats.push(chat);
+      }
+    }
+  }
+
+  // Sort by pinned first, then lastMessageAt desc
+  chats.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.lastMessageAt || 0) - (a.lastMessageAt || 0);
+  });
+
+  return jsonResponse({
+    success: true,
+    chats: chats.slice(0, limit),
+    total: chats.length,
+  });
+}
+
+async function handleZoneChats(zoneId, env, request) {
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
+  const status = url.searchParams.get('status') || 'all';
+
+  // Validate zone exists
+  const zoneData = await env.KV.get(`zone:${zoneId}`);
+  if (!zoneData) {
+    return errorResponse('Zone not found', 404, { zoneId }, 'ZONE_NOT_FOUND');
+  }
+  const zone = JSON.parse(zoneData);
+
+  // Check zone expiration
+  if (zone.expiresAt && new Date(zone.expiresAt) < new Date()) {
+    return errorResponse('Zone expired', 410, { zoneId, expiresAt: zone.expiresAt }, 'ZONE_EXPIRED');
+  }
+
+  // Guest access validation (X-Zone-Code header)
+  const providedCode = request.headers.get('X-Zone-Code');
+  const ownerPayload = await verifyOwnerAuth(request, env);
+  const isOwner = !!ownerPayload;
+  const isValidGuest = providedCode && zone.accessCode === providedCode;
+
+  if (!isOwner && !isValidGuest) {
+    return errorResponse('Unauthorized: provide valid zone code or owner token', 401, undefined, 'UNAUTHORIZED');
+  }
+
+  const zoneChatsIndex = await getOrCreateChatsIndex(env, `zone_chats:${zoneId}`);
+
+  const chats = [];
+  for (const chatId of zoneChatsIndex) {
+    const chatData = await env.KV.get(`chat:${chatId}`);
+    if (chatData) {
+      const chat = JSON.parse(chatData);
+      if (status === 'all' || chat.status === status || (!chat.status && status === 'active')) {
+        chats.push(chat);
+      }
+    }
+  }
+
+  // Sort
+  chats.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.lastMessageAt || 0) - (a.lastMessageAt || 0);
+  });
+
+  return jsonResponse({
+    success: true,
+    chats: chats.slice(0, limit),
+    total: chats.length,
+    zoneId,
+    zoneName: zone.name,
+  });
+}
+
+async function handleChatTouch(chatId, env, request) {
+  const chatData = await env.KV.get(`chat:${chatId}`);
+  if (!chatData) {
+    return errorResponse('Chat not found', 404, { chatId }, 'NOT_FOUND');
+  }
+
+  const chat = JSON.parse(chatData);
+
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    // empty body ok
+  }
+
+  // Update fields
+  const now = Date.now();
+  if (body.lastMessagePreview !== undefined) {
+    chat.lastMessagePreview = String(body.lastMessagePreview).slice(0, 200);
+  }
+  if (body.lastMessageAt !== undefined) {
+    chat.lastMessageAt = body.lastMessageAt;
+  } else {
+    chat.lastMessageAt = now;
+  }
+  if (body.unreadCount !== undefined) {
+    chat.unreadCount = Math.max(0, parseInt(body.unreadCount, 10) || 0);
+  }
+  chat.updatedAt = now;
+
+  // Save
+  await env.KV.put(`chat:${chatId}`, JSON.stringify(chat));
+
+  // Update recent index (move to front)
+  const recentIndex = await getOrCreateChatsIndex(env, 'chats:recent');
+  const filtered = recentIndex.filter((id) => id !== chatId);
+  filtered.unshift(chatId);
+  await env.KV.put('chats:recent', JSON.stringify(filtered.slice(0, 100)));
+
+  return jsonResponse({ success: true, chat });
+}
+
+async function handleChatPatch(chatId, env, request) {
+  const chatData = await env.KV.get(`chat:${chatId}`);
+  if (!chatData) {
+    return errorResponse('Chat not found', 404, { chatId }, 'NOT_FOUND');
+  }
+
+  const chat = JSON.parse(chatData);
+
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse('Invalid JSON', 400, undefined, 'INVALID_JSON');
+  }
+
+  // Allowed updates
+  if (body.pinned !== undefined) {
+    chat.pinned = !!body.pinned;
+  }
+  if (body.status !== undefined && ['active', 'archived'].includes(body.status)) {
+    chat.status = body.status;
+  }
+  if (body.unreadCount !== undefined) {
+    chat.unreadCount = Math.max(0, parseInt(body.unreadCount, 10) || 0);
+  }
+  if (body.title !== undefined) {
+    chat.title = String(body.title).slice(0, 100);
+  }
+  chat.updatedAt = Date.now();
+
+  await env.KV.put(`chat:${chatId}`, JSON.stringify(chat));
+
+  return jsonResponse({ success: true, chat });
+}
+
+async function handleChatCreate(env, request) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse('Invalid JSON', 400, undefined, 'INVALID_JSON');
+  }
+
+  const chatId = `chat_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  const now = Date.now();
+
+  const chat = {
+    chatId,
+    title: String(body.title || 'New Chat').slice(0, 100),
+    zoneId: body.zoneId || null,
+    zoneName: body.zoneName || null,
+    notebookUrl: body.notebookUrl || null,
+    lastMessagePreview: null,
+    lastMessageAt: now,
+    unreadCount: 0,
+    status: 'active',
+    accessType: body.accessType || 'web',
+    expiresAt: body.expiresAt || null,
+    createdAt: now,
+    updatedAt: now,
+    pinned: false,
+  };
+
+  await env.KV.put(`chat:${chatId}`, JSON.stringify(chat));
+
+  // Add to recent index
+  const recentIndex = await getOrCreateChatsIndex(env, 'chats:recent');
+  recentIndex.unshift(chatId);
+  await env.KV.put('chats:recent', JSON.stringify(recentIndex.slice(0, 100)));
+
+  // Add to zone index if zoneId provided
+  if (chat.zoneId) {
+    const zoneChatsIndex = await getOrCreateChatsIndex(env, `zone_chats:${chat.zoneId}`);
+    if (!zoneChatsIndex.includes(chatId)) {
+      zoneChatsIndex.unshift(chatId);
+      await env.KV.put(`zone_chats:${chat.zoneId}`, JSON.stringify(zoneChatsIndex));
+    }
+  }
+
+  return jsonResponse({ success: true, chat }, 201);
+}
+
+// ============================================
 // Auth Middleware Helper
 // ============================================
 
@@ -1981,6 +2220,54 @@ export default {
           return errorResponse('Unauthorized: Owner access required', 401);
         }
         return await handleNotebookLMChat(request, env);
+      }
+
+      // ============================================
+      // CHATS ENDPOINTS
+      // ============================================
+
+      // GET /v1/chats/recent - owner only, list all recent chats
+      if (method === 'GET' && path === '/v1/chats/recent') {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleChatsRecent(env, request);
+      }
+
+      // POST /v1/chats - create new chat (owner only)
+      if (method === 'POST' && path === '/v1/chats') {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleChatCreate(env, request);
+      }
+
+      // GET /v1/zones/:zoneId/chats - list chats for zone (owner or guest with code)
+      const zoneChatsMatch = path.match(/^\/v1\/zones\/([^\/]+)\/chats$/);
+      if (method === 'GET' && zoneChatsMatch) {
+        return await handleZoneChats(zoneChatsMatch[1], env, request);
+      }
+
+      // POST /v1/chats/:chatId/touch - update lastMessage/activity (owner only)
+      const chatTouchMatch = path.match(/^\/v1\/chats\/([^\/]+)\/touch$/);
+      if (method === 'POST' && chatTouchMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleChatTouch(chatTouchMatch[1], env, request);
+      }
+
+      // PATCH /v1/chats/:chatId - update chat (pin/archive/title) (owner only)
+      const chatPatchMatch = path.match(/^\/v1\/chats\/([^\/]+)$/);
+      if (method === 'PATCH' && chatPatchMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleChatPatch(chatPatchMatch[1], env, request);
       }
 
       // ============================================
