@@ -1,9 +1,12 @@
-import { ChatMessage as ChatMessageType } from '@/lib/chat/types';
+import { useState } from 'react';
+import { ChatMessage as ChatMessageType, ChatCitation } from '@/lib/chat/types';
 import { cn } from '@/lib/utils';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { uk } from 'date-fns/locale';
-import { Loader2, Bot, User } from 'lucide-react';
+import { Loader2, Bot, User, ChevronDown, ExternalLink, Quote } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Button } from '@/components/ui/button';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -35,8 +38,69 @@ export function DateSeparator({ date }: { date: Date }) {
   );
 }
 
+function CitationItem({ citation }: { citation: ChatCitation }) {
+  return (
+    <div className="flex gap-2 p-2 rounded-md bg-background/50 border border-border/50">
+      <Quote className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-foreground line-clamp-2">{citation.text}</p>
+        {(citation.source || citation.url) && (
+          <div className="flex items-center gap-1.5 mt-1">
+            {citation.source && (
+              <span className="text-[10px] text-muted-foreground truncate">
+                {citation.source}
+              </span>
+            )}
+            {citation.url && (
+              <a
+                href={citation.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5"
+              >
+                <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CitationsBlock({ citations }: { citations: ChatCitation[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!citations || citations.length === 0) return null;
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mt-2">
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+        >
+          <ChevronDown
+            className={cn(
+              'h-3.5 w-3.5 transition-transform duration-200',
+              isOpen && 'rotate-180'
+            )}
+          />
+          Sources ({citations.length})
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-1.5 space-y-1.5 animate-in slide-in-from-top-1 duration-200">
+        {citations.map((citation) => (
+          <CitationItem key={citation.id} citation={citation} />
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 export function ChatMessage({ message, isOwn, showTimestamp = true }: ChatMessageProps) {
-  const { participant, content, createdAt, status } = message;
+  const { participant, content, createdAt, status, citations } = message;
   const messageDate = new Date(createdAt);
 
   return (
@@ -83,6 +147,11 @@ export function ChatMessage({ message, isOwn, showTimestamp = true }: ChatMessag
             <p className="whitespace-pre-wrap">{content}</p>
           )}
         </div>
+
+        {/* Citations - only for AI messages */}
+        {participant.isAI && citations && citations.length > 0 && (
+          <CitationsBlock citations={citations} />
+        )}
 
         {/* Footer: name + timestamp - always visible on mobile */}
         {showTimestamp && (

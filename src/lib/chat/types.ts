@@ -13,6 +13,13 @@ export interface ChatParticipant {
   avatar?: string;
 }
 
+export interface ChatCitation {
+  id: string;
+  text: string; // Quoted excerpt
+  source?: string; // Source name or title
+  url?: string; // Optional link
+}
+
 export interface ChatMessage {
   id: string;
   chatId: string;
@@ -22,6 +29,7 @@ export interface ChatMessage {
   status: MessageStatus;
   replyToId?: string;
   taskId?: string; // Reference to AI task if applicable
+  citations?: ChatCitation[]; // Sources referenced in AI response
 }
 
 export interface Chat {
