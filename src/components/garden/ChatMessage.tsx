@@ -3,10 +3,11 @@ import { ChatMessage as ChatMessageType, ChatCitation } from '@/lib/chat/types';
 import { cn } from '@/lib/utils';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { uk } from 'date-fns/locale';
-import { Loader2, Bot, User, ChevronDown, ExternalLink, Quote } from 'lucide-react';
+import { Loader2, Bot, User, ChevronDown, ExternalLink, Quote, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -99,9 +100,68 @@ function CitationsBlock({ citations }: { citations: ChatCitation[] }) {
   );
 }
 
+function formatCitationsForCopy(citations: ChatCitation[]): string {
+  return citations
+    .map((c, i) => {
+      let line = `[${i + 1}] "${c.text}"`;
+      if (c.source) line += ` — ${c.source}`;
+      if (c.url) line += ` (${c.url})`;
+      return line;
+    })
+    .join('\n\n');
+}
+
+function CopyButton({
+  text,
+  label,
+  className,
+}: {
+  text: string;
+  label: string;
+  className?: string;
+}) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast({
+        description: 'Copied',
+        duration: 1500,
+      });
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast({
+        description: 'Failed to copy',
+        variant: 'destructive',
+        duration: 1500,
+      });
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleCopy}
+      className={cn('h-6 px-2 text-[10px] sm:text-xs gap-1', className)}
+    >
+      {copied ? (
+        <Check className="h-3 w-3 text-green-500" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
+      <span className="hidden sm:inline">{label}</span>
+    </Button>
+  );
+}
+
 export function ChatMessage({ message, isOwn, showTimestamp = true }: ChatMessageProps) {
   const { participant, content, createdAt, status, citations } = message;
   const messageDate = new Date(createdAt);
+  const hasCitations = citations && citations.length > 0;
 
   return (
     <div
@@ -148,8 +208,21 @@ export function ChatMessage({ message, isOwn, showTimestamp = true }: ChatMessag
           )}
         </div>
 
+        {/* Copy actions - only for AI messages */}
+        {participant.isAI && status === 'sent' && (
+          <div className="flex items-center gap-1 mt-1 opacity-60 hover:opacity-100 transition-opacity">
+            <CopyButton text={content} label="Copy answer" />
+            {hasCitations && (
+              <CopyButton
+                text={formatCitationsForCopy(citations)}
+                label="Copy sources"
+              />
+            )}
+          </div>
+        )}
+
         {/* Citations - only for AI messages */}
-        {participant.isAI && citations && citations.length > 0 && (
+        {participant.isAI && hasCitations && (
           <CitationsBlock citations={citations} />
         )}
 
