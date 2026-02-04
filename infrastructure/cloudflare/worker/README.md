@@ -11,11 +11,31 @@
 
 ## Деплоймент
 
-**Метод:** Cloudflare Dashboard (Quick Edit)
+**Метод:** GitHub Actions (автоматичний)
 
-**НЕ використовується:** Wrangler CLI
+### Автоматичний деплой
 
-### Кроки деплою
+При пуші в `main` гілку з змінами в `infrastructure/cloudflare/worker/**`:
+1. GitHub Action запускається автоматично
+2. Wrangler деплоїть worker до Cloudflare
+
+### Налаштування (одноразово)
+
+1. Додати GitHub Secrets:
+   - `CLOUDFLARE_API_TOKEN` - API токен з правами Workers
+   - `CLOUDFLARE_ACCOUNT_ID` - ID акаунту Cloudflare
+
+2. Оновити `wrangler.toml`:
+   - Замінити `YOUR_KV_NAMESPACE_ID` на реальний ID з Cloudflare Dashboard
+
+### Ручний деплой
+
+```bash
+cd infrastructure/cloudflare/worker
+wrangler deploy
+```
+
+### Legacy метод (Quick Edit)
 
 1. Відкрити [Cloudflare Dashboard](https://dash.cloudflare.com)
 2. Workers & Pages → `garden-mcp-server`
