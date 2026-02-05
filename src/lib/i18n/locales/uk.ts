@@ -196,6 +196,7 @@ export const uk: Translations = {
      draftRestored: 'Чернетку відновлено',
      restoreDraft: 'Відновити',
      discardDraft: 'Відхилити',
+      newNoteHere: 'Нова нотатка тут',
      titleRequired: 'Назва обов\'язкова',
      copiedToClipboard: 'Markdown скопійовано в буфер',
      preview: 'Перегляд',

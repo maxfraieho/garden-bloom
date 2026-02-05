@@ -196,6 +196,7 @@ export const it: Translations = {
      draftRestored: 'Bozza ripristinata',
      restoreDraft: 'Ripristina',
      discardDraft: 'Elimina',
+      newNoteHere: 'Nuova nota qui',
      titleRequired: 'Il titolo è obbligatorio',
      copiedToClipboard: 'Markdown copiato negli appunti',
      preview: 'Anteprima',

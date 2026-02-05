@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Network, FolderTree, Home, MessageSquare, PenSquare } from 'lucide-react';
+import { Network, FolderTree, Home, MessageSquare, PenSquare, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from './SearchBar';
 import { ThemeToggle } from './ThemeToggle';
@@ -19,39 +19,27 @@ export function GardenHeader() {
   const { isAuthenticated } = useOwnerAuth();
 
   // Cycle between: Home -> Files -> Chat -> Graph -> Home
+  // Cycle: Home -> Files -> Chat -> Graph -> Editor -> Home
+  const isEditorPage = location.pathname === '/notes/new' || location.pathname.endsWith('/edit');
+  
   const cycle = (() => {
-    switch (location.pathname) {
-      case '/':
-        return {
-          to: '/files',
-          icon: FolderTree,
-          tooltip: t.sidebar.fileStructure || 'File Structure',
-        };
-      case '/files':
-        return {
-          to: '/chat',
-          icon: MessageSquare,
-          tooltip: t.sidebar.chat || 'Chat',
-        };
-      case '/chat':
-        return {
-          to: '/graph',
-          icon: Network,
-          tooltip: t.index.viewGraph || 'Graph',
-        };
-      case '/graph':
-        return {
-          to: '/',
-          icon: Home,
-          tooltip: t.sidebar.home || 'Home',
-        };
-      default:
-        return {
-          to: '/files',
-          icon: FolderTree,
-          tooltip: t.sidebar.fileStructure || 'File Structure',
-        };
+    if (location.pathname === '/') {
+      return { to: '/files', icon: FolderTree, tooltip: t.sidebar.fileStructure || 'File Structure' };
     }
+    if (location.pathname === '/files') {
+      return { to: '/chat', icon: MessageSquare, tooltip: t.sidebar.chat || 'Chat' };
+    }
+    if (location.pathname === '/chat') {
+      return { to: '/graph', icon: Network, tooltip: t.index.viewGraph || 'Graph' };
+    }
+    if (location.pathname === '/graph') {
+      return { to: '/notes/new', icon: Edit3, tooltip: t.editor?.newNote || 'Editor' };
+    }
+    if (isEditorPage) {
+      return { to: '/', icon: Home, tooltip: t.sidebar.home || 'Home' };
+    }
+    // Default - for note pages and others
+    return { to: '/files', icon: FolderTree, tooltip: t.sidebar.fileStructure || 'File Structure' };
   })();
   const CycleIcon = cycle.icon;
 

@@ -196,6 +196,7 @@ export const de: Translations = {
      draftRestored: 'Entwurf wiederhergestellt',
      restoreDraft: 'Wiederherstellen',
      discardDraft: 'Verwerfen',
+      newNoteHere: 'Neue Notiz hier',
      titleRequired: 'Titel ist erforderlich',
      copiedToClipboard: 'Markdown in die Zwischenablage kopiert',
      preview: 'Vorschau',
