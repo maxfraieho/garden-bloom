@@ -1,7 +1,7 @@
 // Full-screen file/folder structure view
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus, FilePlus } from 'lucide-react';
 import { getFolderStructure, getHomeNote } from '@/lib/notes/noteLoader';
 import { GardenHeader } from '@/components/garden/GardenHeader';
 import { GardenFooter } from '@/components/garden/GardenFooter';
@@ -21,42 +21,65 @@ interface FolderInfo {
 interface FolderItemProps {
   folder: FolderInfo;
   level?: number;
+  isAuthenticated?: boolean;
 }
 
-function FolderItem({ folder, level = 0 }: FolderItemProps) {
+function FolderItem({ folder, level = 0, isAuthenticated = false }: FolderItemProps) {
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
+  const { t } = useLocale();
   
   const hasContent = folder.notes.length > 0 || folder.subfolders.length > 0;
   
   return (
     <div className="w-full">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "w-full flex items-center gap-3 px-4 py-3 text-base hover:bg-accent/50 rounded-lg transition-colors",
-          "font-medium text-foreground"
-        )}
-        style={{ paddingLeft: `${16 + level * 24}px` }}
-      >
-        {hasContent ? (
-          isOpen ? (
-            <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+      <div className="group flex items-center">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "flex-1 flex items-center gap-3 px-4 py-3 text-base hover:bg-accent/50 rounded-lg transition-colors",
+            "font-medium text-foreground"
+          )}
+          style={{ paddingLeft: `${16 + level * 24}px` }}
+        >
+          {hasContent ? (
+            isOpen ? (
+              <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            )
           ) : (
-            <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-          )
-        ) : (
-          <span className="w-5" />
+            <span className="w-5" />
+          )}
+          <Folder className="w-5 h-5 text-primary flex-shrink-0" />
+          <span className="text-left">{folder.name}</span>
+        </button>
+        
+        {/* Add note button - visible on hover */}
+        {isAuthenticated && (
+          <Link
+            to={`/notes/new?folder=${encodeURIComponent(folder.path)}`}
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity",
+              "p-2 mr-2 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary"
+            )}
+            title={t.editor?.newNoteHere || 'New note here'}
+          >
+            <FilePlus className="w-4 h-4" />
+          </Link>
         )}
-        <Folder className="w-5 h-5 text-primary flex-shrink-0" />
-        <span className="text-left">{folder.name}</span>
-      </button>
+      </div>
       
       {isOpen && hasContent && (
         <div className="mt-1">
           {/* Subfolders */}
           {folder.subfolders.map((subfolder) => (
-            <FolderItem key={subfolder.path} folder={subfolder} level={level + 1} />
+            <FolderItem 
+              key={subfolder.path} 
+              folder={subfolder} 
+              level={level + 1}
+              isAuthenticated={isAuthenticated}
+            />
           ))}
           
           {/* Notes */}
@@ -177,7 +200,11 @@ export default function FilesPage() {
           
           {/* Folder structure */}
           {folders.map((folder) => (
-            <FolderItem key={folder.path} folder={folder} />
+          <FolderItem 
+            key={folder.path} 
+            folder={folder}
+            isAuthenticated={isAuthenticated}
+          />
           ))}
           
           {folders.length === 0 && (

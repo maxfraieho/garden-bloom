@@ -196,6 +196,7 @@ export const fr: Translations = {
      draftRestored: 'Brouillon restauré',
      restoreDraft: 'Restaurer',
      discardDraft: 'Supprimer',
+      newNoteHere: 'Nouvelle note ici',
      titleRequired: 'Le titre est requis',
      copiedToClipboard: 'Markdown copié dans le presse-papiers',
      preview: 'Aperçu',

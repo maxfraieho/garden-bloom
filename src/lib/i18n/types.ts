@@ -213,6 +213,7 @@ export interface Translations {
      draftRestored: string;
      restoreDraft: string;
      discardDraft: string;
+      newNoteHere: string;
      titleRequired: string;
      copiedToClipboard: string;
      preview: string;
