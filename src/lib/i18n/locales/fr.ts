@@ -205,6 +205,13 @@ export const fr: Translations = {
      unsavedChanges: 'Modifications non enregistrées',
      focusMode: 'Mode focus',
      splitView: 'Vue partagée',
+     saveLocation: 'Enregistrer dans',
+     showFolders: 'Afficher les dossiers',
+     hideFolders: 'Masquer les dossiers',
+     expandAll: 'Développer',
+     collapseAll: 'Réduire',
+     rootFolder: 'Racine',
+     noFolders: 'Pas encore de dossiers',
      toolbar: {
        bold: 'Gras',
        italic: 'Italique',

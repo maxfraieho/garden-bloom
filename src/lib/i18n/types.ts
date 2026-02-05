@@ -222,6 +222,13 @@ export interface Translations {
      unsavedChanges: string;
      focusMode: string;
      splitView: string;
+     saveLocation: string;
+     showFolders: string;
+     hideFolders: string;
+     expandAll: string;
+     collapseAll: string;
+     rootFolder: string;
+     noFolders: string;
      toolbar: {
        bold: string;
        italic: string;
