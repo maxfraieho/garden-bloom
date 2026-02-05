@@ -205,6 +205,13 @@ export const uk: Translations = {
      unsavedChanges: 'Незбережені зміни',
      focusMode: 'Режим фокусу',
      splitView: 'Розділений вигляд',
+     saveLocation: 'Зберегти в папку',
+     showFolders: 'Показати папки',
+     hideFolders: 'Сховати папки',
+     expandAll: 'Розгорнути',
+     collapseAll: 'Згорнути',
+     rootFolder: 'Корінь',
+     noFolders: 'Папок ще немає',
      toolbar: {
        bold: 'Жирний',
        italic: 'Курсив',

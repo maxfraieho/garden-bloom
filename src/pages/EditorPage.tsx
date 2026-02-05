@@ -1,7 +1,9 @@
+ import { useState } from 'react';
  import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
  import { NoteEditor } from '@/components/garden/NoteEditor';
  import { GardenHeader } from '@/components/garden/GardenHeader';
  import { GardenFooter } from '@/components/garden/GardenFooter';
+ import { EditorFolderTree } from '@/components/garden/EditorFolderTree';
  import { useNoteEditor } from '@/hooks/useNoteEditor';
  import { useOwnerAuth } from '@/hooks/useOwnerAuth';
  import { useLocale } from '@/hooks/useLocale';
@@ -18,11 +20,15 @@
   const { isAuthenticated } = useOwnerAuth();
  
    // Get folder from query params (for creating notes in specific folder)
-   const folder = searchParams.get('folder') || undefined;
+   const folderFromUrl = searchParams.get('folder') || null;
+   
+   // Folder selection state
+   const [selectedFolder, setSelectedFolder] = useState<string | null>(folderFromUrl);
+   const [isFolderTreeCollapsed, setIsFolderTreeCollapsed] = useState(false);
  
    const editor = useNoteEditor({ 
      slug: slug === 'new' ? undefined : slug,
-     folder 
+     folder: selectedFolder || undefined 
    });
  
    // Redirect non-owners
@@ -74,40 +80,55 @@
      <div className="min-h-screen bg-background flex flex-col">
        <GardenHeader />
        
-       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
-         {/* Back navigation */}
-         <nav className="mb-4">
-           <Link 
-             to="/" 
-             className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
-           >
-             <ArrowLeft className="w-4 h-4" />
-             <span>Back to garden</span>
-           </Link>
-         </nav>
+       <main className="flex-1 flex min-h-0">
+         {/* Folder tree sidebar (desktop) */}
+         <div className="hidden md:flex">
+           <EditorFolderTree
+             selectedFolder={selectedFolder}
+             onSelectFolder={setSelectedFolder}
+             isCollapsed={isFolderTreeCollapsed}
+             onToggleCollapse={() => setIsFolderTreeCollapsed(!isFolderTreeCollapsed)}
+           />
+         </div>
+         
+         {/* Editor content */}
+         <div className="flex-1 flex flex-col min-w-0 px-4 py-4">
+           {/* Page title + back */}
+           <div className="flex items-center gap-3 mb-4">
+             <Link 
+               to="/" 
+               className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+             >
+               <ArrowLeft className="w-4 h-4" />
+               <span className="hidden sm:inline">Back</span>
+             </Link>
+             <h1 className="text-xl font-semibold">
+               {editor.isNewNote ? t.editor.newNote : t.editor.editNote}
+             </h1>
+           </div>
  
-         {/* Page title */}
-         <h1 className="text-2xl font-semibold mb-6">
-           {editor.isNewNote ? t.editor.newNote : t.editor.editNote}
-         </h1>
- 
-         {/* Editor */}
-         <NoteEditor
-           title={editor.title}
-           content={editor.content}
-           tags={editor.tags}
-           isDirty={editor.isDirty}
-           isSaving={editor.isSaving}
-           hasDraft={editor.hasDraft}
-           onTitleChange={editor.setTitle}
-           onContentChange={editor.setContent}
-           onTagsChange={editor.setTags}
-           onSave={handleSave}
-           onCancel={handleCancel}
-           onRestoreDraft={editor.restoreDraft}
-           onDiscardDraft={editor.discardDraft}
-           insertAtCursor={editor.insertAtCursor}
-         />
+           {/* Editor */}
+           <div className="flex-1 min-h-0">
+             <NoteEditor
+               title={editor.title}
+               content={editor.content}
+               tags={editor.tags}
+               isDirty={editor.isDirty}
+               isSaving={editor.isSaving}
+               hasDraft={editor.hasDraft}
+               selectedFolder={selectedFolder}
+               onTitleChange={editor.setTitle}
+               onContentChange={editor.setContent}
+               onTagsChange={editor.setTags}
+               onFolderChange={setSelectedFolder}
+               onSave={handleSave}
+               onCancel={handleCancel}
+               onRestoreDraft={editor.restoreDraft}
+               onDiscardDraft={editor.discardDraft}
+               insertAtCursor={editor.insertAtCursor}
+             />
+           </div>
+         </div>
        </main>
        
        <GardenFooter />

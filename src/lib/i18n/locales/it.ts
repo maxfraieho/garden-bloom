@@ -205,6 +205,13 @@ export const it: Translations = {
      unsavedChanges: 'Modifiche non salvate',
      focusMode: 'Modalità focus',
      splitView: 'Vista divisa',
+     saveLocation: 'Salva in',
+     showFolders: 'Mostra cartelle',
+     hideFolders: 'Nascondi cartelle',
+     expandAll: 'Espandi',
+     collapseAll: 'Comprimi',
+     rootFolder: 'Root',
+     noFolders: 'Nessuna cartella',
      toolbar: {
        bold: 'Grassetto',
        italic: 'Corsivo',
