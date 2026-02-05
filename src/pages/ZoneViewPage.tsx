@@ -20,6 +20,7 @@ import {
   Lock,
   Home,
   ChevronRight,
+  Edit3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ZoneNoteRenderer } from '@/components/garden/ZoneNoteRenderer';
@@ -202,9 +203,17 @@ export default function ZoneViewPage() {
                           selectedNote?.slug === note.slug && "bg-primary/10 text-primary font-medium"
                         )}
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 group">
                           <FileText className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                           <span className="truncate">{note.title}</span>
+                          <Link
+                            to={`/zone/${zoneId}/edit/${encodeURIComponent(note.slug)}?code=${accessCode}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                            title={t.common?.edit || 'Edit'}
+                          >
+                            <Edit3 className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                          </Link>
                         </div>
                         {note.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1 ml-5">

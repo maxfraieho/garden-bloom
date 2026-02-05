@@ -231,4 +231,31 @@ export const it: Translations = {
        codeBlock: 'Blocco di codice',
      },
    },
+
+  zoneEdit: {
+    editing: 'Modifica',
+    submitProposal: 'Invia proposta',
+    proposalSubmitted: 'Proposta di modifica inviata',
+    proposalFailed: 'Invio proposta fallito',
+    yourDetails: 'I tuoi dati',
+    name: 'Nome',
+    namePlaceholder: 'Il tuo nome (opzionale)',
+    email: 'Email',
+    emailPlaceholder: 'Per notifiche (opzionale)',
+    unsavedChanges: 'Hai modifiche non salvate',
+  },
+
+  proposals: {
+    title: 'Proposte di modifica',
+    description: 'Rivedi le modifiche suggerite dagli ospiti',
+    empty: 'Nessuna proposta in attesa',
+    accepted: 'Proposta accettata',
+    acceptFailed: 'Accettazione fallita',
+    rejected: 'Proposta rifiutata',
+    rejectFailed: 'Rifiuto fallito',
+    reviewTitle: 'Rivedi proposta',
+    submittedBy: 'Inviata da',
+    accept: 'Accetta modifiche',
+    reject: 'Rifiuta',
+  },
 };

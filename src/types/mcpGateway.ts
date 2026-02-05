@@ -114,3 +114,39 @@ export interface ZoneListItem {
   expiresAt: number;
   accessCode?: string;
 }
+
+// Edit Proposals
+export type ProposalStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface EditProposal {
+  proposalId: string;
+  zoneId: string;
+  zoneName: string;
+  noteSlug: string;
+  noteTitle: string;
+  originalContent: string;
+  proposedContent: string;
+  guestName: string;
+  guestEmail: string | null;
+  status: ProposalStatus;
+  createdAt: number;
+  updatedAt: number;
+  reviewedAt: number | null;
+}
+
+export interface CreateProposalRequest {
+  noteSlug: string;
+  noteTitle?: string;
+  originalContent: string;
+  proposedContent: string;
+  guestName?: string;
+  guestEmail?: string;
+}
+
+export interface ProposalsListResponse {
+  success: true;
+  proposals: EditProposal[];
+  total: number;
+  zoneId?: string;
+  zoneName?: string;
+}

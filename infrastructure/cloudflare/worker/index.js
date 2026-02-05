@@ -1864,6 +1864,304 @@ async function handleSSE(request, env, ctx) {
 // Chats API Handlers
 // ============================================
 
+// ============================================
+// Edit Proposals Handlers
+// ============================================
+
+/**
+ * Proposal object shape in KV:
+ * proposal:{proposalId} → {
+ *   proposalId, zoneId, noteSlug, noteTitle,
+ *   originalContent, proposedContent,
+ *   guestName, guestEmail,
+ *   status: 'pending' | 'accepted' | 'rejected',
+ *   createdAt, updatedAt, reviewedAt
+ * }
+ *
+ * Indexes:
+ * proposals:zone:{zoneId} → [proposalId, ...]
+ * proposals:pending → [proposalId, ...] (global pending list)
+ */
+
+async function handleProposalCreate(zoneId, request, env) {
+  // Validate zone access
+  const zoneData = await env.KV.get(`zone:${zoneId}`);
+  if (!zoneData) {
+    return errorResponse('Zone not found', 404, { zoneId }, 'ZONE_NOT_FOUND');
+  }
+  
+  const zone = JSON.parse(zoneData);
+  
+  // Check zone expiration
+  if (zone.expiresAt && new Date(zone.expiresAt) < new Date()) {
+    return errorResponse('Zone expired', 410, { zoneId }, 'ZONE_EXPIRED');
+  }
+  
+  // Validate access code
+  const providedCode = request.headers.get('X-Zone-Code');
+  if (!providedCode || providedCode !== zone.accessCode) {
+    return errorResponse('Invalid access code', 403, undefined, 'FORBIDDEN');
+  }
+  
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse('Invalid JSON', 400, undefined, 'INVALID_JSON');
+  }
+  
+  const { noteSlug, noteTitle, originalContent, proposedContent, guestName, guestEmail } = body;
+  
+  if (!noteSlug || !proposedContent) {
+    return errorResponse('noteSlug and proposedContent are required', 400, undefined, 'BAD_REQUEST');
+  }
+  
+  // Verify note exists in zone
+  const noteExists = zone.notes && zone.notes.some(n => n.slug === noteSlug);
+  if (!noteExists) {
+    return errorResponse('Note not found in zone', 404, { noteSlug }, 'NOT_FOUND');
+  }
+  
+  const proposalId = `prop_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  const now = Date.now();
+  
+  const proposal = {
+    proposalId,
+    zoneId,
+    zoneName: zone.name,
+    noteSlug,
+    noteTitle: noteTitle || noteSlug,
+    originalContent: originalContent || '',
+    proposedContent,
+    guestName: guestName || 'Anonymous',
+    guestEmail: guestEmail || null,
+    status: 'pending',
+    createdAt: now,
+    updatedAt: now,
+    reviewedAt: null,
+  };
+  
+  // Save proposal
+  await env.KV.put(`proposal:${proposalId}`, JSON.stringify(proposal));
+  
+  // Add to zone proposals index
+  const zoneProposalsKey = `proposals:zone:${zoneId}`;
+  const zoneProposalsData = await env.KV.get(zoneProposalsKey);
+  const zoneProposals = zoneProposalsData ? JSON.parse(zoneProposalsData) : [];
+  zoneProposals.unshift(proposalId);
+  await env.KV.put(zoneProposalsKey, JSON.stringify(zoneProposals.slice(0, 100)));
+  
+  // Add to global pending index
+  const pendingKey = 'proposals:pending';
+  const pendingData = await env.KV.get(pendingKey);
+  const pending = pendingData ? JSON.parse(pendingData) : [];
+  pending.unshift(proposalId);
+  await env.KV.put(pendingKey, JSON.stringify(pending.slice(0, 200)));
+  
+  return jsonResponse({ success: true, proposal }, 201);
+}
+
+async function handleProposalsList(zoneId, request, env) {
+  const zoneData = await env.KV.get(`zone:${zoneId}`);
+  if (!zoneData) {
+    return errorResponse('Zone not found', 404, { zoneId }, 'ZONE_NOT_FOUND');
+  }
+  
+  const zone = JSON.parse(zoneData);
+  
+  // Owner or guest with valid code can list
+  const ownerPayload = await verifyOwnerAuth(request, env);
+  const providedCode = request.headers.get('X-Zone-Code');
+  const isOwner = !!ownerPayload;
+  const isValidGuest = providedCode && zone.accessCode === providedCode;
+  
+  if (!isOwner && !isValidGuest) {
+    return errorResponse('Unauthorized', 401, undefined, 'UNAUTHORIZED');
+  }
+  
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status') || 'all';
+  
+  const zoneProposalsKey = `proposals:zone:${zoneId}`;
+  const zoneProposalsData = await env.KV.get(zoneProposalsKey);
+  const proposalIds = zoneProposalsData ? JSON.parse(zoneProposalsData) : [];
+  
+  const proposals = [];
+  for (const id of proposalIds) {
+    const data = await env.KV.get(`proposal:${id}`);
+    if (data) {
+      const p = JSON.parse(data);
+      if (status === 'all' || p.status === status) {
+        proposals.push(p);
+      }
+    }
+  }
+  
+  return jsonResponse({
+    success: true,
+    proposals,
+    total: proposals.length,
+    zoneId,
+    zoneName: zone.name,
+  });
+}
+
+async function handleProposalsPending(env, request) {
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
+  
+  const pendingData = await env.KV.get('proposals:pending');
+  const pendingIds = pendingData ? JSON.parse(pendingData) : [];
+  
+  const proposals = [];
+  for (const id of pendingIds.slice(0, limit * 2)) {
+    const data = await env.KV.get(`proposal:${id}`);
+    if (data) {
+      const p = JSON.parse(data);
+      if (p.status === 'pending') {
+        proposals.push(p);
+        if (proposals.length >= limit) break;
+      }
+    }
+  }
+  
+  return jsonResponse({
+    success: true,
+    proposals,
+    total: proposals.length,
+  });
+}
+
+async function handleProposalGet(proposalId, request, env) {
+  const data = await env.KV.get(`proposal:${proposalId}`);
+  if (!data) {
+    return errorResponse('Proposal not found', 404, { proposalId }, 'NOT_FOUND');
+  }
+  
+  const proposal = JSON.parse(data);
+  
+  // Owner can always access; guest needs zone code
+  const ownerPayload = await verifyOwnerAuth(request, env);
+  if (!ownerPayload) {
+    const zoneData = await env.KV.get(`zone:${proposal.zoneId}`);
+    if (zoneData) {
+      const zone = JSON.parse(zoneData);
+      const providedCode = request.headers.get('X-Zone-Code');
+      if (!providedCode || providedCode !== zone.accessCode) {
+        return errorResponse('Unauthorized', 401, undefined, 'UNAUTHORIZED');
+      }
+    }
+  }
+  
+  return jsonResponse({ success: true, proposal });
+}
+
+async function handleProposalAccept(proposalId, env) {
+  const data = await env.KV.get(`proposal:${proposalId}`);
+  if (!data) {
+    return errorResponse('Proposal not found', 404, { proposalId }, 'NOT_FOUND');
+  }
+  
+  const proposal = JSON.parse(data);
+  
+  if (proposal.status !== 'pending') {
+    return errorResponse('Proposal already reviewed', 400, { status: proposal.status }, 'BAD_REQUEST');
+  }
+  
+  // Update zone note with proposed content
+  const zoneData = await env.KV.get(`zone:${proposal.zoneId}`);
+  if (zoneData) {
+    const zone = JSON.parse(zoneData);
+    const noteIndex = zone.notes.findIndex(n => n.slug === proposal.noteSlug);
+    if (noteIndex !== -1) {
+      zone.notes[noteIndex].content = proposal.proposedContent;
+      await env.KV.put(`zone:${proposal.zoneId}`, JSON.stringify(zone));
+      
+      // Also update MinIO if exists
+      try {
+        const slug = safeNoteSlug(proposal.noteSlug);
+        const key = `zones/${proposal.zoneId}/notes/${slug}.md`;
+        const markdown = convertNoteToMarkdown({
+          ...zone.notes[noteIndex],
+          content: proposal.proposedContent,
+        });
+        await uploadToMinIO(env, key, markdown, 'text/markdown');
+      } catch (err) {
+        console.error('[Proposals] MinIO update failed (non-fatal):', err);
+      }
+    }
+  }
+  
+  // Update proposal status
+  proposal.status = 'accepted';
+  proposal.reviewedAt = Date.now();
+  proposal.updatedAt = Date.now();
+  await env.KV.put(`proposal:${proposalId}`, JSON.stringify(proposal));
+  
+  // Remove from pending index
+  const pendingData = await env.KV.get('proposals:pending');
+  if (pendingData) {
+    const pending = JSON.parse(pendingData).filter(id => id !== proposalId);
+    await env.KV.put('proposals:pending', JSON.stringify(pending));
+  }
+  
+  // Create notification message in zone chat (if chat exists)
+  try {
+    const zoneChatsData = await env.KV.get(`zone_chats:${proposal.zoneId}`);
+    if (zoneChatsData) {
+      const chatIds = JSON.parse(zoneChatsData);
+      if (chatIds.length > 0) {
+        const notifText = `✅ Edit accepted: "${proposal.noteTitle}" by ${proposal.guestName}`;
+        for (const chatId of chatIds.slice(0, 3)) {
+          const chatData = await env.KV.get(`chat:${chatId}`);
+          if (chatData) {
+            const chat = JSON.parse(chatData);
+            chat.lastMessagePreview = notifText;
+            chat.lastMessageAt = Date.now();
+            chat.updatedAt = Date.now();
+            await env.KV.put(`chat:${chatId}`, JSON.stringify(chat));
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Proposals] Chat notification failed (non-fatal):', err);
+  }
+  
+  return jsonResponse({ success: true, proposal });
+}
+
+async function handleProposalReject(proposalId, env) {
+  const data = await env.KV.get(`proposal:${proposalId}`);
+  if (!data) {
+    return errorResponse('Proposal not found', 404, { proposalId }, 'NOT_FOUND');
+  }
+  
+  const proposal = JSON.parse(data);
+  
+  if (proposal.status !== 'pending') {
+    return errorResponse('Proposal already reviewed', 400, { status: proposal.status }, 'BAD_REQUEST');
+  }
+  
+  proposal.status = 'rejected';
+  proposal.reviewedAt = Date.now();
+  proposal.updatedAt = Date.now();
+  await env.KV.put(`proposal:${proposalId}`, JSON.stringify(proposal));
+  
+  // Remove from pending index
+  const pendingData = await env.KV.get('proposals:pending');
+  if (pendingData) {
+    const pending = JSON.parse(pendingData).filter(id => id !== proposalId);
+    await env.KV.put('proposals:pending', JSON.stringify(pending));
+  }
+  
+  return jsonResponse({ success: true, proposal });
+}
+
+// ============================================
+// Chats API Handlers (continued)
+// ============================================
+
 /**
  * Chat metadata stored in KV:
  * - chat:{chatId} → full chat object
@@ -2359,6 +2657,7 @@ export default {
         (method === 'GET' && path === '/zones/list');
 
       if (isProtectedRoute) {
+++ Find insertion point for proposals handlers +++
         const ownerPayload = await verifyOwnerAuth(request, env);
         if (!ownerPayload) {
           return errorResponse('Unauthorized: Owner access required', 401);
@@ -2399,6 +2698,56 @@ export default {
       // ============================================
       // 404 Not Found
       // ============================================
+      // ============================================
+      // EDIT PROPOSALS ENDPOINTS
+      // ============================================
+      
+      // POST /zones/:zoneId/proposals - Guest submits edit proposal
+      const proposalCreateMatch = path.match(/^\/zones\/([^\/]+)\/proposals$/);
+      if (method === 'POST' && proposalCreateMatch) {
+        return await handleProposalCreate(proposalCreateMatch[1], request, env);
+      }
+
+      // GET /zones/:zoneId/proposals - List proposals for zone (owner or guest with code)
+      if (method === 'GET' && proposalCreateMatch) {
+        return await handleProposalsList(proposalCreateMatch[1], request, env);
+      }
+
+      // GET /proposals/pending - Owner lists all pending proposals
+      if (method === 'GET' && path === '/proposals/pending') {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleProposalsPending(env, request);
+      }
+
+      // GET /proposals/:proposalId - Get single proposal
+      const proposalGetMatch = path.match(/^\/proposals\/([^\/]+)$/);
+      if (method === 'GET' && proposalGetMatch) {
+        return await handleProposalGet(proposalGetMatch[1], request, env);
+      }
+
+      // POST /proposals/:proposalId/accept - Owner accepts proposal
+      const proposalAcceptMatch = path.match(/^\/proposals\/([^\/]+)\/accept$/);
+      if (method === 'POST' && proposalAcceptMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleProposalAccept(proposalAcceptMatch[1], env);
+      }
+
+      // POST /proposals/:proposalId/reject - Owner rejects proposal
+      const proposalRejectMatch = path.match(/^\/proposals\/([^\/]+)\/reject$/);
+      if (method === 'POST' && proposalRejectMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleProposalReject(proposalRejectMatch[1], env);
+      }
+
       return errorResponse('Not found', 404);
 
     } catch (err) {
