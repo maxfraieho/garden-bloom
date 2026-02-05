@@ -197,6 +197,40 @@ export interface Translations {
     unlock: string;
     hint: string;
   };
+ 
+   // Editor
+   editor: {
+     newNote: string;
+     editNote: string;
+     placeholder: string;
+     save: string;
+     cancel: string;
+     saving: string;
+     saved: string;
+     error: string;
+     draftFound: string;
+     draftRestored: string;
+     restoreDraft: string;
+     discardDraft: string;
+     titleRequired: string;
+     copiedToClipboard: string;
+     preview: string;
+     edit: string;
+     addTag: string;
+     toolbar: {
+       bold: string;
+       italic: string;
+       heading1: string;
+       heading2: string;
+       link: string;
+       wikilink: string;
+       code: string;
+       quote: string;
+       bulletList: string;
+       numberedList: string;
+       table: string;
+     };
+   };
 }
 
 export interface LocaleInfo {

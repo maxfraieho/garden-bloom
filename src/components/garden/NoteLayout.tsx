@@ -6,9 +6,11 @@ import { LocalGraphView } from './LocalGraphView';
 import { CommentSection } from './CommentSection';
 import { AnnotationLayer } from './AnnotationLayer';
 import { useLocalGraph } from '@/hooks/useBacklinks';
+import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface NoteLayoutProps {
   note: Note;
@@ -20,11 +22,12 @@ export function NoteLayout({ note }: NoteLayoutProps) {
   const updated = frontmatter.updated ? new Date(frontmatter.updated as string) : null;
   const tags = (frontmatter.tags as string[]) || [];
   const localGraph = useLocalGraph(note.slug);
+  const { isAuthenticated } = useOwnerAuth();
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 md:py-12">
       {/* Back navigation */}
-      <nav className="mb-6">
+      <nav className="mb-6 flex items-center justify-between">
         <Link 
           to="/" 
           className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-sans"
@@ -32,6 +35,15 @@ export function NoteLayout({ note }: NoteLayoutProps) {
           <ArrowLeft className="w-4 h-4" />
           <span>Back to garden</span>
         </Link>
+        
+        {isAuthenticated && (
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to={`/notes/${note.slug}/edit`}>
+              <Pencil className="w-4 h-4" />
+              <span>Edit</span>
+            </Link>
+          </Button>
+        )}
       </nav>
 
       {/* Note header */}
