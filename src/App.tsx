@@ -16,6 +16,7 @@ import TagsIndex from "./pages/TagsIndex";
 import GraphPage from "./pages/GraphPage";
 import FilesPage from "./pages/FilesPage";
 import ZoneViewPage from "./pages/ZoneViewPage";
+import ZoneEditPage from "./pages/ZoneEditPage";
 import ChatPage from "./pages/ChatPage";
 import AdminDiagnosticsPage from "./pages/AdminDiagnosticsPage";
 import NotFound from "./pages/NotFound";
@@ -56,6 +57,7 @@ function AppContent() {
             <Route path="/graph" element={<GraphPage />} />
             <Route path="/files" element={<FilesPage />} />
             <Route path="/zone/:zoneId" element={<ZoneViewPage />} />
+            <Route path="/zone/:zoneId/edit/:noteSlug" element={<ZoneEditPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/admin/diagnostics" element={<AdminDiagnosticsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

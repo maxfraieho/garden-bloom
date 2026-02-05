@@ -231,4 +231,31 @@ export const de: Translations = {
        codeBlock: 'Codeblock',
      },
    },
+
+  zoneEdit: {
+    editing: 'Bearbeiten',
+    submitProposal: 'Vorschlag einreichen',
+    proposalSubmitted: 'Änderungsvorschlag gesendet',
+    proposalFailed: 'Fehler beim Senden des Vorschlags',
+    yourDetails: 'Ihre Daten',
+    name: 'Name',
+    namePlaceholder: 'Ihr Name (optional)',
+    email: 'E-Mail',
+    emailPlaceholder: 'Für Benachrichtigungen (optional)',
+    unsavedChanges: 'Sie haben ungespeicherte Änderungen',
+  },
+
+  proposals: {
+    title: 'Änderungsvorschläge',
+    description: 'Änderungen von Gästen überprüfen',
+    empty: 'Keine ausstehenden Vorschläge',
+    accepted: 'Vorschlag akzeptiert',
+    acceptFailed: 'Fehler beim Akzeptieren',
+    rejected: 'Vorschlag abgelehnt',
+    rejectFailed: 'Fehler beim Ablehnen',
+    reviewTitle: 'Vorschlag überprüfen',
+    submittedBy: 'Eingereicht von',
+    accept: 'Änderungen akzeptieren',
+    reject: 'Ablehnen',
+  },
 };

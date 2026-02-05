@@ -231,4 +231,31 @@ export const en: Translations = {
        codeBlock: 'Code block',
      },
    },
+
+  zoneEdit: {
+    editing: 'Editing',
+    submitProposal: 'Submit Proposal',
+    proposalSubmitted: 'Edit proposal submitted',
+    proposalFailed: 'Failed to submit proposal',
+    yourDetails: 'Your Details',
+    name: 'Name',
+    namePlaceholder: 'Your name (optional)',
+    email: 'Email',
+    emailPlaceholder: 'For notifications (optional)',
+    unsavedChanges: 'You have unsaved changes',
+  },
+
+  proposals: {
+    title: 'Edit Proposals',
+    description: 'Review changes suggested by guests',
+    empty: 'No pending proposals',
+    accepted: 'Proposal accepted',
+    acceptFailed: 'Failed to accept proposal',
+    rejected: 'Proposal rejected',
+    rejectFailed: 'Failed to reject proposal',
+    reviewTitle: 'Review Edit Proposal',
+    submittedBy: 'Submitted by',
+    accept: 'Accept Changes',
+    reject: 'Reject',
+  },
 };

@@ -248,6 +248,35 @@ export interface Translations {
        codeBlock: string;
      };
    };
+
+  // Zone Edit (Guest editing)
+  zoneEdit: {
+    editing: string;
+    submitProposal: string;
+    proposalSubmitted: string;
+    proposalFailed: string;
+    yourDetails: string;
+    name: string;
+    namePlaceholder: string;
+    email: string;
+    emailPlaceholder: string;
+    unsavedChanges: string;
+  };
+
+  // Proposals (Owner review)
+  proposals: {
+    title: string;
+    description: string;
+    empty: string;
+    accepted: string;
+    acceptFailed: string;
+    rejected: string;
+    rejectFailed: string;
+    reviewTitle: string;
+    submittedBy: string;
+    accept: string;
+    reject: string;
+  };
 }
 
 export interface LocaleInfo {

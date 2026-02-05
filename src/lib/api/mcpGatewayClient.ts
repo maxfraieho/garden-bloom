@@ -405,3 +405,88 @@ export async function patchChat(
     requireAuth: true,
   });
 }
+
+// ============================================
+// Edit Proposals API
+// ============================================
+
+import type { EditProposal, CreateProposalRequest, ProposalsListResponse } from '@/types/mcpGateway';
+
+export async function createProposal(
+  zoneId: string,
+  zoneCode: string,
+  payload: CreateProposalRequest
+): Promise<{ success: true; proposal: EditProposal }> {
+  return requestJson<{ success: true; proposal: EditProposal }>(`/zones/${zoneId}/proposals`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {
+      'X-Zone-Code': zoneCode,
+    },
+  });
+}
+
+export async function getZoneProposals(
+  zoneId: string,
+  options?: { status?: 'pending' | 'accepted' | 'rejected' | 'all'; zoneCode?: string }
+): Promise<ProposalsListResponse> {
+  const params = new URLSearchParams();
+  if (options?.status) params.set('status', options.status);
+  
+  const query = params.toString();
+  const headers: Record<string, string> = {};
+  if (options?.zoneCode) {
+    headers['X-Zone-Code'] = options.zoneCode;
+  }
+  
+  return requestJson<ProposalsListResponse>(`/zones/${zoneId}/proposals${query ? `?${query}` : ''}`, {
+    method: 'GET',
+    headers,
+  });
+}
+
+export async function getPendingProposals(limit?: number): Promise<ProposalsListResponse> {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  
+  const query = params.toString();
+  return requestJson<ProposalsListResponse>(`/proposals/pending${query ? `?${query}` : ''}`, {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
+export async function getProposal(
+  proposalId: string,
+  zoneCode?: string
+): Promise<{ success: true; proposal: EditProposal }> {
+  const headers: Record<string, string> = {};
+  if (zoneCode) {
+    headers['X-Zone-Code'] = zoneCode;
+  }
+  
+  return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}`, {
+    method: 'GET',
+    headers,
+  });
+}
+
+export async function acceptProposal(
+  proposalId: string
+): Promise<{ success: true; proposal: EditProposal }> {
+  return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}/accept`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+    requireAuth: true,
+  });
+}
+
+export async function rejectProposal(
+  proposalId: string
+): Promise<{ success: true; proposal: EditProposal }> {
+  return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+    requireAuth: true,
+  });
+}

@@ -231,4 +231,31 @@ export const uk: Translations = {
        codeBlock: 'Блок коду',
      },
    },
+
+  zoneEdit: {
+    editing: 'Редагування',
+    submitProposal: 'Надіслати пропозицію',
+    proposalSubmitted: 'Пропозицію редагування надіслано',
+    proposalFailed: 'Не вдалося надіслати пропозицію',
+    yourDetails: 'Ваші дані',
+    name: 'Ім\'я',
+    namePlaceholder: 'Ваше ім\'я (необов\'язково)',
+    email: 'Email',
+    emailPlaceholder: 'Для сповіщень (необов\'язково)',
+    unsavedChanges: 'У вас є незбережені зміни',
+  },
+
+  proposals: {
+    title: 'Пропозиції редагування',
+    description: 'Перегляд змін, запропонованих гостями',
+    empty: 'Немає очікуючих пропозицій',
+    accepted: 'Пропозицію прийнято',
+    acceptFailed: 'Не вдалося прийняти пропозицію',
+    rejected: 'Пропозицію відхилено',
+    rejectFailed: 'Не вдалося відхилити пропозицію',
+    reviewTitle: 'Перегляд пропозиції',
+    submittedBy: 'Автор',
+    accept: 'Прийняти зміни',
+    reject: 'Відхилити',
+  },
 };

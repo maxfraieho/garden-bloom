@@ -1,107 +1,101 @@
 # AccessZone Logic
 
-## Поточний стан
+## Поточний стан (оновлено)
 
-**СТАТУС:** 🔴 НЕ ПРАЦЮЄ
+**СТАТУС:** 🟢 ПРАЦЮЄ + Collaborative Editing
 
-### Відома проблема
+### Можливості
 
-AccessZone створюється, але:
-1. ❌ Не зберігається в KV
-2. ❌ Не з'являється в списку зон
-3. ❌ Доступ по зоні не працює
+AccessZone тепер підтримує:
+1. ✅ Створення зон з TTL
+2. ✅ Web/MCP/Both доступ
+3. ✅ NotebookLM інтеграція
+4. ✅ **Collaborative Editing** — гості можуть пропонувати зміни
 
-### Симптоми
+## Collaborative Editing API
 
-```
-POST /zones/create → 200 OK (zone created)
-GET /zones/list → [] (empty array)
-GET /zones/validate/:zoneId → 404 (zone not found)
-```
-
-## Очікувана поведінка
-
-### Створення зони
+### Proposal Endpoints
 
 ```javascript
-POST /zones/create
+// Guest creates edit proposal
+POST /zones/:zoneId/proposals
+Headers: X-Zone-Code: ACCESS-XXXXXXXX
 Body: {
-  "name": "Guest Access",
-  "noteIds": ["note1", "note2"],
-  "expiresIn": 3600000
+  "noteSlug": "note-slug",
+  "noteTitle": "Note Title",
+  "originalContent": "...",
+  "proposedContent": "...",
+  "guestName": "Guest Name",
+  "guestEmail": "email@example.com"
+}
+Response: { success: true, proposal: {...} }
+
+// List proposals for zone (owner or guest)
+GET /zones/:zoneId/proposals?status=pending
+Headers: Authorization: Bearer <token> OR X-Zone-Code: <code>
+Response: { success: true, proposals: [...], total: N }
+
+// Owner lists all pending proposals
+GET /proposals/pending?limit=20
+Headers: Authorization: Bearer <token>
+Response: { success: true, proposals: [...] }
+
+// Get single proposal
+GET /proposals/:proposalId
+Headers: Authorization: Bearer <token> OR X-Zone-Code: <code>
+Response: { success: true, proposal: {...} }
+
+// Owner accepts proposal
+POST /proposals/:proposalId/accept
+Headers: Authorization: Bearer <token>
+Response: { success: true, proposal: {...} }
+
+// Owner rejects proposal
+POST /proposals/:proposalId/reject
+Headers: Authorization: Bearer <token>
+Response: { success: true, proposal: {...} }
+```
+
+### Proposal KV Storage
+
+```javascript
+// Key patterns
+proposal:{proposalId} → {
+  proposalId,
+  zoneId,
+  zoneName,
+  noteSlug,
+  noteTitle,
+  originalContent,
+  proposedContent,
+  guestName,
+  guestEmail,
+  status: 'pending' | 'accepted' | 'rejected',
+  createdAt,
+  updatedAt,
+  reviewedAt
 }
 
-Response: {
-  "zoneId": "zone_abc123",
-  "accessCode": "GUEST-1234",
-  "expiresAt": "2024-01-15T12:00:00Z"
-}
+// Indexes
+proposals:zone:{zoneId} → [proposalId, ...]
+proposals:pending → [proposalId, ...] // global pending list
 ```
 
-### Зберігання в KV
+## Frontend Flow
 
-```javascript
-// Key pattern
-`zone:${zoneId}` → {
-  id: zoneId,
-  name: "Guest Access",
-  noteIds: ["note1", "note2"],
-  accessCode: "GUEST-1234",
-  createdAt: timestamp,
-  expiresAt: timestamp
-}
-
-// Index for listing
-`zones:index` → ["zone_abc123", "zone_def456", ...]
-```
-
-## Точки для дебагу
-
-### 1. Перевірити KV write
-
-```javascript
-// В /zones/create handler
-await env.KV.put(`zone:${zoneId}`, JSON.stringify(zoneData));
-console.log('Zone saved:', zoneId);
-
-// Перевірка
-const saved = await env.KV.get(`zone:${zoneId}`);
-console.log('Zone retrieved:', saved);
-```
-
-### 2. Перевірити KV binding
-
-```javascript
-// В /health endpoint
-const kvTest = await env.KV.put('test', 'value');
-const kvRead = await env.KV.get('test');
-return { kv: kvRead === 'value' ? 'ok' : 'failed' };
-```
-
-### 3. Перевірити index update
-
-```javascript
-// При створенні зони
-const index = await env.KV.get('zones:index', 'json') || [];
-index.push(zoneId);
-await env.KV.put('zones:index', JSON.stringify(index));
-```
-
-## Дії для виправлення
-
-### Для Cloud CLI / ChatGPT
-
-1. Проаналізувати handler `/zones/create`
-2. Перевірити KV namespace binding в wrangler.toml / Dashboard
-3. Перевірити правильність `env.KV` виклику
-4. Додати логування для діагностики
-
-### Для Comet Browser
-
-Див. [agents/comet/debug.md](../../../agents/comet/debug.md)
+1. Гість відкриває `/zone/:zoneId?code=...`
+2. Обирає нотатку, натискає Edit (іконка олівця)
+3. Переходить на `/zone/:zoneId/edit/:noteSlug?code=...`
+4. Редагує контент, натискає "Submit Proposal"
+5. Власник бачить нову пропозицію в Chat → Proposals Inbox
+6. Власник переглядає diff, Accept або Reject
+7. При Accept: контент нотатки оновлюється в zone KV та MinIO
 
 ## Пов'язані файли
 
 - Worker код: `./index.js`
-- Comet debug: `../../../agents/comet/debug.md`
+- Frontend API client: `src/lib/api/mcpGatewayClient.ts`
 - Frontend hook: `src/hooks/useAccessZones.ts`
+- Zone Edit Page: `src/pages/ZoneEditPage.tsx`
+- Proposals Inbox: `src/components/garden/ProposalsInbox.tsx`
+- Diff View: `src/components/garden/ProposalDiffView.tsx`
