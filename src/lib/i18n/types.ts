@@ -203,6 +203,7 @@ export interface Translations {
      newNote: string;
      editNote: string;
      placeholder: string;
+     titlePlaceholder: string;
      save: string;
      cancel: string;
      saving: string;
@@ -217,11 +218,15 @@ export interface Translations {
      preview: string;
      edit: string;
      addTag: string;
+     unsavedChanges: string;
+     focusMode: string;
+     splitView: string;
      toolbar: {
        bold: string;
        italic: string;
        heading1: string;
        heading2: string;
+       heading3: string;
        link: string;
        wikilink: string;
        code: string;
@@ -229,6 +234,9 @@ export interface Translations {
        bulletList: string;
        numberedList: string;
        table: string;
+       strikethrough: string;
+       hr: string;
+       codeBlock: string;
      };
    };
 }
