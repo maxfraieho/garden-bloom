@@ -1,25 +1,26 @@
-# Cloudflare Worker configuration
+# Garden MCP Worker - Cloudflare Wrangler Configuration
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
 
 name = "garden-mcp-server"
 main = "index.js"
 compatibility_date = "2024-01-01"
 
-# Account ID - set via CLOUDFLARE_ACCOUNT_ID secret or uncomment below
-# account_id = "your_account_id"
-
-# KV Namespace binding
-# ВАЖЛИВО: Оновити id на реальний KV namespace ID з Cloudflare Dashboard
+# KV Namespace Binding
+# IMPORTANT: The actual namespace must be created in Cloudflare Dashboard
+# and the ID must be set here. This binding name is used in code as env.KV
 [[kv_namespaces]]
 binding = "KV"
-id = "YOUR_KV_NAMESPACE_ID"  # TODO: Replace with actual KV namespace ID
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+# For preview/dev environments, uncomment and set:
+# preview_id = "REPLACE_WITH_YOUR_PREVIEW_KV_NAMESPACE_ID"
 
-# Environment variables (non-secret)
-# Secrets are set via wrangler secret put or GitHub Secrets
-[vars]
-ENVIRONMENT = "production"
+# Environment variables (secrets) are NOT defined here.
+# They must be configured in Cloudflare Dashboard or via:
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put MINIO_ACCESS_KEY
+#   wrangler secret put MINIO_SECRET_KEY
+#   etc.
 
-# Routes (optional - configure in Cloudflare Dashboard if using custom domain)
-# routes = [
-#   { pattern = "api.garden.example.com/*", zone_name = "example.com" }
-# ]
+# Optional: Custom domain routing
+# [routes]
+# { pattern = "garden-mcp-server.yourdomain.com/*", zone_name = "yourdomain.com" }
