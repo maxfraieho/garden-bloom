@@ -82,6 +82,7 @@ export const de: Translations = {
     notes: 'Notizen',
     tag: 'Tag',
     tags: 'Tags',
+    edit: 'Bearbeiten',
   },
   
   export: {
