@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Network, FolderTree, Home, MessageSquare } from 'lucide-react';
+import { Network, FolderTree, Home, MessageSquare, PenSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from './SearchBar';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { OwnerModeIndicator } from './OwnerModeIndicator';
 import { useLocale } from '@/hooks/useLocale';
+import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import {
   Tooltip,
   TooltipContent,
@@ -15,8 +16,9 @@ import {
 export function GardenHeader() {
   const { t } = useLocale();
   const location = useLocation();
+  const { isAuthenticated } = useOwnerAuth();
 
-  // Cycle between: Home -> Files -> Chat -> Home
+  // Cycle between: Home -> Files -> Chat -> Graph -> Home
   const cycle = (() => {
     switch (location.pathname) {
       case '/':
@@ -80,6 +82,20 @@ export function GardenHeader() {
           <OwnerModeIndicator />
           <LanguageSwitcher />
           <ThemeToggle />
+          {isAuthenticated && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="icon">
+                  <Link to="/notes/new" aria-label={t.editor?.newNote || 'New Note'}>
+                    <PenSquare className="w-5 h-5" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t.editor?.newNote || 'New Note'}
+              </TooltipContent>
+            </Tooltip>
+          )}
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link to="/chat">
               <MessageSquare className="w-4 h-4" />

@@ -1,13 +1,14 @@
 // Full-screen file/folder structure view
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus } from 'lucide-react';
 import { getFolderStructure, getHomeNote } from '@/lib/notes/noteLoader';
 import { GardenHeader } from '@/components/garden/GardenHeader';
 import { GardenFooter } from '@/components/garden/GardenFooter';
 import { ExportModal } from '@/components/garden/ExportModal';
 import { Button } from '@/components/ui/button';
 import { useLocale } from '@/hooks/useLocale';
+import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { cn } from '@/lib/utils';
 
 interface FolderInfo {
@@ -95,6 +96,7 @@ export default function FilesPage() {
   const { t } = useLocale();
   const location = useLocation();
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const { isAuthenticated } = useOwnerAuth();
   
   // Count total notes and folders
   const countItems = (folders: FolderInfo[]): { notes: number; folders: number } => {
@@ -128,15 +130,25 @@ export default function FilesPage() {
                 {t.sidebar.fileStructure || 'File Structure'}
               </h1>
             </div>
-            <Button
-              onClick={() => setExportModalOpen(true)}
-              variant="default"
-              size="sm"
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export Context
-            </Button>
+            <div className="flex gap-2">
+              {isAuthenticated && (
+                <Button asChild variant="default" size="sm" className="gap-2">
+                  <Link to="/notes/new">
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t.editor?.newNote || 'New Note'}</span>
+                  </Link>
+                </Button>
+              )}
+              <Button
+                onClick={() => setExportModalOpen(true)}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+              </Button>
+            </div>
           </div>
           <p className="text-muted-foreground">
             {counts.folders} {counts.folders === 1 ? 'folder' : 'folders'}, {counts.notes} {counts.notes === 1 ? 'note' : 'notes'}

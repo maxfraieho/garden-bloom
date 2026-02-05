@@ -19,6 +19,7 @@ import ZoneViewPage from "./pages/ZoneViewPage";
 import ChatPage from "./pages/ChatPage";
 import AdminDiagnosticsPage from "./pages/AdminDiagnosticsPage";
 import NotFound from "./pages/NotFound";
+import EditorPage from "./pages/EditorPage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,8 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/notes/:slug" element={<NotePage />} />
+            <Route path="/notes/:slug/edit" element={<EditorPage />} />
+            <Route path="/notes/new" element={<EditorPage />} />
             <Route path="/tags" element={<TagsIndex />} />
             <Route path="/tags/:tag" element={<TagPage />} />
             <Route path="/graph" element={<GraphPage />} />
