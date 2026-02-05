@@ -1,5 +1,6 @@
  import { useState, useMemo } from 'react';
- import { ChevronRight, ChevronDown, Folder, FolderOpen, Check, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Check, PanelLeftClose, PanelLeft, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
  import { getFolderStructure } from '@/lib/notes/noteLoader';
  import { useLocale } from '@/hooks/useLocale';
  import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@
    onSelect: (path: string) => void;
    expandedFolders: Set<string>;
    onToggleExpand: (path: string) => void;
+  currentSlug?: string;
  }
  
  function FolderItem({ 
@@ -28,11 +30,12 @@
    selectedFolder, 
    onSelect,
    expandedFolders,
-   onToggleExpand 
+  onToggleExpand,
+  currentSlug
  }: FolderItemProps) {
    const isExpanded = expandedFolders.has(folder.path);
    const isSelected = selectedFolder === folder.path;
-   const hasChildren = folder.subfolders.length > 0;
+  const hasChildren = folder.subfolders.length > 0 || folder.notes.length > 0;
    
    return (
      <div>
@@ -89,7 +92,26 @@
                onSelect={onSelect}
                expandedFolders={expandedFolders}
                onToggleExpand={onToggleExpand}
+               currentSlug={currentSlug}
              />
+           ))}
+           
+           {/* Notes in this folder */}
+           {folder.notes.map((note) => (
+             <Link
+               key={note.slug}
+               to={`/notes/${note.slug}/edit`}
+               className={cn(
+                 "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors",
+                 "hover:bg-accent/50",
+                 currentSlug === note.slug && "bg-primary/10 text-primary font-medium"
+               )}
+               style={{ paddingLeft: `${8 + (level + 1) * 16}px` }}
+             >
+               <span className="w-4" />
+               <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+               <span className="truncate flex-1 text-left">{note.title}</span>
+             </Link>
            ))}
          </div>
        )}
@@ -102,6 +124,7 @@
    onSelectFolder: (path: string | null) => void;
    isCollapsed: boolean;
    onToggleCollapse: () => void;
+  currentSlug?: string;
  }
  
  export function EditorFolderTree({
@@ -109,6 +132,7 @@
    onSelectFolder,
    isCollapsed,
    onToggleCollapse,
+  currentSlug,
  }: EditorFolderTreeProps) {
    const { t } = useLocale();
    const folders = useMemo(() => getFolderStructure(), []);

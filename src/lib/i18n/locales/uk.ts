@@ -82,6 +82,7 @@ export const uk: Translations = {
     notes: 'нотаток',
     tag: 'тег',
     tags: 'тегів',
+    edit: 'Редагувати',
   },
   
   export: {

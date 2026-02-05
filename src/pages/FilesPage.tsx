@@ -1,7 +1,7 @@
 // Full-screen file/folder structure view
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus, FilePlus } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus, FilePlus, Pencil } from 'lucide-react';
 import { getFolderStructure, getHomeNote } from '@/lib/notes/noteLoader';
 import { GardenHeader } from '@/components/garden/GardenHeader';
 import { GardenFooter } from '@/components/garden/GardenFooter';
@@ -87,24 +87,45 @@ function FolderItem({ folder, level = 0, isAuthenticated = false }: FolderItemPr
             const isActive = location.pathname === `/notes/${note.slug}`;
             
             return (
-              <Link
+              <div
                 key={note.slug}
-                to={note.isHome ? '/' : `/notes/${note.slug}`}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 text-base rounded-lg transition-colors",
-                  isActive 
-                    ? "bg-primary/10 text-primary font-medium" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  "group flex items-center gap-3 px-4 py-3 text-base rounded-lg transition-colors",
+                  isActive
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-accent/50"
                 )}
                 style={{ paddingLeft: `${40 + level * 24}px` }}
               >
-                {note.isHome ? (
-                  <Home className="w-5 h-5 flex-shrink-0" />
-                ) : (
-                  <FileText className="w-5 h-5 flex-shrink-0" />
+                <Link
+                  to={note.isHome ? '/' : `/notes/${note.slug}`}
+                  className={cn(
+                    "flex-1 flex items-center gap-3",
+                    isActive ? "" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {note.isHome ? (
+                    <Home className="w-5 h-5 flex-shrink-0" />
+                  ) : (
+                    <FileText className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  <span className="text-left">{note.title}</span>
+                </Link>
+                
+                {/* Edit button - visible on hover */}
+                {isAuthenticated && (
+                  <Link
+                    to={`/notes/${note.slug}/edit`}
+                    className={cn(
+                      "opacity-0 group-hover:opacity-100 transition-opacity",
+                      "p-1.5 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                    )}
+                    title={t.common?.edit || 'Edit'}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Link>
                 )}
-                <span className="text-left">{note.title}</span>
-              </Link>
+              </div>
             );
           })}
         </div>

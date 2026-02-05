@@ -94,6 +94,7 @@ export interface Translations {
     notes: string;
     tag: string;
     tags: string;
+    edit: string;
   };
   
   // Export Modal

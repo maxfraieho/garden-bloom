@@ -22,8 +22,18 @@
    // Get folder from query params (for creating notes in specific folder)
    const folderFromUrl = searchParams.get('folder') || null;
    
-   // Folder selection state
-   const [selectedFolder, setSelectedFolder] = useState<string | null>(folderFromUrl);
+  // Folder selection state - for new notes use URL param, for existing notes extract from slug
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(() => {
+    if (folderFromUrl) return folderFromUrl;
+    if (slug && slug !== 'new') {
+      // Extract folder path from slug (e.g., "folder/subfolder/note" -> "folder/subfolder")
+      const lastSlashIndex = slug.lastIndexOf('/');
+      if (lastSlashIndex > 0) {
+        return slug.substring(0, lastSlashIndex);
+      }
+    }
+    return null;
+  });
    const [isFolderTreeCollapsed, setIsFolderTreeCollapsed] = useState(false);
  
    const editor = useNoteEditor({ 
@@ -88,6 +98,7 @@
              onSelectFolder={setSelectedFolder}
              isCollapsed={isFolderTreeCollapsed}
              onToggleCollapse={() => setIsFolderTreeCollapsed(!isFolderTreeCollapsed)}
+              currentSlug={slug === 'new' ? undefined : slug}
            />
          </div>
          
