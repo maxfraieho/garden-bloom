@@ -13,7 +13,18 @@
  import { ScrollArea } from '@/components/ui/scroll-area';
  import { Card } from '@/components/ui/card';
  import { Alert, AlertDescription } from '@/components/ui/alert';
- import { Save, X, FileText, Eye, AlertCircle, RotateCcw, Trash2 } from 'lucide-react';
+ import { 
+   Save, 
+   X, 
+   FileText, 
+   Eye, 
+   AlertCircle, 
+   RotateCcw, 
+   Trash2,
+   Columns,
+   Maximize2,
+   Minimize2
+ } from 'lucide-react';
  import { cn } from '@/lib/utils';
  
  interface NoteEditorProps {
@@ -37,6 +48,8 @@
    ) => void;
  }
  
+ type ViewMode = 'split' | 'editor' | 'preview';
+ 
  export function NoteEditor({
    title,
    content,
@@ -57,6 +70,7 @@
    const textareaRef = useRef<HTMLTextAreaElement>(null);
    const [cursorPosition, setCursorPosition] = useState(0);
    const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
+   const [viewMode, setViewMode] = useState<ViewMode>('split');
  
    // Wikilink autocomplete detection
    const wikilinkState = useWikilinkDetection(content, cursorPosition);
@@ -104,26 +118,51 @@
      insertAtCursor(textareaRef, '[[', ']]');
    }, [insertAtCursor]);
  
-   // Keyboard shortcuts
+   // Keyboard shortcuts (Notemod-style)
    useEffect(() => {
      const handleKeyDown = (e: KeyboardEvent) => {
+       // Ctrl/Cmd + S = Save
        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
          e.preventDefault();
          if (!isSaving) onSave();
        }
+       // Ctrl/Cmd + B = Bold
        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
          e.preventDefault();
          handleFormat('**', '**');
        }
+       // Ctrl/Cmd + I = Italic
        if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
          e.preventDefault();
          handleFormat('*', '*');
+       }
+       // Ctrl/Cmd + K = Link
+       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+         e.preventDefault();
+         handleFormat('[', '](url)');
+       }
+       // Ctrl/Cmd + 1/2/3 = Headings
+       if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+         e.preventDefault();
+         handleFormat('# ', '');
+       }
+       if ((e.ctrlKey || e.metaKey) && e.key === '2') {
+         e.preventDefault();
+         handleFormat('## ', '');
+       }
+       if ((e.ctrlKey || e.metaKey) && e.key === '3') {
+         e.preventDefault();
+         handleFormat('### ', '');
+       }
+       // Escape = toggle preview
+       if (e.key === 'Escape' && activeTab === 'preview') {
+         setActiveTab('edit');
        }
      };
  
      document.addEventListener('keydown', handleKeyDown);
      return () => document.removeEventListener('keydown', handleKeyDown);
-   }, [isSaving, onSave, handleFormat]);
+   }, [isSaving, onSave, handleFormat, activeTab]);
  
    // Create a mock note object for preview
    const previewNote = {
@@ -134,163 +173,219 @@
      rawContent: content,
    };
  
+   // View mode toggle for desktop
+   const ViewModeToggle = () => (
+     <div className="hidden md:flex items-center gap-1 ml-auto">
+       <Button
+         variant={viewMode === 'editor' ? 'secondary' : 'ghost'}
+         size="icon"
+         className="h-7 w-7"
+         onClick={() => setViewMode('editor')}
+         title={t.editor?.focusMode || 'Focus mode'}
+       >
+         <Maximize2 className="h-3.5 w-3.5" />
+       </Button>
+       <Button
+         variant={viewMode === 'split' ? 'secondary' : 'ghost'}
+         size="icon"
+         className="h-7 w-7"
+         onClick={() => setViewMode('split')}
+         title={t.editor?.splitView || 'Split view'}
+       >
+         <Columns className="h-3.5 w-3.5" />
+       </Button>
+       <Button
+         variant={viewMode === 'preview' ? 'secondary' : 'ghost'}
+         size="icon"
+         className="h-7 w-7"
+         onClick={() => setViewMode('preview')}
+         title={t.editor?.preview || 'Preview'}
+       >
+         <Eye className="h-3.5 w-3.5" />
+       </Button>
+     </div>
+   );
+ 
+   // Editor textarea component
+   const EditorTextarea = ({ className = '' }: { className?: string }) => (
+     <div className={cn("relative flex-1", className)}>
+       <Textarea
+         ref={textareaRef}
+         value={content}
+         onChange={handleTextareaChange}
+         onSelect={handleTextareaSelect}
+         onClick={handleTextareaSelect}
+         onKeyUp={handleTextareaSelect}
+         placeholder={t.editor?.placeholder || 'Start writing...'}
+         className={cn(
+           "h-full font-mono text-sm resize-none",
+           "border-0 rounded-none focus-visible:ring-0",
+           "bg-transparent"
+         )}
+         disabled={isSaving}
+       />
+       <WikilinkAutocomplete
+         query={wikilinkState.query}
+         isOpen={wikilinkState.isActive}
+         onSelect={handleWikilinkSelect}
+         onClose={() => setCursorPosition(0)}
+       />
+     </div>
+   );
+ 
+   // Preview panel component
+   const PreviewPanel = ({ className = '' }: { className?: string }) => (
+     <ScrollArea className={cn("h-full", className)}>
+       <article className="prose prose-slate dark:prose-invert max-w-none p-4">
+         <NoteRenderer note={previewNote} />
+       </article>
+     </ScrollArea>
+   );
+ 
    return (
      <div className="flex flex-col h-full">
        {/* Draft restoration alert */}
        {hasDraft && (
-        <Alert className="mb-4 border-primary/50 bg-primary/10">
-          <AlertCircle className="h-4 w-4 text-primary" />
-           <AlertDescription className="flex items-center justify-between">
-             <span>{t.editor.draftFound}</span>
-             <div className="flex gap-2 ml-4">
+         <Alert className="mb-3 border-primary/50 bg-primary/5">
+           <AlertCircle className="h-4 w-4 text-primary" />
+           <AlertDescription className="flex items-center justify-between flex-wrap gap-2">
+             <span className="text-sm">{t.editor?.draftFound || 'Unsaved draft found'}</span>
+             <div className="flex gap-2">
                <Button
                  variant="outline"
                  size="sm"
                  onClick={onRestoreDraft}
-                 className="gap-1"
+                 className="gap-1.5 h-7"
                >
                  <RotateCcw className="h-3 w-3" />
-                 {t.editor.restoreDraft}
+                 {t.editor?.restoreDraft || 'Restore'}
                </Button>
                <Button
                  variant="ghost"
                  size="sm"
                  onClick={onDiscardDraft}
-                 className="gap-1 text-muted-foreground"
+                 className="gap-1.5 h-7 text-muted-foreground"
                >
                  <Trash2 className="h-3 w-3" />
-                 {t.editor.discardDraft}
+                 {t.editor?.discardDraft || 'Discard'}
                </Button>
              </div>
            </AlertDescription>
          </Alert>
        )}
  
-       {/* Title input */}
-       <div className="mb-4">
+       {/* Title input - Notemod style */}
+       <div className="mb-3">
          <Input
            value={title}
            onChange={(e) => onTitleChange(e.target.value)}
-           placeholder={t.editor.newNote}
-           className="text-xl font-semibold h-12"
+           placeholder={t.editor?.titlePlaceholder || 'Note title...'}
+           className={cn(
+             "text-xl font-semibold h-11 px-3",
+             "border-border/50 focus-visible:border-primary",
+             "bg-background"
+           )}
            disabled={isSaving}
          />
        </div>
  
        {/* Mobile: Tabs for edit/preview */}
-       <div className="md:hidden flex-1 min-h-0">
-         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'edit' | 'preview')} className="h-full flex flex-col">
-           <TabsList className="grid w-full grid-cols-2 mb-2">
-             <TabsTrigger value="edit" className="gap-2">
-               <FileText className="h-4 w-4" />
-               {t.editor.edit}
+       <div className="md:hidden flex-1 min-h-0 flex flex-col">
+         <Tabs 
+           value={activeTab} 
+           onValueChange={(v) => setActiveTab(v as 'edit' | 'preview')} 
+           className="h-full flex flex-col"
+         >
+           <TabsList className="grid w-full grid-cols-2 mb-2 h-9">
+             <TabsTrigger value="edit" className="gap-1.5 text-sm">
+               <FileText className="h-3.5 w-3.5" />
+               {t.editor?.edit || 'Edit'}
              </TabsTrigger>
-             <TabsTrigger value="preview" className="gap-2">
-               <Eye className="h-4 w-4" />
-               {t.editor.preview}
+             <TabsTrigger value="preview" className="gap-1.5 text-sm">
+               <Eye className="h-3.5 w-3.5" />
+               {t.editor?.preview || 'Preview'}
              </TabsTrigger>
            </TabsList>
            
            <TabsContent value="edit" className="flex-1 min-h-0 mt-0">
-             <Card className="h-full flex flex-col">
+             <Card className="h-full flex flex-col overflow-hidden border-border/50">
                <EditorToolbar
                  onFormat={handleFormat}
                  onInsertWikilink={handleInsertWikilink}
                  disabled={isSaving}
                />
-               <div className="relative flex-1">
-                 <Textarea
-                   ref={textareaRef}
-                   value={content}
-                   onChange={handleTextareaChange}
-                   onSelect={handleTextareaSelect}
-                   onClick={handleTextareaSelect}
-                   placeholder={t.editor.placeholder}
-                   className="h-full min-h-[200px] font-mono text-sm resize-none rounded-t-none border-t-0"
-                   disabled={isSaving}
-                 />
-                 <WikilinkAutocomplete
-                   query={wikilinkState.query}
-                   isOpen={wikilinkState.isActive}
-                   onSelect={handleWikilinkSelect}
-                   onClose={() => setCursorPosition(0)}
-                 />
-               </div>
+               <EditorTextarea />
              </Card>
            </TabsContent>
            
            <TabsContent value="preview" className="flex-1 min-h-0 mt-0">
-             <Card className="h-full overflow-hidden">
-               <ScrollArea className="h-full p-4">
-                 <article className="prose prose-slate dark:prose-invert max-w-none">
-                   <NoteRenderer note={previewNote} />
-                 </article>
-               </ScrollArea>
+             <Card className="h-full overflow-hidden border-border/50">
+               <PreviewPanel />
              </Card>
            </TabsContent>
          </Tabs>
        </div>
  
-       {/* Desktop: Split view */}
-       <div className="hidden md:flex flex-1 min-h-0 gap-4">
-         {/* Editor panel */}
-         <Card className="flex-1 flex flex-col overflow-hidden">
-           <EditorToolbar
-             onFormat={handleFormat}
-             onInsertWikilink={handleInsertWikilink}
-             disabled={isSaving}
-           />
-           <div className="relative flex-1">
-             <Textarea
-               ref={textareaRef}
-               value={content}
-               onChange={handleTextareaChange}
-               onSelect={handleTextareaSelect}
-               onClick={handleTextareaSelect}
-               placeholder={t.editor.placeholder}
-               className="h-full font-mono text-sm resize-none rounded-t-none border-t-0"
-               disabled={isSaving}
-             />
-             <WikilinkAutocomplete
-               query={wikilinkState.query}
-               isOpen={wikilinkState.isActive}
-               onSelect={handleWikilinkSelect}
-               onClose={() => setCursorPosition(0)}
-             />
-           </div>
-         </Card>
+       {/* Desktop: Flexible view modes */}
+       <div className="hidden md:flex flex-1 min-h-0 gap-3">
+         {/* Editor panel - show in split and editor modes */}
+         {(viewMode === 'split' || viewMode === 'editor') && (
+           <Card className={cn(
+             "flex flex-col overflow-hidden border-border/50",
+             viewMode === 'split' ? 'flex-1' : 'w-full'
+           )}>
+             <div className="flex items-center">
+               <EditorToolbar
+                 onFormat={handleFormat}
+                 onInsertWikilink={handleInsertWikilink}
+                 disabled={isSaving}
+                 className="flex-1"
+               />
+               <ViewModeToggle />
+               <div className="pr-2" />
+             </div>
+             <EditorTextarea />
+           </Card>
+         )}
  
-         {/* Preview panel */}
-         <Card className="flex-1 overflow-hidden">
-           <div className="p-2 border-b border-border bg-muted/30 flex items-center gap-2">
-             <Eye className="h-4 w-4 text-muted-foreground" />
-             <span className="text-sm font-medium">{t.editor.preview}</span>
-           </div>
-           <ScrollArea className="h-[calc(100%-41px)] p-4">
-             <article className="prose prose-slate dark:prose-invert max-w-none">
-               <NoteRenderer note={previewNote} />
-             </article>
-           </ScrollArea>
-         </Card>
+         {/* Preview panel - show in split and preview modes */}
+         {(viewMode === 'split' || viewMode === 'preview') && (
+           <Card className={cn(
+             "overflow-hidden border-border/50",
+             viewMode === 'split' ? 'flex-1' : 'w-full'
+           )}>
+             <div className="p-2 border-b border-border bg-muted/30 flex items-center gap-2">
+               <Eye className="h-4 w-4 text-muted-foreground" />
+               <span className="text-sm font-medium">{t.editor?.preview || 'Preview'}</span>
+               {viewMode === 'preview' && <ViewModeToggle />}
+             </div>
+             <PreviewPanel className="h-[calc(100%-41px)]" />
+           </Card>
+         )}
        </div>
  
        {/* Tags editor */}
-       <div className="mt-4 pt-4 border-t border-border">
+       <div className="mt-3 pt-3 border-t border-border/50">
          <label className="text-sm font-medium text-muted-foreground mb-2 block">
-           {t.common.tags}
+           {t.common?.tags || 'Tags'}
          </label>
          <TagEditor
            tags={tags}
            onChange={onTagsChange}
-           placeholder={t.editor.addTag}
+           placeholder={t.editor?.addTag || 'Add tag...'}
            disabled={isSaving}
          />
        </div>
  
-       {/* Action buttons */}
-       <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-         <div className="text-sm text-muted-foreground">
-           {isDirty && <span>• Unsaved changes</span>}
+       {/* Action buttons - Notemod style footer */}
+       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+         <div className="text-sm text-muted-foreground flex items-center gap-2">
+           {isDirty && (
+             <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+               {t.editor?.unsavedChanges || 'Unsaved changes'}
+             </span>
+           )}
          </div>
          <div className="flex gap-2">
            {onCancel && (
@@ -298,19 +393,21 @@
                variant="outline"
                onClick={onCancel}
                disabled={isSaving}
-               className="gap-2"
+               className="gap-1.5"
+               size="sm"
              >
                <X className="h-4 w-4" />
-               {t.editor.cancel}
+               {t.editor?.cancel || 'Cancel'}
              </Button>
            )}
            <Button
              onClick={onSave}
              disabled={isSaving || !title.trim()}
-             className="gap-2"
+             className="gap-1.5"
+             size="sm"
            >
              <Save className="h-4 w-4" />
-             {isSaving ? t.editor.saving : t.editor.save}
+             {isSaving ? (t.editor?.saving || 'Saving...') : (t.editor?.save || 'Save')}
            </Button>
          </div>
        </div>
