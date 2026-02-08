@@ -206,7 +206,7 @@ The CLI validates three permission layers:
 
 **Selective allowlist without GitHub:** You're using action allowlists but didn't check "Allow actions created by GitHub". Fix: Settings → Actions → General → Actions permissions → enable the GitHub checkbox. Reference: [Allowing specific actions](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-select-actions-and-reusable-workflows-to-run).
 
-> [!CAUTION]
+> [!NOTE]
 > Organization-owned repositories inherit org-level Actions policies that override repository settings. If settings appear grayed out, request changes from org admins.
 
 ## Advanced Topics
