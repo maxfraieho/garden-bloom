@@ -1,6 +1,6 @@
 // src/components/garden/DrakonEditor.tsx
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useTheme } from '@/components/theme-provider';
 import { 
   Loader2, AlertCircle, Save, Undo, Redo, Download, Home, Plus,
@@ -114,8 +114,11 @@ export function DrakonEditor({
     stop: () => {},
   };
 
-  const drakonLabels = getDrakonLabels(t.drakon);
-  const drakonTranslate = createDrakonTranslate(t.drakon);
+  // CRITICAL: memoize these so buildConfig dependencies stay stable across renders.
+  // Without this, every setState (e.g. closing context menu) triggers full widget re-init,
+  // which destroys selection, paste mode, and all widget state.
+  const drakonLabels = useMemo(() => getDrakonLabels(t.drakon), [t.drakon]);
+  const drakonTranslate = useMemo(() => createDrakonTranslate(t.drakon), [t.drakon]);
 
   const buildConfig = useCallback((): DrakonConfig => ({
     startEditContent: (item, isReadonly) => {
