@@ -649,11 +649,14 @@ export function DrakonEditor({
                       e.stopPropagation();
                       const action = item.action;
                       setContextMenu(null);
-                      // Delay action execution to let the context menu unmount first,
-                      // so the widget canvas can properly show paste sockets / selection highlights
+                      // Delay action execution to let React fully unmount the context menu
+                      // before the widget tries to show paste sockets / selection highlights.
+                      // A double-RAF ensures the DOM commit + repaint cycle is complete.
                       if (action) {
                         requestAnimationFrame(() => {
-                          action();
+                          requestAnimationFrame(() => {
+                            action();
+                          });
                         });
                       }
                     }}
