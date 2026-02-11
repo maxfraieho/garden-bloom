@@ -93,6 +93,8 @@ export function DrakonEditor({
   const [zoomLevel, setZoomLevel] = useState(5000);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: Array<{ text: string; action?: () => void; type?: string }> } | null>(null);
   const [panMode, setPanMode] = useState(false);
+  // Track UI state to guard against unwanted selection/pasteMode resets
+  const uiStateRef = useRef<'default' | 'contextMenuOpen' | 'pasteMode'>('default');
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
     title: string;
@@ -131,6 +133,7 @@ export function DrakonEditor({
     showContextMenu: (left, top, items) => {
       // Convert page coordinates to container-relative coordinates
       const containerEl = containerRef.current;
+      uiStateRef.current = 'contextMenuOpen';
       if (containerEl) {
         const rect = containerEl.getBoundingClientRect();
         setContextMenu({ x: left - rect.left, y: top - rect.top, items });
@@ -209,7 +212,12 @@ export function DrakonEditor({
     theme: getGardenDrakonTheme(isDark),
     translate: drakonTranslate,
     ...drakonLabels,
-    onSelectionChanged: () => {},
+    onSelectionChanged: () => {
+      // When selection changes after paste mode, it means the paste completed
+      if (uiStateRef.current === 'pasteMode') {
+        uiStateRef.current = 'default';
+      }
+    },
     onZoomChanged: (newZoom) => {
       setZoomLevel(newZoom);
     },
@@ -290,6 +298,23 @@ export function DrakonEditor({
     }
   }, [isDark, buildConfig, isLoading]);
 
+  // Escape key exits paste mode or closes context menu
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (contextMenu) {
+          setContextMenu(null);
+          uiStateRef.current = 'default';
+        } else if (uiStateRef.current === 'pasteMode') {
+          uiStateRef.current = 'default';
+          widgetRef.current?.redraw();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [contextMenu]);
+
   const handleSave = useCallback(async () => {
     if (!widgetRef.current) return;
     
@@ -359,11 +384,21 @@ export function DrakonEditor({
 
   const handleCopy = useCallback(() => {
     widgetRef.current?.copySelection();
+    // Enter paste mode to show insertion sockets
+    requestAnimationFrame(() => {
+      widgetRef.current?.showPaste();
+      uiStateRef.current = 'pasteMode';
+    });
   }, []);
 
   const handleCut = useCallback(() => {
     widgetRef.current?.cutSelection();
     setHasChanges(true);
+    // Enter paste mode to show insertion sockets
+    requestAnimationFrame(() => {
+      widgetRef.current?.showPaste();
+      uiStateRef.current = 'pasteMode';
+    });
   }, []);
 
   const handleDelete = useCallback(() => {
@@ -616,7 +651,14 @@ export function DrakonEditor({
       {/* Editor layout with toolbar at bottom */}
       <div className="flex flex-col gap-2">
         {/* Widget container */}
-        <div className="relative" onClick={(e) => { if (!(e.target as HTMLElement).closest('[data-drakon-context-menu]')) setContextMenu(null); }}>
+        <div className="relative" onClick={(e) => {
+          // Don't interfere when context menu is open or widget is in paste mode
+          if (uiStateRef.current === 'pasteMode') return;
+          if (!(e.target as HTMLElement).closest('[data-drakon-context-menu]')) {
+            setContextMenu(null);
+            uiStateRef.current = 'default';
+          }
+        }}>
           {isLoading && (
             <div 
               className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg z-10" 
@@ -648,16 +690,26 @@ export function DrakonEditor({
                     onClick={(e) => {
                       e.stopPropagation();
                       const action = item.action;
+                      const isCopyOrCut = item.text === t.drakon.copy || item.text === t.drakon.cut;
                       setContextMenu(null);
-                      // Delay action execution to let React fully unmount the context menu
-                      // before the widget tries to show paste sockets / selection highlights.
-                      // A double-RAF ensures the DOM commit + repaint cycle is complete.
+                      // Double-RAF ensures React DOM commit + repaint is complete
                       if (action) {
                         requestAnimationFrame(() => {
                           requestAnimationFrame(() => {
                             action();
+                            // After Copy/Cut, explicitly enter paste mode with sockets
+                            if (isCopyOrCut && widgetRef.current) {
+                              requestAnimationFrame(() => {
+                                widgetRef.current?.showPaste();
+                                uiStateRef.current = 'pasteMode';
+                              });
+                            } else {
+                              uiStateRef.current = 'default';
+                            }
                           });
                         });
+                      } else {
+                        uiStateRef.current = 'default';
                       }
                     }}
                   >
