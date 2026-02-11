@@ -95,6 +95,8 @@ export function DrakonEditor({
   const [panMode, setPanMode] = useState(false);
   // Track UI state to guard against unwanted selection/pasteMode resets
   const uiStateRef = useRef<'default' | 'contextMenuOpen' | 'pasteMode'>('default');
+  // Track contextmenu target so Copy/Cut can use it as fallback when selection is lost
+  const contextTargetIdRef = useRef<string | null>(null);
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
     title: string;
@@ -134,6 +136,7 @@ export function DrakonEditor({
       // Convert page coordinates to container-relative coordinates
       const containerEl = containerRef.current;
       uiStateRef.current = 'contextMenuOpen';
+      console.log('[DRK] showContextMenu, uiState → contextMenuOpen');
       if (containerEl) {
         const rect = containerEl.getBoundingClientRect();
         setContextMenu({ x: left - rect.left, y: top - rect.top, items });
@@ -212,11 +215,10 @@ export function DrakonEditor({
     theme: getGardenDrakonTheme(isDark),
     translate: drakonTranslate,
     ...drakonLabels,
-    onSelectionChanged: () => {
-      // When selection changes after paste mode, it means the paste completed
-      if (uiStateRef.current === 'pasteMode') {
-        uiStateRef.current = 'default';
-      }
+    onSelectionChanged: (items) => {
+      console.log('[DRK] onSelectionChanged, uiState:', uiStateRef.current, 'items:', items?.length);
+      // Do NOT reset pasteMode here — it kills pasteMode immediately after showPaste()
+      // pasteMode should only end via: Esc, clickEmpty, or successful socket click
     },
     onZoomChanged: (newZoom) => {
       setZoomLevel(newZoom);
@@ -265,6 +267,38 @@ export function DrakonEditor({
       if (containerRef.current) containerRef.current.innerHTML = '';
     };
   }, [diagramId]);
+
+  // Native capture-phase guard: prevent canvas/widget from clearing selection
+  // on right-click or while context menu / paste mode is active
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onPointerDownCapture = (e: PointerEvent) => {
+      // Right-click: never let canvas deselect
+      if (e.button === 2) {
+        console.log('[DRK] capture guard: right-click, stopPropagation');
+        e.stopPropagation();
+        return;
+      }
+
+      // While context menu is open: block canvas handlers from clearing selection
+      if (uiStateRef.current === 'contextMenuOpen') {
+        console.log('[DRK] capture guard: contextMenuOpen, stopPropagation');
+        e.stopPropagation();
+        return;
+      }
+
+      // While in paste mode: let widget handle socket clicks, but log for debugging
+      if (uiStateRef.current === 'pasteMode') {
+        console.log('[DRK] capture guard: pasteMode, allowing click through to widget');
+        return;
+      }
+    };
+
+    el.addEventListener('pointerdown', onPointerDownCapture, true); // capture phase
+    return () => el.removeEventListener('pointerdown', onPointerDownCapture, true);
+  }, []);
 
   // Handle theme/panMode changes — re-render and re-set diagram to restart mouse behavior
   useEffect(() => {
@@ -652,8 +686,18 @@ export function DrakonEditor({
       <div className="flex flex-col gap-2">
         {/* Widget container */}
         <div className="relative" onClick={(e) => {
-          // Don't interfere when context menu is open or widget is in paste mode
-          if (uiStateRef.current === 'pasteMode') return;
+          // Don't interfere when context menu is open
+          if (uiStateRef.current === 'contextMenuOpen') return;
+          // In paste mode, click on empty canvas exits paste mode
+          if (uiStateRef.current === 'pasteMode') {
+            // Only exit if clicking on the canvas background, not on a socket
+            if (!(e.target as HTMLElement).closest('[data-drakon-context-menu]')) {
+              console.log('[DRK] canvas click in pasteMode → exiting pasteMode');
+              uiStateRef.current = 'default';
+              widgetRef.current?.redraw();
+            }
+            return;
+          }
           if (!(e.target as HTMLElement).closest('[data-drakon-context-menu]')) {
             setContextMenu(null);
             uiStateRef.current = 'default';
@@ -691,21 +735,28 @@ export function DrakonEditor({
                       e.stopPropagation();
                       const action = item.action;
                       const isCopyOrCut = item.text === t.drakon.copy || item.text === t.drakon.cut;
+                      console.log('[DRK] context menu click:', item.text, 'isCopyOrCut:', isCopyOrCut);
                       setContextMenu(null);
-                      // Double-RAF ensures React DOM commit + repaint is complete
+                      
                       if (action) {
+                        // Triple-RAF: 1) React commit 2) repaint 3) widget ready
                         requestAnimationFrame(() => {
                           requestAnimationFrame(() => {
-                            action();
-                            // After Copy/Cut, explicitly enter paste mode with sockets
-                            if (isCopyOrCut && widgetRef.current) {
-                              requestAnimationFrame(() => {
-                                widgetRef.current?.showPaste();
-                                uiStateRef.current = 'pasteMode';
-                              });
-                            } else {
-                              uiStateRef.current = 'default';
-                            }
+                            requestAnimationFrame(() => {
+                              console.log('[DRK] executing action:', item.text);
+                              action();
+                              
+                              if (isCopyOrCut && widgetRef.current) {
+                                requestAnimationFrame(() => {
+                                  console.log('[DRK] calling showPaste after', item.text);
+                                  widgetRef.current?.showPaste();
+                                  uiStateRef.current = 'pasteMode';
+                                  console.log('[DRK] uiState → pasteMode');
+                                });
+                              } else {
+                                uiStateRef.current = 'default';
+                              }
+                            });
                           });
                         });
                       } else {
