@@ -47,6 +47,7 @@ import { useSaveDrakonDiagram } from '@/hooks/useDrakonDiagram';
 import { useLocale } from '@/hooks/useLocale';
 import { diagramToPseudocode, pseudocodeToMarkdown } from '@/lib/drakon/pseudocode';
 import { createDrakonTranslate, getDrakonLabels } from '@/lib/drakon/i18n';
+import { FormatInspector } from '@/components/garden/FormatInspector';
 import type { DrakonDiagram, DrakonWidget as DrakonWidgetType, DrakonEditSender, DrakonConfig } from '@/types/drakonwidget';
 
 interface DrakonEditorProps {
@@ -103,6 +104,12 @@ export function DrakonEditor({
     value: string;
     onConfirm: (value: string) => void;
   }>({ open: false, title: '', value: '', onConfirm: () => {} });
+  const [formatDialog, setFormatDialog] = useState<{
+    open: boolean;
+    title: string;
+    style: Record<string, unknown>;
+    onConfirm: (style: Record<string, unknown>) => void;
+  }>({ open: false, title: '', style: {}, onConfirm: () => {} });
 
   const saveMutation = useSaveDrakonDiagram(folderSlug);
 
@@ -175,38 +182,29 @@ export function DrakonEditor({
         },
       });
     },
-    startEditStyle: (ids, oldStyle, x, y, accepted) => {
-      // For now, provide a simple JSON-based style editor
-      const styleStr = JSON.stringify(oldStyle || {}, null, 2);
-      setEditDialog({
+    startEditStyle: (ids, oldStyle, _x, _y, _accepted) => {
+      setFormatDialog({
         open: true,
         title: t.drakon.format || 'Format',
-        value: styleStr,
-        onConfirm: (newStyleStr) => {
-          try {
-            const newStyle = JSON.parse(newStyleStr);
-            if (widgetRef.current) {
-              widgetRef.current.setStyle(ids, newStyle);
-              setHasChanges(true);
-            }
-          } catch { /* ignore invalid JSON */ }
+        style: (oldStyle || {}) as Record<string, unknown>,
+        onConfirm: (newStyle) => {
+          if (widgetRef.current) {
+            widgetRef.current.setStyle(ids, newStyle);
+            setHasChanges(true);
+          }
         },
       });
     },
-    startEditDiagramStyle: (oldStyle, x, y) => {
-      const styleStr = JSON.stringify(oldStyle || {}, null, 2);
-      setEditDialog({
+    startEditDiagramStyle: (oldStyle, _x, _y) => {
+      setFormatDialog({
         open: true,
         title: t.drakon.format || 'Format Diagram',
-        value: styleStr,
-        onConfirm: (newStyleStr) => {
-          try {
-            const newStyle = JSON.parse(newStyleStr);
-            if (widgetRef.current) {
-              widgetRef.current.setDiagramStyle(newStyle);
-              setHasChanges(true);
-            }
-          } catch { /* ignore invalid JSON */ }
+        style: (oldStyle || {}) as Record<string, unknown>,
+        onConfirm: (newStyle) => {
+          if (widgetRef.current) {
+            widgetRef.current.setDiagramStyle(newStyle);
+            setHasChanges(true);
+          }
         },
       });
     },
@@ -857,6 +855,18 @@ export function DrakonEditor({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Format Inspector dialog for style editing */}
+      <FormatInspector
+        open={formatDialog.open}
+        title={formatDialog.title}
+        style={formatDialog.style}
+        onConfirm={(newStyle) => {
+          formatDialog.onConfirm(newStyle);
+          setFormatDialog(prev => ({ ...prev, open: false }));
+        }}
+        onCancel={() => setFormatDialog(prev => ({ ...prev, open: false }))}
+      />
     </div>
       </div>
     </div>
