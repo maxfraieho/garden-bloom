@@ -93,8 +93,8 @@ Frontend → mcpGatewayClient.ts → HTTPS → Cloudflare Worker → {MinIO, Inn
 |---------|------|---------|
 | Agent Card | Картка агента: name, description, status, model, tools | `_agent.md` parsed через Worker |
 | Status Badge | Статус агента: `draft` / `active` / `paused` / `error` / `archived` | `registry.json` через Worker |
-| Activate Button | Кнопка переводу `draft → active` (Activation Gate) | `POST /agents/:id/activate` |
-| Pause/Resume | Тогл `active ↔ paused` | `PATCH /agents/:id` |
+| Activate Button | Кнопка переводу `draft → active` (Activation Gate) | `PATCH /agents/{slug}/status` (див. API_CONTRACTS_V1.md §5.3) |
+| Pause/Resume | Тогл `active ↔ paused` | `PATCH /agents/{slug}/status` (див. API_CONTRACTS_V1.md §5.3) |
 | Run Button | Кнопка "Запустити агента зараз" | `POST /agents/run` → Inngest event |
 | Agent Detail | Повний перегляд `_agent.md`: instructions, tools, safe_outputs, schedule | MinIO `definitions/` через Worker |
 

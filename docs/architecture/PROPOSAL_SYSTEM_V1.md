@@ -230,7 +230,7 @@ interface ConflictWarning {
 | `GET` | `/proposals/{id}` | Owner | Деталі proposal | `Proposal` |
 | `PATCH` | `/proposals/{id}` | Owner | Approve/reject | `Proposal` (updated) |
 | `GET` | `/proposals/history?status=applied,rejected` | Owner | Архів | `Proposal[]` |
-| `PATCH` | `/proposals/batch` | Owner | Масова дія | `{updated: number}` |
+| `PATCH` | `/proposals/batch` | Owner | Масова дія (див. API_CONTRACTS_V1.md §3.5) | `{updated, skipped, errors}` |
 
 ### 4.1 PATCH /proposals/{id} — Request
 

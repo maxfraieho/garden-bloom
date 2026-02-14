@@ -202,7 +202,7 @@ data: {"type": "proposal.created", "proposalId": "..."}
 data: {"type": "inbox.new", "count": 5}
 ```
 
-SSE замінить polling для real-time updates. Frontend має підтримувати graceful fallback до polling якщо SSE недоступний.
+SSE замінить polling для real-time updates. Frontend має підтримувати graceful fallback до polling якщо SSE недоступний. Деталі event types та обмеження — див. API_CONTRACTS_V1.md Appendix B (post-MVP).
 
 ---
 
@@ -218,7 +218,7 @@ SSE замінить polling для real-time updates. Frontend має підт�
 | `GET` | `/runs/{runId}/steps` | Owner | `RunStep[]` |
 | `GET` | `/runs?agent={slug}` | Owner | `RunStatus[]` (історія) |
 
-Деталі request/response schemas — див. API_CONTRACTS_V1.md.
+Деталі request/response schemas — див. API_CONTRACTS_V1.md (§2 Agent Run, §6 Run History).
 
 ---
 
