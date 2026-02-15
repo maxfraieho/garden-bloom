@@ -40,6 +40,8 @@ const ERROR_MESSAGES: Record<GatewayErrorCode, string> = {
   DUPLICATE_ENTRY: "This entry already exists.",
   UPSTREAM_UNAVAILABLE: "An external service is temporarily unavailable. Please try again later.",
   AGENT_TIMEOUT: "The agent took too long to respond. Please try again.",
+  INVALID_AGENT_TRANSITION: "The agent attempted an invalid state transition.",
+  NLM_UNAVAILABLE: "NotebookLM service is temporarily unavailable.",
 };
 
 // Whether the error is retryable
@@ -50,6 +52,8 @@ const RETRYABLE_CODES: Set<GatewayErrorCode> = new Set([
   'SERVER_ERROR',
   'UPSTREAM_UNAVAILABLE',
   'AGENT_TIMEOUT',
+  'CONCURRENT_MODIFICATION',
+  'NLM_UNAVAILABLE',
 ]);
 
 function createApiError(
@@ -489,7 +493,7 @@ export async function createProposal(
 
 export async function getZoneProposals(
   zoneId: string,
-  options?: { status?: 'pending' | 'accepted' | 'rejected' | 'all'; zoneCode?: string }
+  options?: { status?: 'pending' | 'approved' | 'rejected' | 'applied' | 'failed' | 'expired' | 'all'; zoneCode?: string }
 ): Promise<ProposalsListResponse> {
   const params = new URLSearchParams();
   if (options?.status) params.set('status', options.status);
@@ -544,13 +548,13 @@ export async function acceptProposal(
 
 export async function rejectProposal(
   proposalId: string,
-  decisionNote?: string
+  decisionNote: string
 ): Promise<{ success: true; proposal: EditProposal }> {
   return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}`, {
     method: 'PATCH',
     body: JSON.stringify({
       status: 'rejected',
-      decision_note: decisionNote || 'Rejected by owner',
+      decision_note: decisionNote,
     }),
     requireAuth: true,
   });

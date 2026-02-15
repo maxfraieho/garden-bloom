@@ -97,6 +97,7 @@ export const uk: Translations = {
     copied: 'Скопійовано!',
     toggleTheme: 'Змінити тему',
     language: 'Мова',
+    cancel: 'Скасувати',
   },
 
   owner: {
@@ -298,8 +299,8 @@ export const uk: Translations = {
     title: 'Пропозиції редагування',
     description: 'Перегляд змін, запропонованих гостями',
     empty: 'Немає очікуючих пропозицій',
-    accepted: 'Пропозицію прийнято',
-    acceptedAutoCommit: 'Пропозицію прийнято та закомічено в репозиторій',
+    accepted: 'Пропозицію схвалено',
+    acceptedAutoCommit: 'Пропозицію схвалено та закомічено в репозиторій',
     acceptFailed: 'Не вдалося прийняти пропозицію',
     rejected: 'Пропозицію відхилено',
     rejectFailed: 'Не вдалося відхилити пропозицію',
@@ -307,10 +308,15 @@ export const uk: Translations = {
     submittedBy: 'Автор',
     accept: 'Прийняти зміни',
     reject: 'Відхилити',
-    acceptedTitle: 'Пропозицію прийнято',
+    acceptedTitle: 'Пропозицію схвалено',
     copyInstructions: 'Скопіюйте оновлений контент нижче та вставте його у свій локальний файл нотатки, щоб застосувати зміни.',
     copyContent: 'Скопіювати контент',
     contentCopied: 'Контент скопійовано в буфер обміну',
+    rejectTitle: 'Відхилити пропозицію',
+    rejectDescription: 'Будь ласка, вкажіть причину відхилення пропозиції (мінімум 10 символів).',
+    rejectPlaceholder: 'Поясніть чому ця пропозиція відхиляється...',
+    minChars: 'мінімум символів',
+    confirmReject: 'Підтвердити відхилення',
   },
 
   delegatedConsent: {
