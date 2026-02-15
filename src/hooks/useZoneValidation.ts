@@ -2,6 +2,10 @@
 // Validates zone access and fetches zone data for guest view
 
 import { useState, useEffect, useCallback } from 'react';
+import {
+  validateZone as apiValidateZone,
+  getZoneNotebookLMStatus,
+} from '@/lib/api/mcpGatewayClient';
 import type { NotebookLMMapping } from '@/types/mcpGateway';
 
 export interface ZoneNote {
@@ -21,7 +25,7 @@ export interface ZoneData {
   expiresAt: number;
   accessType: 'web' | 'mcp' | 'both';
   notebooklm?: NotebookLMMapping | null;
-  consentRequired?: boolean; // Default true if not specified
+  consentRequired?: boolean;
 }
 
 interface ZoneValidationState {
@@ -31,8 +35,6 @@ interface ZoneValidationState {
   error: string | null;
   zone: ZoneData | null;
 }
-
-const MCP_GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
 
 export function useZoneValidation(zoneId: string | undefined, accessCode: string | null) {
   const [state, setState] = useState<ZoneValidationState>({
@@ -58,58 +60,32 @@ export function useZoneValidation(zoneId: string | undefined, accessCode: string
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const url = new URL(`${MCP_GATEWAY_URL}/zones/validate/${zoneId}`);
-      if (accessCode) {
-        url.searchParams.set('code', accessCode);
-      }
-
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        
-        if (response.status === 410 || data.expired) {
-          setState({
-            isLoading: false,
-            isValid: false,
-            isExpired: true,
-            error: 'This access zone has expired',
-            zone: null,
-          });
-          return;
-        }
-        
-        throw new Error(data.error || 'Zone validation failed');
-      }
-
-      const data = await response.json();
+      const data = await apiValidateZone(zoneId, accessCode);
       
-      // Backend now returns complete zone data directly (not nested in .zone)
+      // Check for expired response
+      if (data.expired) {
+        setState({
+          isLoading: false,
+          isValid: false,
+          isExpired: true,
+          error: 'This access zone has expired',
+          zone: null,
+        });
+        return;
+      }
+      
       let notebooklmData: NotebookLMMapping | null = data.notebooklm ?? null;
       
-      // If notebooklm not in response, fetch it separately (guest access doesn't include it by default)
+      // If notebooklm not in response, fetch it separately
       if (!notebooklmData) {
         try {
-          const nlmResponse = await fetch(`${MCP_GATEWAY_URL}/zones/${zoneId}/notebooklm`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-          if (nlmResponse.ok) {
-            const nlmData = await nlmResponse.json();
-            if (nlmData.success && nlmData.notebooklm) {
-              notebooklmData = nlmData.notebooklm;
-            }
+          const nlmData = await getZoneNotebookLMStatus(zoneId);
+          if (nlmData.notebooklm) {
+            notebooklmData = nlmData.notebooklm;
           }
-        } catch (nlmErr) {
+        } catch {
           // NotebookLM fetch failed - continue without it
-          console.warn('Failed to fetch NotebookLM status:', nlmErr);
+          console.warn('Failed to fetch NotebookLM status');
         }
       }
       
@@ -123,7 +99,6 @@ export function useZoneValidation(zoneId: string | undefined, accessCode: string
         expiresAt: data.expiresAt,
         accessType: data.accessType || 'both',
         notebooklm: notebooklmData,
-        // Default to true if not specified (backward compatibility)
         consentRequired: data.consentRequired ?? true,
       };
       
@@ -149,11 +124,24 @@ export function useZoneValidation(zoneId: string | undefined, accessCode: string
         zone: zoneData,
       });
     } catch (err) {
+      // Check for expired error from gateway
+      const errObj = err as any;
+      if (errObj?.code === 'ZONE_EXPIRED' || errObj?.httpStatus === 410) {
+        setState({
+          isLoading: false,
+          isValid: false,
+          isExpired: true,
+          error: 'This access zone has expired',
+          zone: null,
+        });
+        return;
+      }
+
       setState({
         isLoading: false,
         isValid: false,
         isExpired: false,
-        error: err instanceof Error ? err.message : 'Failed to validate zone',
+        error: errObj?.message || (err instanceof Error ? err.message : 'Failed to validate zone'),
         zone: null,
       });
     }
@@ -178,7 +166,7 @@ export function useZoneValidation(zoneId: string | undefined, accessCode: string
       }
     };
 
-    const interval = setInterval(checkExpiration, 30000); // Check every 30s
+    const interval = setInterval(checkExpiration, 30000);
     return () => clearInterval(interval);
   }, [state.zone]);
 

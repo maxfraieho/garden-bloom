@@ -32,6 +32,14 @@ const ERROR_MESSAGES: Record<GatewayErrorCode, string> = {
   SERVER_ERROR: "Something went wrong on our end. Please try again later.",
   BAD_REQUEST: "Invalid request. Please check your input.",
   UNKNOWN: "An unexpected error occurred. Please try again.",
+  CONCURRENT_MODIFICATION: "This resource was modified by another user. Please refresh and try again.",
+  INVALID_TRANSITION: "This action is not allowed in the current state.",
+  VALIDATION_FAILED: "Input validation failed. Please check your data.",
+  INVALID_JSON: "Invalid request format.",
+  TOKEN_EXPIRED: "Your session has expired. Please log in again.",
+  DUPLICATE_ENTRY: "This entry already exists.",
+  UPSTREAM_UNAVAILABLE: "An external service is temporarily unavailable. Please try again later.",
+  AGENT_TIMEOUT: "The agent took too long to respond. Please try again.",
 };
 
 // Whether the error is retryable
@@ -40,6 +48,8 @@ const RETRYABLE_CODES: Set<GatewayErrorCode> = new Set([
   'TIMEOUT',
   'RATE_LIMITED',
   'SERVER_ERROR',
+  'UPSTREAM_UNAVAILABLE',
+  'AGENT_TIMEOUT',
 ]);
 
 function createApiError(
@@ -58,15 +68,18 @@ function createApiError(
 }
 
 function mapHttpStatusToCode(status: number, serverCode?: string): GatewayErrorCode {
-  // Check server-provided codes first
+  // If backend sends a known error.code, use it directly (V1 contract)
   if (serverCode) {
-    const upper = serverCode.toUpperCase();
+    const upper = serverCode.toUpperCase() as GatewayErrorCode;
+    if (upper in ERROR_MESSAGES) return upper;
+    // Legacy fallback patterns
     if (upper.includes('ZONE_EXPIRED') || upper.includes('EXPIRED')) return 'ZONE_EXPIRED';
     if (upper.includes('ZONE_NOT_FOUND')) return 'ZONE_NOT_FOUND';
     if (upper.includes('NOT_AUTHENTICATED') || upper.includes('AUTH')) return 'AUTH_REQUIRED';
     if (upper.includes('RATE_LIMIT')) return 'RATE_LIMITED';
   }
 
+  // Fallback mapping only if code absent
   switch (status) {
     case 400:
       return 'BAD_REQUEST';
@@ -76,8 +89,12 @@ function mapHttpStatusToCode(status: number, serverCode?: string): GatewayErrorC
       return 'FORBIDDEN';
     case 404:
       return 'NOT_FOUND';
-    case 410: // Gone - often used for expired resources
+    case 409:
+      return 'CONCURRENT_MODIFICATION';
+    case 410:
       return 'ZONE_EXPIRED';
+    case 422:
+      return 'VALIDATION_FAILED';
     case 429:
       return 'RATE_LIMITED';
     default:
@@ -168,6 +185,11 @@ export async function parseError(resOrErr: Response | unknown): Promise<ApiError
   return err;
 }
 
+/** Generate UUID v4 for correlation tracking */
+function generateCorrelationId(): string {
+  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 async function requestJson<T>(
   path: string,
   init: RequestInit & { requireAuth?: boolean; timeoutMs?: number } = {}
@@ -177,6 +199,9 @@ async function requestJson<T>(
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string> | undefined),
   };
+
+  // Task 4: Correlation ID — generated per request, single location
+  headers['X-Correlation-Id'] = generateCorrelationId();
 
   if (!headers['Content-Type'] && init.method && init.method !== 'GET') {
     headers['Content-Type'] = 'application/json';
@@ -510,19 +535,23 @@ export async function getProposal(
 export async function acceptProposal(
   proposalId: string
 ): Promise<AcceptProposalResponse> {
-  return requestJson<AcceptProposalResponse>(`/proposals/${proposalId}/accept`, {
-    method: 'POST',
-    body: JSON.stringify({}),
+  return requestJson<AcceptProposalResponse>(`/proposals/${proposalId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'approved' }),
     requireAuth: true,
   });
 }
 
 export async function rejectProposal(
-  proposalId: string
+  proposalId: string,
+  decisionNote?: string
 ): Promise<{ success: true; proposal: EditProposal }> {
-  return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}/reject`, {
-    method: 'POST',
-    body: JSON.stringify({}),
+  return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status: 'rejected',
+      decision_note: decisionNote || 'Rejected by owner',
+    }),
     requireAuth: true,
   });
 }
@@ -635,4 +664,187 @@ export async function deleteDrakonDiagram(
       requireAuth: true,
     }
   );
+}
+
+// ============================================
+// Comments API (used by useComments hook)
+// ============================================
+
+export async function fetchComments(
+  articleSlug: string,
+  options?: { zoneId?: string; zoneCode?: string }
+): Promise<any> {
+  const headers: Record<string, string> = {};
+  if (options?.zoneId) headers['X-Zone-Id'] = options.zoneId;
+  if (options?.zoneCode) headers['X-Zone-Code'] = options.zoneCode;
+  return requestJson<any>(`/comments/${encodeURIComponent(articleSlug)}`, {
+    method: 'GET',
+    headers,
+    requireAuth: !options?.zoneCode, // Owner auth if no zone code
+  });
+}
+
+export async function createComment(payload: {
+  articleSlug: string;
+  content: string;
+  parentId?: string | null;
+  authorName?: string;
+  zoneId?: string;
+  zoneCode?: string;
+}): Promise<any> {
+  const headers: Record<string, string> = {};
+  if (payload.zoneId) headers['X-Zone-Id'] = payload.zoneId;
+  if (payload.zoneCode) headers['X-Zone-Code'] = payload.zoneCode;
+  return requestJson<any>('/comments/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers,
+  });
+}
+
+export async function updateComment(
+  commentId: string,
+  updates: { status?: string; content?: string }
+): Promise<any> {
+  return requestJson<any>(`/comments/${commentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+    requireAuth: true,
+  });
+}
+
+export async function deleteComment(commentId: string): Promise<any> {
+  return requestJson<any>(`/comments/${commentId}`, {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+// ============================================
+// Annotations API (used by useAnnotations hook)
+// ============================================
+
+export async function fetchAnnotations(articleSlug: string): Promise<any> {
+  return requestJson<any>(`/annotations/${encodeURIComponent(articleSlug)}`, {
+    method: 'GET',
+  });
+}
+
+export async function createAnnotation(payload: {
+  articleSlug: string;
+  highlightedText: string;
+  startOffset: number;
+  endOffset: number;
+  paragraphIndex: number;
+  comment: { content: string; authorName: string };
+}): Promise<any> {
+  return requestJson<any>('/annotations/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAnnotation(annotationId: string): Promise<any> {
+  return requestJson<any>(`/annotations/${annotationId}`, {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+// ============================================
+// MCP Sessions API (used by useMCPSessions hook)
+// ============================================
+
+export async function createMCPSession(payload: {
+  folders: string[];
+  ttlMinutes: number;
+  notes: any[];
+  userId: string;
+  metadata: any;
+}): Promise<any> {
+  return requestJson<any>('/sessions/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+  });
+}
+
+export async function revokeMCPSession(sessionId: string): Promise<any> {
+  return requestJson<any>('/sessions/revoke', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
+    requireAuth: true,
+  });
+}
+
+// ============================================
+// Zone Validation API (used by useZoneValidation hook)
+// ============================================
+
+export async function validateZone(
+  zoneId: string,
+  accessCode?: string | null
+): Promise<any> {
+  const params = new URLSearchParams();
+  if (accessCode) params.set('code', accessCode);
+  const query = params.toString();
+  return requestJson<any>(`/zones/validate/${zoneId}${query ? `?${query}` : ''}`, {
+    method: 'GET',
+  });
+}
+
+// ============================================
+// Access Zones List/Revoke API (used by useAccessZones hook)
+// ============================================
+
+export async function listZones(): Promise<any> {
+  return requestJson<any>('/zones/list', {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
+export async function revokeZone(zoneId: string): Promise<any> {
+  return requestJson<any>(`/zones/${zoneId}`, {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+// ============================================
+// Auth API (used by useOwnerAuth hook)
+// ============================================
+
+export async function authRequest(
+  path: string,
+  payload: unknown,
+  token?: string
+): Promise<Response> {
+  const baseUrl = getGatewayBaseUrl();
+  const url = `${baseUrl}${path}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Correlation-Id': generateCorrelationId(),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
 }

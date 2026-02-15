@@ -5,7 +5,12 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { getOwnerToken } from './useOwnerAuth';
 import type { AccessType, NotebookLMMapping } from '@/types/mcpGateway';
-import { createZone as apiCreateZone, getGatewayBaseUrl } from '@/lib/api/mcpGatewayClient';
+import {
+  createZone as apiCreateZone,
+  listZones as apiListZones,
+  revokeZone as apiRevokeZone,
+  getGatewayBaseUrl,
+} from '@/lib/api/mcpGatewayClient';
 
 type MaybeApiError = {
   message?: string;
@@ -51,7 +56,7 @@ export interface AccessZone {
   webUrl?: string;
   mcpUrl?: string;
   notebooklm?: NotebookLMMapping | null;
-  consentRequired?: boolean; // Default true - requires confidentiality consent
+  consentRequired?: boolean;
 }
 
 export interface CreateZoneParams {
@@ -66,7 +71,7 @@ export interface CreateZoneParams {
   notebookTitle?: string;
   notebookShareEmails?: string[];
   notebookSourceMode?: 'minio' | 'url';
-  consentRequired?: boolean; // Default true - zone requires consent before viewing
+  consentRequired?: boolean;
 }
 
 const MCP_GATEWAY_URL = getGatewayBaseUrl();
@@ -96,18 +101,7 @@ export function useAccessZones() {
     const token = getOwnerToken();
     if (!token) return [];
 
-    const response = await fetch(`${MCP_GATEWAY_URL}/zones/list`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch zones');
-    }
-
-    const data = await response.json();
+    const data = await apiListZones();
     return (data.zones || []).map(generateZoneUrls);
   }, []);
 
@@ -151,7 +145,7 @@ export function useAccessZones() {
         notebookTitle: params.notebookTitle,
         notebookShareEmails: params.notebookShareEmails,
         notebookSourceMode: params.notebookSourceMode,
-        consentRequired: params.consentRequired ?? true, // Default to true
+        consentRequired: params.consentRequired ?? true,
       });
       
       const newZone: AccessZone = {
@@ -182,8 +176,6 @@ export function useAccessZones() {
       const code = getErrorCode(err);
       const description = code ? `[${code}] ${message}` : message;
 
-      // Partial success case: Worker may have already persisted zone in KV and then failed on NotebookLM/MinIO step.
-      // If backend returns details.zoneId, refresh the zone list and return the created zone so UI can proceed.
       const zoneId = getErrorZoneId(err);
       if (zoneId) {
         try {
@@ -217,24 +209,14 @@ export function useAccessZones() {
     setIsLoading(true);
 
     try {
-      // 🔐 Protected endpoint - uses DELETE method per Worker v3.0
-      const response = await fetch(`${MCP_GATEWAY_URL}/zones/${zoneId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to revoke zone');
-      }
+      await apiRevokeZone(zoneId);
 
       setZones(prev => prev.filter(z => z.id !== zoneId));
       toast.success('Access zone revoked');
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to revoke zone';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Failed to revoke zone';
       toast.error('Failed to revoke zone', { description: message });
       return false;
     } finally {

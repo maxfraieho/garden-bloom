@@ -1,17 +1,18 @@
 // Annotations Hook for fetching and managing article annotations
-// Architecture: React → Cloudflare Worker → MinIO + KV
+// Architecture: React → mcpGatewayClient → Cloudflare Worker → MinIO + KV
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { getOwnerToken, useOwnerAuth } from './useOwnerAuth';
+import { useOwnerAuth } from './useOwnerAuth';
+import {
+  fetchAnnotations as apiFetchAnnotations,
+  createAnnotation as apiCreateAnnotation,
+  deleteAnnotation as apiDeleteAnnotation,
+} from '@/lib/api/mcpGatewayClient';
 import type { 
   Annotation,
   Comment,
-  CreateAnnotationResponse, 
-  FetchAnnotationsResponse 
 } from '@/lib/comments/types';
-
-const GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
 
 interface UseAnnotationsOptions {
   autoFetch?: boolean;
@@ -34,25 +35,7 @@ export function useAnnotations(articleSlug: string, options: UseAnnotationsOptio
     setError(null);
     
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      const token = getOwnerToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(
-        `${GATEWAY_URL}/annotations/${encodeURIComponent(articleSlug)}`,
-        { headers }
-      );
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch annotations: ${response.status}`);
-      }
-      
-      const data: FetchAnnotationsResponse = await response.json();
+      const data = await apiFetchAnnotations(articleSlug);
       
       if (data.success) {
         setAnnotations(data.annotations);
@@ -61,7 +44,8 @@ export function useAnnotations(articleSlug: string, options: UseAnnotationsOptio
         throw new Error(data.error || 'Failed to fetch annotations');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message : 
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       setError(message);
       console.error('[Annotations] Fetch error:', message);
     } finally {
@@ -85,39 +69,18 @@ export function useAnnotations(articleSlug: string, options: UseAnnotationsOptio
     commentContent: string,
     authorName?: string
   ): Promise<{ annotation: Annotation; comment: Comment } | null> => {
-    const token = getOwnerToken();
-    
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(`${GATEWAY_URL}/annotations/create`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          articleSlug,
-          highlightedText,
-          startOffset,
-          endOffset,
-          paragraphIndex,
-          comment: {
-            content: commentContent,
-            authorName: authorName || (isOwner ? 'Owner' : 'Guest'),
-          },
-        }),
+      const data = await apiCreateAnnotation({
+        articleSlug,
+        highlightedText,
+        startOffset,
+        endOffset,
+        paragraphIndex,
+        comment: {
+          content: commentContent,
+          authorName: authorName || (isOwner ? 'Owner' : 'Guest'),
+        },
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-      
-      const data: CreateAnnotationResponse = await response.json();
       
       if (data.success && data.annotation && data.comment) {
         setAnnotations(prev => [...prev, data.annotation!]);
@@ -128,7 +91,8 @@ export function useAnnotations(articleSlug: string, options: UseAnnotationsOptio
         throw new Error(data.error || 'Failed to create annotation');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       toast.error('Помилка створення анотації', { description: message });
       return null;
     }
@@ -136,23 +100,8 @@ export function useAnnotations(articleSlug: string, options: UseAnnotationsOptio
 
   // Delete annotation
   const deleteAnnotation = useCallback(async (annotationId: string): Promise<boolean> => {
-    const token = getOwnerToken();
-    if (!token) {
-      toast.error('Потрібна авторизація власника');
-      return false;
-    }
-    
     try {
-      const response = await fetch(`${GATEWAY_URL}/annotations/${annotationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      await apiDeleteAnnotation(annotationId);
       
       const annotation = annotations.find(a => a.id === annotationId);
       if (annotation) {
@@ -163,7 +112,8 @@ export function useAnnotations(articleSlug: string, options: UseAnnotationsOptio
       toast.success('🗑️ Анотацію видалено');
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       toast.error('Помилка видалення', { description: message });
       return false;
     }

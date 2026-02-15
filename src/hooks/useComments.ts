@@ -1,18 +1,19 @@
 // Comments Hook for fetching and managing article comments
-// Architecture: React → Cloudflare Worker → MinIO + KV
+// Architecture: React → mcpGatewayClient → Cloudflare Worker → MinIO + KV
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { getOwnerToken, useOwnerAuth } from './useOwnerAuth';
+import { useOwnerAuth } from './useOwnerAuth';
+import {
+  fetchComments as apiFetchComments,
+  createComment as apiCreateComment,
+  updateComment as apiUpdateComment,
+  deleteComment as apiDeleteComment,
+} from '@/lib/api/mcpGatewayClient';
 import type { 
   Comment, 
   CommentStatus,
-  CreateCommentResponse, 
-  FetchCommentsResponse,
-  UpdateCommentResponse 
 } from '@/lib/comments/types';
-
-const GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
 
 interface UseCommentsOptions {
   autoFetch?: boolean;
@@ -34,26 +35,7 @@ export function useComments(articleSlug: string, options: UseCommentsOptions = {
     setError(null);
     
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      // Add owner token if available for seeing pending comments
-      const token = getOwnerToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(
-        `${GATEWAY_URL}/comments/${encodeURIComponent(articleSlug)}`,
-        { headers }
-      );
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch comments: ${response.status}`);
-      }
-      
-      const data: FetchCommentsResponse = await response.json();
+      const data = await apiFetchComments(articleSlug);
       
       if (data.success) {
         setComments(data.comments);
@@ -61,7 +43,8 @@ export function useComments(articleSlug: string, options: UseCommentsOptions = {
         throw new Error(data.error || 'Failed to fetch comments');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       setError(message);
       console.error('[Comments] Fetch error:', message);
     } finally {
@@ -82,34 +65,13 @@ export function useComments(articleSlug: string, options: UseCommentsOptions = {
     parentId?: string | null,
     authorName?: string
   ): Promise<Comment | null> => {
-    const token = getOwnerToken();
-    
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(`${GATEWAY_URL}/comments/create`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          articleSlug,
-          content,
-          parentId: parentId || null,
-          authorName: authorName || (isOwner ? 'Owner' : 'Guest'),
-        }),
+      const data = await apiCreateComment({
+        articleSlug,
+        content,
+        parentId: parentId || null,
+        authorName: authorName || (isOwner ? 'Owner' : 'Guest'),
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-      
-      const data: CreateCommentResponse = await response.json();
       
       if (data.success && data.comment) {
         setComments(prev => [...prev, data.comment!]);
@@ -119,7 +81,8 @@ export function useComments(articleSlug: string, options: UseCommentsOptions = {
         throw new Error(data.error || 'Failed to create comment');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       toast.error('Помилка створення коментаря', { description: message });
       return null;
     }
@@ -130,28 +93,8 @@ export function useComments(articleSlug: string, options: UseCommentsOptions = {
     commentId: string,
     updates: { status?: CommentStatus; content?: string }
   ): Promise<Comment | null> => {
-    const token = getOwnerToken();
-    if (!token) {
-      toast.error('Потрібна авторизація власника');
-      return null;
-    }
-    
     try {
-      const response = await fetch(`${GATEWAY_URL}/comments/${commentId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(updates),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-      
-      const data: UpdateCommentResponse = await response.json();
+      const data = await apiUpdateComment(commentId, updates);
       
       if (data.success && data.comment) {
         setComments(prev => 
@@ -169,7 +112,8 @@ export function useComments(articleSlug: string, options: UseCommentsOptions = {
         throw new Error(data.error || 'Failed to update comment');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       toast.error('Помилка оновлення', { description: message });
       return null;
     }
@@ -177,29 +121,14 @@ export function useComments(articleSlug: string, options: UseCommentsOptions = {
 
   // Delete comment (owner only)
   const deleteComment = useCallback(async (commentId: string): Promise<boolean> => {
-    const token = getOwnerToken();
-    if (!token) {
-      toast.error('Потрібна авторизація власника');
-      return false;
-    }
-    
     try {
-      const response = await fetch(`${GATEWAY_URL}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
+      await apiDeleteComment(commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
       toast.success('🗑️ Коментар видалено');
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       toast.error('Помилка видалення', { description: message });
       return false;
     }

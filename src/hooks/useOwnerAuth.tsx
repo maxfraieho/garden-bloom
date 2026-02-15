@@ -1,9 +1,10 @@
 // Owner Authentication Hook
-// Architecture: Browser → Cloudflare Worker (validation)
+// Architecture: Browser → mcpGatewayClient.authRequest → Cloudflare Worker (validation)
 // Features: JWT auto-refresh before expiration
 
 import { useState, useEffect, useCallback, useRef, createContext, useContext, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { authRequest as gatewayAuthRequest } from '@/lib/api/mcpGatewayClient';
 
 interface OwnerAuthState {
   isAuthenticated: boolean;
@@ -35,7 +36,6 @@ interface JWTPayload {
 const OwnerAuthContext = createContext<OwnerAuthContextValue | null>(null);
 
 const STORAGE_KEY = 'owner-session-token';
-const MCP_GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
 
 // Refresh token 5 minutes before expiration
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
@@ -84,34 +84,6 @@ function isTokenExpired(token: string): boolean {
   return payload.exp < Date.now();
 }
 
-async function authRequest(path: string, payload: unknown, token?: string): Promise<Response> {
-  const url = `${MCP_GATEWAY_URL}${path}`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
-}
-
 function getStoredToken(): string | null {
   try {
     return localStorage.getItem(STORAGE_KEY);
@@ -141,7 +113,7 @@ export function OwnerAuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const initResponse = await authRequest('/auth/status', {});
+      const initResponse = await gatewayAuthRequest('/auth/status', {});
 
       if (!initResponse.ok) {
         throw new Error('Failed to check auth status');
@@ -153,7 +125,7 @@ export function OwnerAuthProvider({ children }: { children: ReactNode }) {
       let isAuthenticated = false;
 
       if (token && initialized) {
-        const validateResponse = await authRequest('/auth/validate', { token });
+        const validateResponse = await gatewayAuthRequest('/auth/validate', { token });
         if (validateResponse.ok) {
           const { valid } = await validateResponse.json();
           isAuthenticated = valid;
@@ -196,7 +168,7 @@ export function OwnerAuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Password must be at least 8 characters');
       }
       
-      const response = await authRequest('/auth/setup', { password });
+      const response = await gatewayAuthRequest('/auth/setup', { password });
       
       if (!response.ok) {
         const data = await response.json();
@@ -229,7 +201,7 @@ export function OwnerAuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const response = await authRequest('/auth/login', { password });
+      const response = await gatewayAuthRequest('/auth/login', { password });
       
       if (!response.ok) {
         const data = await response.json();
@@ -283,7 +255,7 @@ export function OwnerAuthProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      const response = await authRequest('/auth/refresh', {}, token);
+      const response = await gatewayAuthRequest('/auth/refresh', {}, token);
       
       if (!response.ok) {
         throw new Error('Token refresh failed');
@@ -364,7 +336,7 @@ export function OwnerAuthProvider({ children }: { children: ReactNode }) {
       }
       
       const token = getStoredToken();
-      const response = await authRequest('/auth/change-password', {
+      const response = await gatewayAuthRequest('/auth/change-password', {
         currentPassword,
         newPassword,
       }, token || undefined);
@@ -416,4 +388,3 @@ export function useOwnerAuth() {
 export function getOwnerToken(): string | null {
   return getStoredToken();
 }
-
