@@ -15,6 +15,9 @@ next:
   label: 12 Design Patterns
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 [Previous: Meet the Workflows](/gh-aw/blog/2026-01-13-meet-the-workflows/)
 
 <img src="/gh-aw/peli.png" alt="Peli de Halleux" width="200" style="float: right; margin: 0 0 20px 20px; border-radius: 8px;" />

@@ -5,6 +5,9 @@ sidebar:
   order: 400
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 The `on:` section uses standard GitHub Actions syntax to define workflow triggers. For example:
 
 ```yaml wrap

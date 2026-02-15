@@ -3,6 +3,9 @@ title: Frontmatter Hash Specification
 description: Specification for computing deterministic hashes of agentic workflow frontmatter
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 # Frontmatter Hash Specification
 
 This document specifies the algorithm for computing a deterministic hash of agentic workflow frontmatter, including contributions from imported workflows.

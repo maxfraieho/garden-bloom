@@ -5,6 +5,9 @@ sidebar:
   order: 5
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Custom safe outputs extend GitHub Agentic Workflows beyond built-in GitHub operations. While built-in safe outputs handle GitHub issues, PRs, and discussions, custom safe outputs let you integrate with third-party services like Notion, Slack, databases, or any external API.
 
 ## When to Use Custom Safe Outputs

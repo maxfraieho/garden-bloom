@@ -5,6 +5,9 @@ sidebar:
   order: 650
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 "Custom Agents" is a term used in GitHub Copilot for specialized prompts for behaviors for specific tasks. They are markdown documents stored in the `.github/agents/` directory and imported via the `imports` field. Copilot supports agents natively, while other engines (Claude, Codex) inject the markdown body as a prompt.
 
 ## Creating a Copilot Custom Agent

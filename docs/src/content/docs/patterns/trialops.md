@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Testing', variant: 'tip' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 > [!NOTE]
 > Part of SideRepoOps
 > TrialOps is a specialized testing pattern that extends [SideRepoOps](/gh-aw/patterns/siderepoops/). While SideRepoOps runs workflows from a separate repository against your main codebase, TrialOps uses temporary trial repositories to safely validate and test workflows before production deployment.

@@ -5,6 +5,9 @@ sidebar:
   order: 3
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Issue and PR event workflows run automatically when specific GitHub events occur. They're ideal for automated triage, intelligent labeling, code analysis, and quality checks that happen without any manual trigger.
 
 ## When to Use Event-Triggered Workflows

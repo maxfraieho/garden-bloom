@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Event-triggered', variant: 'success' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 LabelOps uses GitHub labels as workflow triggers, metadata, and state markers. GitHub Agentic Workflows supports label-based triggers with filtering to activate workflows only for specific label changes while maintaining secure, automated responses.
 
 ## When to Use LabelOps

@@ -5,6 +5,9 @@ sidebar:
   order: 100
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Each workflow consists of:
 
 1. **YAML Frontmatter**: Configuration options wrapped in `---`. See [Frontmatter](/gh-aw/reference/frontmatter/) for details.

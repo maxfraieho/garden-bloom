@@ -5,6 +5,9 @@ sidebar:
   order: 200
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 This reference documents frequently encountered issues when working with GitHub Agentic Workflows, organized by workflow stage and component.
 
 ## Installation Issues

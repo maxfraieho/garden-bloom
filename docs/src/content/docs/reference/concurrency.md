@@ -5,6 +5,9 @@ sidebar:
   order: 1400
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 GitHub Agentic Workflows uses dual-level concurrency control to prevent resource exhaustion and ensure predictable execution:
 - **Per-workflow**: Limits based on workflow name and trigger context (issue, PR, branch)
 - **Per-engine**: Limits AI execution across all workflows via `engine.concurrency`

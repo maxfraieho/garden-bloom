@@ -5,6 +5,9 @@ sidebar:
   order: 750
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 The `gh aw compile --dependabot` command scans workflows for runtime tools (`npx`, `pip install`, `go install`), generates dependency manifests (`package.json`, `requirements.txt`, `go.mod`), and configures Dependabot to monitor for updates
 
 ## Usage

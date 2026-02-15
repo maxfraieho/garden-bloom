@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Patterns', variant: 'note' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 MemoryOps enables workflows to persist state across runs using `cache-memory` and `repo-memory`. Build workflows that remember their progress, resume after interruptions, share data between workflows, and avoid API throttling.
 
 Use MemoryOps for incremental processing, trend analysis, multi-step tasks, and workflow coordination.

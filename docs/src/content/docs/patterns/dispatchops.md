@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Manual', variant: 'tip' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 DispatchOps enables manual workflow execution via the GitHub Actions UI or CLI, perfect for on-demand tasks, testing, and workflows that need human judgment about timing. The `workflow_dispatch` trigger lets you run workflows with custom inputs whenever needed.
 
 Use DispatchOps for research tasks, operational commands, testing workflows during development, debugging production issues, or any task that doesn't fit a schedule or event trigger.

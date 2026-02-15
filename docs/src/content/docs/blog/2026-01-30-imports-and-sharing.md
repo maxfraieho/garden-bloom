@@ -15,6 +15,9 @@ next:
   label: Security Lessons
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 [Previous Article](/gh-aw/blog/2026-01-27-operational-patterns/)
 
 ---

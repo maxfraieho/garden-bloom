@@ -5,6 +5,9 @@ sidebar:
   order: 5
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 This guide covers using [Serena](https://github.com/oraios/serena), a powerful coding agent toolkit that provides semantic code retrieval and editing capabilities to agentic workflows.
 
 ## What is Serena?

@@ -3,6 +3,9 @@ title: TaskOps Strategy
 description: Scaffold AI-powered code improvements with research agents, planning agents, and copilot execution while keeping developers in control
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 The TaskOps strategy is a scaffolded approach to using AI agents for systematic code improvements. This strategy keeps developers in the driver's seat by providing clear decision points at each phase while leveraging AI agents to handle the heavy lifting of research, planning, and implementation.
 
 ## How TaskOps Works

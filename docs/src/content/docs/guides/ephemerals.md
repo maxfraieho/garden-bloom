@@ -5,6 +5,9 @@ sidebar:
   order: 9
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 GitHub Agentic Workflows includes several features designed to automatically expire resources and reduce noise in your repositories. These "ephemeral" features help keep your repository clean by automatically cleaning up temporary issues, discussions, pull requests, and workflow runs after they've served their purpose.
 
 ## Why Use Ephemerals?

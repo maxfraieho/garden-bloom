@@ -5,6 +5,9 @@ sidebar:
   order: 1350
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 # MCP Gateway Specification
 
 **Version**: 1.8.0  

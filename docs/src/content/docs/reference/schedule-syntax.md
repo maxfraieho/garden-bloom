@@ -5,6 +5,9 @@ sidebar:
   order: 405
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 This reference documents the complete schedule syntax supported by GitHub Agentic Workflows, including fuzzy schedules (recommended), time constraints, and standard cron expressions.
 
 ## Overview

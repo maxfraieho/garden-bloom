@@ -5,6 +5,9 @@ sidebar:
   order: 5
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Agentic workflows consist of two distinct parts with different editing requirements: the **YAML frontmatter** (configuration) and the **markdown body** (AI instructions). Understanding when changes require recompilation helps you iterate quickly and efficiently.
 
 See [Creating Agentic Workflows](/gh-aw/setup/creating-workflows/) for guidance on creating workflows with AI assistance.

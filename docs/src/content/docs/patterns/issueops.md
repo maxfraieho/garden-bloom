@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Event-triggered', variant: 'success' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 IssueOps transforms GitHub issues into automation triggers that analyze, categorize, and respond to issues automatically. Use it for auto-triage, smart routing, initial responses, and quality checks. GitHub Agentic Workflows makes this natural through issue triggers and [safe-outputs](/gh-aw/reference/safe-outputs/) that handle automated responses securely without write permissions for the main AI job.
 
 When issues are created, workflows activate automatically. The AI analyzes content and provides intelligent responses through automated comments.

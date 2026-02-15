@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Scheduled', variant: 'tip' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 DailyOps workflows automate incremental progress toward large goals through small, scheduled daily changes. Work happens automatically in manageable pieces that are easy to review and integrate.
 
 ## When to Use DailyOps

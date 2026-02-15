@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Project', variant: 'tip' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 The `update-project` and `create-project-status-update` safe-output tools enable automatic tracking of workflow-created items in GitHub Projects boards. Configure these tools in the `safe-outputs` section of your workflow frontmatter to enable project management capabilities including item addition, field updates, and status reporting.
 
 ## Quick Start

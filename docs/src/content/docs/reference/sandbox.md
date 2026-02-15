@@ -6,6 +6,9 @@ sidebar:
 disable-agentic-editing: true
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 The `sandbox` field configures sandbox environments for AI engines, providing two main capabilities:
 
 1. **Agent Sandbox** - Controls the agent runtime security (AWF or Sandbox Runtime)

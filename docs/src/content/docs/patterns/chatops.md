@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Command-triggered', variant: 'note' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 ChatOps brings automation into GitHub conversations through command triggers that respond to slash commands in issues, pull requests, and comments. Team members can trigger workflows by typing commands like `/review` or `/deploy` directly in discussions.
 
 ## When to Use ChatOps

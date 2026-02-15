@@ -5,6 +5,9 @@ sidebar:
   order: 400
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 The `gh aw mcp-server` command exposes CLI tools (status, compile, logs, audit, update, add, mcp-inspect) to AI agents through the Model Context Protocol.
 
 Start the server:

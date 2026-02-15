@@ -5,6 +5,9 @@ sidebar:
   order: 4
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 This guide covers using [Model Context Protocol](/gh-aw/reference/glossary/#mcp-model-context-protocol) (MCP) servers with GitHub Agentic Workflows.
 
 ## What is MCP?

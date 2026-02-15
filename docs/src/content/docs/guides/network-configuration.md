@@ -5,6 +5,9 @@ sidebar:
   order: 450
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 This guide provides practical examples for configuring network access in GitHub Agentic Workflows while maintaining security.
 
 ## Quick Start

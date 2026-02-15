@@ -5,6 +5,9 @@ sidebar:
   order: 1
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Scheduled workflows run automatically at specified times using cron expressions. They're perfect for recurring tasks like daily status updates, weekly research reports, continuous code improvements, and automated maintenance.
 
 ## When to Use Scheduled Workflows

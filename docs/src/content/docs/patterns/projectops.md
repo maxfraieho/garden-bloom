@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Event-triggered', variant: 'success' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 ProjectOps automates [GitHub Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects) management using AI-powered workflows.
 
 When a new issue or pull request arrives, the agent analyzes it and determines where it belongs, what status to set, which fields to update (priority, effort, etc.), and whether to create or update project structures.

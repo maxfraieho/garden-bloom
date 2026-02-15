@@ -5,6 +5,9 @@ sidebar:
   badge: { text: 'Hybrid', variant: 'caution' }
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 DataOps combines deterministic data extraction with agentic analysis. Shell commands in `steps:` collect and prepare data, then the AI agent in the markdown body analyzes results and produces safe outputs like discussions or comments.
 
 ## When to Use DataOps

@@ -135,19 +135,25 @@ NotebookLM:
 
 ---
 
-## 5. gh-aw як формат агентів
+## 5. `_agent.md` як формат агентів
+
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не використовується як execution layer.
+> Замінено на Mastra (agent interpreter) + Inngest (orchestration).
+> Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`
 
 ### 5.1 Агент = Markdown + Frontmatter
 
-Ми використовуємо концепцію GitHub Agentic Workflows як **універсальний формат агентів**:
+Ми використовуємо **`_agent.md`** як універсальний формат агентів (еволюція концепції gh-aw):
 
 - YAML frontmatter — конфігурація агента:
   - роль,
   - дозволи,
   - тригери,
-  - інструменти.
+  - інструменти (tools[]).
 
 - Markdown body — логіка, інструкція, мислення.
+
+**Runtime:** Mastra інтерпретує `_agent.md`, Inngest оркеструє виконання.
 
 Це дозволяє:
 - переносити агентів між проєктами;
@@ -173,7 +179,7 @@ DRAKON:
    - або AST,
    - або project-mode prompt.
 3. Результат зберігається як:
-   - `.md` файл агента gh-aw,
+   - `_agent.md` файл агента (Mastra-сумісний),
    - частина знань папки,
    - інструкція для NotebookLM.
 
@@ -211,7 +217,7 @@ DRAKON:
 - NotebookLM orchestration
 - MinIO / RAG
 - Сесії агентів
-- Адаптація gh-aw
+- Mastra agent runtime (замість gh-aw)
 
 ---
 

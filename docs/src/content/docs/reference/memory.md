@@ -5,6 +5,9 @@ sidebar:
   order: 1500
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Agentic workflows maintain persistent memory through **cache-memory** (GitHub Actions cache, 7-day retention) or **repo-memory** (Git branches, unlimited retention).
 
 ## Cache Memory

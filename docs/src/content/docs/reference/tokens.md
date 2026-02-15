@@ -6,6 +6,9 @@ sidebar:
 disable-agentic-editing: true
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 GitHub Agentic Workflows authenticate using multiple tokens depending on the operation. This reference explains which token to use, when it's required, and how precedence works across different operations.
 
 ## User vs. Org Ownership

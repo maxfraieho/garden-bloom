@@ -5,6 +5,9 @@ sidebar:
   order: 1
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 This guide introduces GitHub Actions - GitHub's native automation platform - and explains how it forms the foundation for agentic workflows. Understanding GitHub Actions helps you leverage its capabilities effectively while appreciating the enhanced security and AI-powered features that agentic workflows provide.
 
 ## What is GitHub Actions?

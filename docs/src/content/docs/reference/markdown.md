@@ -5,6 +5,9 @@ sidebar:
   order: 300
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 The markdown body is the most important part of your agentic workflow, containing natural language instructions for the AI agent. The markdown follows the frontmatter and is loaded at runtime, allowing you to edit instructions directly on GitHub.com without recompilation. For example:
 
 ```aw wrap

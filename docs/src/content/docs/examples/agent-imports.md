@@ -5,6 +5,9 @@ sidebar:
   order: 7
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 GitHub Agentic Workflows supports importing agent files from external repositories, enabling you to reuse expert-crafted AI instructions and specialized behavior across teams and projects.
 
 ## Why Import Agents?

@@ -5,6 +5,9 @@ sidebar:
   order: 4
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Manual workflows run only when explicitly triggered via the GitHub Actions UI or CLI. They're perfect for on-demand tasks like research, analysis, or operations that need human judgment about timing.
 
 ## When to Use Manual Workflows

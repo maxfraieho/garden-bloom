@@ -5,6 +5,9 @@ sidebar:
   order: 15
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 This guide shows how to add web search to workflows using the Tavily Model Context Protocol (MCP) server, an AI-optimized search provider designed for LLM applications. While alternatives exist (Exa, SerpAPI, Brave Search), this guide focuses on Tavily configuration.
 
 ## Tavily Search

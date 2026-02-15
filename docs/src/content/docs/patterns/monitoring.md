@@ -3,6 +3,9 @@ title: Projects & Monitoring
 description: Use GitHub Projects + safe-outputs to track and monitor workflow work items and progress.
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Use this pattern when you want a durable “source of truth” for what your agentic workflows discovered, decided, and did.
 
 ## What this pattern is

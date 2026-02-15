@@ -3,6 +3,9 @@ title: Multi-Repository Examples
 description: Complete examples for managing workflows across multiple GitHub repositories, including feature synchronization, cross-repo tracking, and organization-wide updates.
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Multi-repository operations enable coordinating work across multiple GitHub repositories while maintaining security and proper access controls. These examples demonstrate common patterns for cross-repo workflows.
 
 ## Featured Examples

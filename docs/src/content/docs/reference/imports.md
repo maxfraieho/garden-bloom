@@ -5,6 +5,9 @@ sidebar:
   order: 325
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Using imports in frontmatter or markdown allows you to modularize and reuse workflow components across multiple workflows.
 
 ## Syntax

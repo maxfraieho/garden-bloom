@@ -5,6 +5,9 @@ sidebar:
   order: 500
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 GitHub Agentic Workflows add the convenience `slash_command:` trigger to create workflows that respond to `/my-bots` in issues and comments.
 
 ```yaml wrap

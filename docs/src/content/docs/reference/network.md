@@ -5,6 +5,9 @@ sidebar:
   order: 1300
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Control network access for AI engines using the top-level `network` field to specify which domains and services your agentic workflows can access during execution.
 
 > **Note**: Network permissions are currently supported by the Claude engine and the Copilot engine (when using the [firewall feature](/gh-aw/reference/sandbox/)).

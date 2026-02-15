@@ -3,6 +3,9 @@ title: Orchestration
 description: Coordinate multiple agentic workflows using workflow dispatch (orchestrator/worker pattern).
 ---
 
+> **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не є canonical execution layer.
+> Замінено на Mastra + Inngest. Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`.
+
 Use this pattern when one workflow (the **orchestrator**) needs to fan out work to one or more **worker** workflows.
 
 ## The orchestrator/worker pattern
