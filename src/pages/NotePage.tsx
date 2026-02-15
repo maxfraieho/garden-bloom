@@ -6,8 +6,7 @@ import { GardenHeader } from '@/components/garden/GardenHeader';
 import { GardenFooter } from '@/components/garden/GardenFooter';
 import { useLocale } from '@/hooks/useLocale';
 import { ArrowLeft, FileQuestion, Clock, Loader2 } from 'lucide-react';
-
-const MCP_GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
+import { getGitStatus } from '@/lib/api/mcpGatewayClient';
 
 export default function NotePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -26,25 +25,12 @@ export default function NotePage() {
 
     const checkGitHubStatus = async () => {
       try {
-        // Build the path - slug format: "folder/note-title" or just "note-title"
         const path = `src/site/notes/${slug}.md`;
-        
-        const response = await fetch(`${MCP_GATEWAY_URL}/v1/git/status?path=${encodeURIComponent(path)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // If file exists in GitHub but not in local bundle - it's pending sync
-          if (data.exists) {
-            setIsPending(true);
-          }
+        const data = await getGitStatus(path);
+        if (data.exists) {
+          setIsPending(true);
         }
       } catch (err) {
-        // Silently fail - just show "not found" message
         console.warn('Failed to check GitHub status:', err);
       } finally {
         setIsChecking(false);
