@@ -1,25 +1,40 @@
 # Інвентаризація документації Garden Seedling
 
 > Створено: 2026-02-15
+> Оновлено: 2026-02-15 (post-migration cleanup)
 > Автор: Головний архітектор системи
 > Метод: Повний аудит docs/ та кореневих .md файлів
 > Канонічна структура: відповідно до MinIO layout V1 та docs/ canonical spec
+
+> **POST-MIGRATION NOTE:** gh-aw артефакти, Starlight site content, legacy-en документи
+> та міграційний план переміщені до `archive/`. docs/ тепер містить ТІЛЬКИ canonical
+> Mastra + Inngest документацію. Структура archive/:
+> - `archive/gh-aw/` — gh-aw специфічні артефакти
+> - `archive/legacy-en/` — англомовна legacy документація
+> - `archive/starlight-gh-aw/` — повний Starlight docs site (site/, schemas/, tests/)
+> - `archive/migration/` — план міграції gh-aw → Mastra + Inngest
+> - `archive/GH_AW_DEPRECATION_NOTICE.md` — офіційний deprecation notice
 
 ---
 
 ## Канонічна цільова структура docs/
 
 ```
-docs/
-  manifesto/           # Маніфест, глосарій, філософія
-  architecture/        # Архітектурні специфікації (UA canonical)
-  backend/             # Backend специфікації
-  frontend/            # Frontend специфікації
-  integrations/        # Інтеграційні специфікації
-  migration/           # Плани міграції
-  deprecated/          # gh-aw та старі англомовні документи
-    gh-aw/
-    legacy-en/
+docs/                    # ТІЛЬКИ canonical Mastra + Inngest документація
+  architecture/          # Архітектурні специфікації (UA canonical)
+  backend/               # Backend специфікації (API contracts)
+  frontend/              # Frontend специфікації (Lovable контракт)
+  manifesto/             # Маніфест, глосарій, філософія
+  drakon/                # DRAKON інтеграція та дослідження
+
+archive/                 # Історичні документи (gh-aw era)
+  gh-aw/                 # gh-aw специфічні артефакти
+  legacy-en/             # Англомовна legacy документація
+  starlight-gh-aw/       # Повний Starlight docs site
+    site/                # Content (patterns, reference, guides, blog, examples)
+    schemas/             # JSON schemas (mcp-gateway, safe-inputs)
+    tests/               # Playwright tests
+  migration/             # План міграції gh-aw → Mastra + Inngest
 ```
 
 ---
