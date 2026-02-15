@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   FileEdit, 
   Check, 
@@ -32,6 +33,8 @@ interface ProposalsInboxProps {
   className?: string;
 }
 
+const MIN_DECISION_NOTE_LENGTH = 10;
+
 export function ProposalsInbox({ className }: ProposalsInboxProps) {
   const { t } = useLocale();
   const [proposals, setProposals] = useState<EditProposal[]>([]);
@@ -40,6 +43,10 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [acceptedProposal, setAcceptedProposal] = useState<EditProposal | null>(null);
   const [copied, setCopied] = useState(false);
+  const [decisionNote, setDecisionNote] = useState('');
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+
+  const isDecisionNoteValid = decisionNote.trim().length >= MIN_DECISION_NOTE_LENGTH;
 
   const fetchProposals = async () => {
     try {
@@ -65,24 +72,19 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
       setProposals(prev => prev.filter(p => p.proposalId !== selectedProposal.proposalId));
       setSelectedProposal(null);
 
-      // Check if Git auto-commit was successful
       if (response.gitCommitResult?.success) {
-        // Auto-commit worked - show success + clarify build/sync expectations
         toast.success(
           t.proposals?.acceptedAutoCommit ||
-            'Proposal accepted and committed. Note pages update after the repo sync/rebuild — refresh once the changes land in this app.'
+            'Proposal approved and committed. Note pages update after the repo sync/rebuild — refresh once the changes land in this app.'
         );
       } else {
-        // Auto-commit failed or not configured - show copy dialog
         const errorMsg = response.gitCommitResult?.error;
         console.error('[ProposalsInbox] Git commit response:', JSON.stringify(response.gitCommitResult));
         if (errorMsg) {
           console.warn('[ProposalsInbox] Git commit failed:', errorMsg);
-          // Show error toast with details
           toast.error(`Git commit failed: ${errorMsg}`);
         }
-        toast.success(t.proposals?.accepted || 'Proposal accepted');
-        // Show copy dialog so user can manually update the file
+        toast.success(t.proposals?.accepted || 'Proposal approved');
         setAcceptedProposal(selectedProposal);
       }
     } catch (err) {
@@ -92,15 +94,22 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
     }
   };
 
+  const handleStartReject = () => {
+    setDecisionNote('');
+    setShowRejectConfirm(true);
+  };
+
   const handleReject = async () => {
-    if (!selectedProposal) return;
+    if (!selectedProposal || !isDecisionNoteValid) return;
     
     setIsProcessing(true);
     try {
-      await rejectProposal(selectedProposal.proposalId);
+      await rejectProposal(selectedProposal.proposalId, decisionNote.trim());
       toast.success(t.proposals?.rejected || 'Proposal rejected');
       setProposals(prev => prev.filter(p => p.proposalId !== selectedProposal.proposalId));
       setSelectedProposal(null);
+      setShowRejectConfirm(false);
+      setDecisionNote('');
     } catch (err) {
       toast.error(t.proposals?.rejectFailed || 'Failed to reject proposal');
     } finally {
@@ -231,14 +240,10 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={handleReject}
+              onClick={handleStartReject}
               disabled={isProcessing}
             >
-              {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <X className="h-4 w-4 mr-2" />
-              )}
+              <X className="h-4 w-4 mr-2" />
               {t.proposals?.reject || 'Reject'}
             </Button>
             <Button
@@ -251,6 +256,60 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
                 <Check className="h-4 w-4 mr-2" />
               )}
               {t.proposals?.accept || 'Accept Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Confirmation Dialog */}
+      <Dialog open={showRejectConfirm} onOpenChange={(open) => {
+        if (!open) {
+          setShowRejectConfirm(false);
+          setDecisionNote('');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <X className="h-5 w-5 text-destructive" />
+              {t.proposals?.rejectTitle || 'Reject Proposal'}
+            </DialogTitle>
+            <DialogDescription>
+              {t.proposals?.rejectDescription || 'Please provide a reason for rejecting this proposal (minimum 10 characters).'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={decisionNote}
+              onChange={(e) => setDecisionNote(e.target.value)}
+              placeholder={t.proposals?.rejectPlaceholder || 'Explain why this proposal is being rejected...'}
+              className="min-h-[100px]"
+            />
+            <p className={cn(
+              "text-xs mt-1",
+              isDecisionNoteValid ? "text-muted-foreground" : "text-destructive"
+            )}>
+              {decisionNote.trim().length}/{MIN_DECISION_NOTE_LENGTH} {t.proposals?.minChars || 'minimum characters'}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowRejectConfirm(false);
+              setDecisionNote('');
+            }}>
+              {t.common?.cancel || 'Cancel'}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={!isDecisionNoteValid || isProcessing}
+            >
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <X className="h-4 w-4 mr-2" />
+              )}
+              {t.proposals?.confirmReject || 'Confirm Reject'}
             </Button>
           </DialogFooter>
         </DialogContent>

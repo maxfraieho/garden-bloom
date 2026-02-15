@@ -97,6 +97,7 @@ export const de: Translations = {
     copied: 'Kopiert!',
     toggleTheme: 'Thema wechseln',
     language: 'Sprache',
+    cancel: 'Abbrechen',
   },
 
   owner: {
@@ -298,8 +299,8 @@ export const de: Translations = {
     title: 'Änderungsvorschläge',
     description: 'Änderungen von Gästen überprüfen',
     empty: 'Keine ausstehenden Vorschläge',
-    accepted: 'Vorschlag akzeptiert',
-    acceptedAutoCommit: 'Vorschlag akzeptiert und in das Repository übertragen',
+    accepted: 'Vorschlag genehmigt',
+    acceptedAutoCommit: 'Vorschlag genehmigt und in das Repository übertragen',
     acceptFailed: 'Fehler beim Akzeptieren',
     rejected: 'Vorschlag abgelehnt',
     rejectFailed: 'Fehler beim Ablehnen',
@@ -307,10 +308,15 @@ export const de: Translations = {
     submittedBy: 'Eingereicht von',
     accept: 'Änderungen akzeptieren',
     reject: 'Ablehnen',
-    acceptedTitle: 'Vorschlag akzeptiert',
+    acceptedTitle: 'Vorschlag genehmigt',
     copyInstructions: 'Kopieren Sie den aktualisierten Inhalt unten und fügen Sie ihn in Ihre lokale Notizdatei ein, um die Änderungen anzuwenden.',
     copyContent: 'Inhalt kopieren',
     contentCopied: 'Inhalt in die Zwischenablage kopiert',
+    rejectTitle: 'Vorschlag ablehnen',
+    rejectDescription: 'Bitte geben Sie einen Grund für die Ablehnung an (mindestens 10 Zeichen).',
+    rejectPlaceholder: 'Erklären Sie, warum dieser Vorschlag abgelehnt wird...',
+    minChars: 'Mindestzeichen',
+    confirmReject: 'Ablehnung bestätigen',
   },
 
   delegatedConsent: {

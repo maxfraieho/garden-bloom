@@ -9,7 +9,7 @@ export type NotebookLMStatus =
   | 'completed'
   | 'failed';
 
-// Unified error codes for UI mapping
+// Unified error codes for UI mapping (V1 Appendix A canonical)
 export type GatewayErrorCode =
   | 'NETWORK_OFFLINE'
   | 'TIMEOUT'
@@ -31,7 +31,9 @@ export type GatewayErrorCode =
   | 'TOKEN_EXPIRED'
   | 'DUPLICATE_ENTRY'
   | 'UPSTREAM_UNAVAILABLE'
-  | 'AGENT_TIMEOUT';
+  | 'AGENT_TIMEOUT'
+  | 'INVALID_AGENT_TRANSITION'
+  | 'NLM_UNAVAILABLE';
 
 export interface ApiError {
   message: string;
@@ -125,8 +127,16 @@ export interface ZoneListItem {
   accessCode?: string;
 }
 
-// Edit Proposals
-export type ProposalStatus = 'pending' | 'accepted' | 'rejected';
+// Edit Proposals — canonical V1 lifecycle statuses
+export type ProposalStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'auto_approved'
+  | 'expired'
+  | 'applying'
+  | 'applied'
+  | 'failed';
 
 export interface GitCommitResult {
   success: boolean;

@@ -97,6 +97,7 @@ export const it: Translations = {
     copied: 'Copiato!',
     toggleTheme: 'Cambia tema',
     language: 'Lingua',
+    cancel: 'Annulla',
   },
 
   owner: {
@@ -298,8 +299,8 @@ export const it: Translations = {
     title: 'Proposte di modifica',
     description: 'Rivedi le modifiche suggerite dagli ospiti',
     empty: 'Nessuna proposta in attesa',
-    accepted: 'Proposta accettata',
-    acceptedAutoCommit: 'Proposta accettata e salvata nel repository',
+    accepted: 'Proposta approvata',
+    acceptedAutoCommit: 'Proposta approvata e salvata nel repository',
     acceptFailed: 'Accettazione fallita',
     rejected: 'Proposta rifiutata',
     rejectFailed: 'Rifiuto fallito',
@@ -307,10 +308,15 @@ export const it: Translations = {
     submittedBy: 'Inviata da',
     accept: 'Accetta modifiche',
     reject: 'Rifiuta',
-    acceptedTitle: 'Proposta accettata',
+    acceptedTitle: 'Proposta approvata',
     copyInstructions: 'Copia il contenuto aggiornato qui sotto e incollalo nel tuo file di nota locale per applicare le modifiche.',
     copyContent: 'Copia contenuto',
     contentCopied: 'Contenuto copiato negli appunti',
+    rejectTitle: 'Rifiuta proposta',
+    rejectDescription: 'Fornire un motivo per il rifiuto di questa proposta (minimo 10 caratteri).',
+    rejectPlaceholder: 'Spiega perché questa proposta viene rifiutata...',
+    minChars: 'caratteri minimi',
+    confirmReject: 'Conferma rifiuto',
   },
 
   delegatedConsent: {

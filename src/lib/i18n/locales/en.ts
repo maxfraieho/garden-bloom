@@ -97,6 +97,7 @@ export const en: Translations = {
     copied: 'Copied!',
     toggleTheme: 'Toggle theme',
     language: 'Language',
+    cancel: 'Cancel',
   },
 
   owner: {
@@ -298,8 +299,8 @@ export const en: Translations = {
     title: 'Edit Proposals',
     description: 'Review changes suggested by guests',
     empty: 'No pending proposals',
-    accepted: 'Proposal accepted',
-    acceptedAutoCommit: 'Proposal accepted and committed to repository',
+    accepted: 'Proposal approved',
+    acceptedAutoCommit: 'Proposal approved and committed to repository',
     acceptFailed: 'Failed to accept proposal',
     rejected: 'Proposal rejected',
     rejectFailed: 'Failed to reject proposal',
@@ -307,10 +308,15 @@ export const en: Translations = {
     submittedBy: 'Submitted by',
     accept: 'Accept Changes',
     reject: 'Reject',
-    acceptedTitle: 'Proposal Accepted',
+    acceptedTitle: 'Proposal Approved',
     copyInstructions: 'Copy the updated content below and paste it into your local note file to apply the changes.',
     copyContent: 'Copy Content',
     contentCopied: 'Content copied to clipboard',
+    rejectTitle: 'Reject Proposal',
+    rejectDescription: 'Please provide a reason for rejecting this proposal (minimum 10 characters).',
+    rejectPlaceholder: 'Explain why this proposal is being rejected...',
+    minChars: 'minimum characters',
+    confirmReject: 'Confirm Reject',
   },
 
   delegatedConsent: {

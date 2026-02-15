@@ -110,6 +110,7 @@ export interface Translations {
     copied: string;
     toggleTheme: string;
     language: string;
+    cancel: string;
   };
 
   // Owner menu
@@ -334,6 +335,11 @@ export interface Translations {
     copyInstructions: string;
     copyContent: string;
     contentCopied: string;
+    rejectTitle: string;
+    rejectDescription: string;
+    rejectPlaceholder: string;
+    minChars: string;
+    confirmReject: string;
   };
 
   // Delegated Zone Consent

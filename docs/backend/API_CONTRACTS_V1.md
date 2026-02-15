@@ -892,6 +892,31 @@ Authorization: Bearer <JWT>
 
 ---
 
+## Appendix C — Non-Proposal Gateway Endpoints
+
+Canonical Gateway Endpoints — stable, vendor-agnostic.
+
+| Method | Endpoint | Auth | Опис |
+|--------|----------|------|------|
+| GET | `/comments/{slug}` | Owner / Zone Guest | Коментарі до нотатки |
+| POST | `/comments/create` | Owner / Zone Guest | Створити коментар |
+| PATCH | `/comments/{id}` | Owner | Оновити коментар |
+| DELETE | `/comments/{id}` | Owner | Видалити коментар |
+| GET | `/annotations/{slug}` | Owner | Анотації до нотатки |
+| POST | `/annotations/create` | Owner / Zone Guest | Створити анотацію |
+| DELETE | `/annotations/{id}` | Owner | Видалити анотацію |
+| POST | `/sessions/create` | Owner | Створити MCP сесію |
+| POST | `/sessions/revoke` | Owner | Відкликати MCP сесію |
+| GET | `/zones/validate/{id}` | Public | Валідація зони за кодом |
+| GET | `/zones/list` | Owner | Список зон |
+| DELETE | `/zones/{id}` | Owner | Видалити зону |
+| POST | `/auth/*` | Public | Автентифікація |
+| POST | `/v1/notes/commit` | Owner | Створити/оновити нотатку через GitHub |
+| DELETE | `/v1/notes/{slug}` | Owner | Видалити нотатку через GitHub |
+| POST | `/v1/drakon/commit` | Owner | Створити/оновити DRAKON діаграму |
+
+---
+
 ## Див. також
 
 - **INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md** — повна специфікація lifecycle
