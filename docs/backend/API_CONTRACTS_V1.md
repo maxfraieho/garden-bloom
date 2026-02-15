@@ -4,7 +4,7 @@
 > Автор: Головний архітектор системи
 > Статус: Специфікація (канонічна)
 > Мова: Українська (канонічна)
-> Джерела: INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md §6, ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md §2.5, LOVABLE_УЗГОДЖЕННЯ.md §2–4
+> Джерела: INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md §6, RUNTIME_ARCHITECTURE_CANONICAL.md §2.5, LOVABLE_УЗГОДЖЕННЯ.md §2–4
 
 ---
 
@@ -64,7 +64,7 @@ https://garden-api.exodus.pp.ua
 | 409 | Конфлікт (concurrent modification, invalid state transition) |
 | 429 | Rate limit перевищено |
 | 500 | Internal server error |
-| 502 | Upstream error (MinIO, Inngest недоступні) |
+| 502 | Upstream error (MinIO, Orchestration Layer недоступні) |
 
 ---
 
@@ -841,7 +841,7 @@ GET /runs?agent=archivist-violin&status=completed&from=2026-02-10&to=2026-02-14
 | `DUPLICATE_ENTRY` | 409 | Ні | Conflict | Entry з таким correlationId вже існує |
 | `RATE_LIMITED` | 429 | Так (backoff) | Throttle | Rate limit перевищено; див. `Retry-After` header |
 | `INTERNAL_ERROR` | 500 | Так (retry) | Server | Непередбачена серверна помилка |
-| `UPSTREAM_UNAVAILABLE` | 502 | Так (retry) | Server | MinIO, Inngest або FastAPI недоступні |
+| `UPSTREAM_UNAVAILABLE` | 502 | Так (retry) | Server | MinIO, Orchestration Layer або FastAPI недоступні |
 | `NLM_UNAVAILABLE` | 502 | Так (retry) | Server | NotebookLM API недоступний |
 | `AGENT_TIMEOUT` | 504 | Так (retry) | Server | Agent run перевищив максимальний час виконання |
 
@@ -898,7 +898,7 @@ Authorization: Bearer <JWT>
 - **INBOX_AND_RUN_LIFECYCLE_V1.md** — state machines для UI
 - **PROPOSAL_SYSTEM_V1.md** — proposal semantics для UI
 - **LOVABLE_УЗГОДЖЕННЯ_З_RUNTIME_АРХІТЕКТУРОЮ.md** — контракт frontend з runtime
-- **ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md** — runtime architecture
+- **RUNTIME_ARCHITECTURE_CANONICAL.md** — runtime architecture
 
 ---
 

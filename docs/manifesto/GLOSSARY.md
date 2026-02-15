@@ -1,7 +1,7 @@
 # Глосарій
 
 > Терміни, що визначені у MANIFESTO.md та підтверджені архітектурною документацією
-> Оновлено: 2026-02-15 | Архітектура: Mastra + Inngest
+> Оновлено: 2026-02-15 | Архітектура: Mastra + Orchestration Layer (vendor-agnostic)
 
 ---
 
@@ -27,9 +27,9 @@
 
 | Термін | Визначення | Джерело |
 |--------|-----------|--------|
-| **MinIO** | Канонічне об'єктне сховище (S3-сумісне); єдине джерело істини для агентних артефактів | ЦІЛЬОВА_АРХІТЕКТУРА.md §1 |
-| **Mastra** | Runtime-інтерпретатор агентів (TypeScript); читає `_agent.md`, створює agent instance, виконує через LLM | ЦІЛЬОВА_АРХІТЕКТУРА.md §2.4 |
-| **Inngest** | Система оркестрації (event-driven, durable execution); відповідає за "коли" та "з якою надійністю" | ЦІЛЬОВА_АРХІТЕКТУРА.md §2.3 |
+| **MinIO** | Канонічне об'єктне сховище (S3-сумісне); єдине джерело істини для агентних артефактів | RUNTIME_ARCHITECTURE_CANONICAL.md §2.1 |
+| **Mastra** | Runtime-інтерпретатор агентів (TypeScript); читає `_agent.md`, створює agent instance, виконує через LLM | RUNTIME_ARCHITECTURE_CANONICAL.md §2.4 |
+| **Orchestration Layer** | Система оркестрації (event-driven, durable execution); відповідає за "коли" та "з якою надійністю". Vendor-agnostic; конкретний оркестратор обирається пізніше (Trigger.dev / Temporal / …) | ORCHESTRATION_LAYER_ABSTRACTION.md |
 | **FastAPI Backend** | Когнітивний проксі до NotebookLM; browser automation через Playwright | АРХІТЕКТУРНА_БАЗА.md §5.2 |
 | **Cloudflare Worker** | API gateway; єдина точка входу для frontend → backend комунікації | АРХІТЕКТУРНА_БАЗА.md §5.3 |
 | **Lovable Frontend** | React SPA; проєкція стану системи, не джерело стану | LOVABLE_УЗГОДЖЕННЯ.md §1 |
@@ -63,8 +63,8 @@
 
 | Термін | Статус | Заміна |
 |--------|--------|--------|
-| **gh-aw** | DEPRECATED | Замінено на Mastra + Inngest архітектуру |
-| **gh-aw Workflow** | DEPRECATED | Замінено на `_agent.md` + Inngest workflows |
+| **gh-aw** | DEPRECATED | Замінено на Mastra + Orchestration Layer архітектуру |
+| **gh-aw Workflow** | DEPRECATED | Замінено на `_agent.md` + Orchestration Layer workflows |
 | **gh-aw Agent** | DEPRECATED | Замінено на `_agent.md` (КОНТРАКТ_АГЕНТА_V1) |
 | **gh-aw Skill** | DEPRECATED | Замінено на `sources/` у папці агента |
 | **AWF (Agent Workflow Firewall)** | DEPRECATED | gh-aw specific; не застосовується |

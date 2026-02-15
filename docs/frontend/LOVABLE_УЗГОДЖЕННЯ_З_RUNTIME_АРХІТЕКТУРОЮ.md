@@ -2,7 +2,7 @@
 
 > Створено: 2026-02-14
 > Автор: Архітектор системи
-> Базується на: ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md, INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md, FRONTEND_ARCH.md, КОНТРАКТ_АГЕНТА_V1.md
+> Базується на: RUNTIME_ARCHITECTURE_CANONICAL.md, INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md, FRONTEND_ARCH.md, КОНТРАКТ_АГЕНТА_V1.md
 > Статус: Специфікація для Lovable-імплементаторів
 > Мова: Українська (канонічна)
 
@@ -48,13 +48,13 @@ Frontend:
 
 ### 1.2 Шляхи даних
 
-**[ПРИНЦИП]** Frontend ніколи не звертається до Mastra, Inngest, FastAPI або MinIO напряму. Cloudflare Worker є **єдиною точкою входу**.
+**[ПРИНЦИП]** Frontend ніколи не звертається до Mastra, Orchestration Layer, FastAPI або MinIO напряму. Cloudflare Worker є **єдиною точкою входу**.
 
 ```
-Frontend → mcpGatewayClient.ts → HTTPS → Cloudflare Worker → {MinIO, Inngest, FastAPI, GitHub, KV}
+Frontend → mcpGatewayClient.ts → HTTPS → Cloudflare Worker → {MinIO, Orchestration Layer, FastAPI, GitHub, KV}
 ```
 
-**[ОБМЕЖЕННЯ]** Жоден UI-компонент не повинен містити URL або endpoint Mastra, Inngest, FastAPI чи MinIO. Усі запити проходять через `mcpGatewayClient.ts`, який знає лише про Worker endpoint.
+**[ОБМЕЖЕННЯ]** Жоден UI-компонент не повинен містити URL або endpoint Mastra, Orchestration Layer, FastAPI чи MinIO. Усі запити проходять через `mcpGatewayClient.ts`, який знає лише про Worker endpoint.
 
 ### 1.3 Типи проєкцій
 
@@ -63,7 +63,7 @@ Frontend → mcpGatewayClient.ts → HTTPS → Cloudflare Worker → {MinIO, Inn
 | **Read-only проєкція** | Статус агентів, run history, аудит-лог | MinIO через Worker | Polling або push |
 | **Interactive проєкція** | Approval UI, Agent Catalog з фільтрами | MinIO через Worker | На дію користувача |
 | **Editor проєкція** | Note Editor, DRAKON Editor | GitHub/MinIO через Worker | Зберігає через Worker → Inbox |
-| **Real-time проєкція** | Run progress, step completion | Inngest status через Worker | Polling з інтервалом |
+| **Real-time проєкція** | Run progress, step completion | Orchestration Layer status через Worker | Polling з інтервалом |
 
 ---
 
@@ -95,7 +95,7 @@ Frontend → mcpGatewayClient.ts → HTTPS → Cloudflare Worker → {MinIO, Inn
 | Status Badge | Статус агента: `draft` / `active` / `paused` / `error` / `archived` | `registry.json` через Worker |
 | Activate Button | Кнопка переводу `draft → active` (Activation Gate) | `PATCH /agents/{slug}/status` (див. API_CONTRACTS_V1.md §5.3) |
 | Pause/Resume | Тогл `active ↔ paused` | `PATCH /agents/{slug}/status` (див. API_CONTRACTS_V1.md §5.3) |
-| Run Button | Кнопка "Запустити агента зараз" | `POST /agents/run` → Inngest event |
+| Run Button | Кнопка "Запустити агента зараз" | `POST /agents/run` → Orchestration Layer event |
 | Agent Detail | Повний перегляд `_agent.md`: instructions, tools, safe_outputs, schedule | MinIO `definitions/` через Worker |
 
 **[ПРИНЦИП]** Agent Catalog відображає **визначення** агентів з MinIO, не runtime-стан Mastra. Якщо Mastra offline — каталог працює (агенти видні, але не запускаються).
@@ -108,7 +108,7 @@ Frontend → mcpGatewayClient.ts → HTTPS → Cloudflare Worker → {MinIO, Inn
 
 | Елемент | Опис | Джерело |
 |---------|------|---------|
-| Active Runs | Список поточних виконань з progress indicator | Inngest status через Worker |
+| Active Runs | Список поточних виконань з progress indicator | Orchestration Layer status через Worker |
 | Step Progress | Покрокова візуалізація: `load → query → propose → persist` | `runs/{run-id}/steps/` |
 | Step Detail | Деталі конкретного кроку: input, output, duration, errors | `runs/{run-id}/steps/*.json` |
 | Run History | Хронологічний список завершених runs | MinIO `runs/` через Worker |
@@ -117,7 +117,7 @@ Frontend → mcpGatewayClient.ts → HTTPS → Cloudflare Worker → {MinIO, Inn
 
 **[РІШЕННЯ]** Run Timeline використовує **polling** для active runs (інтервал: 5с). Після завершення run — дані зчитуються з MinIO одноразово.
 
-**[ОБМЕЖЕННЯ]** UI не показує внутрішній стан Mastra (memory, tool calls in-flight). UI показує лише те, що записано у MinIO (`runs/`) або доступне через Worker proxy до Inngest status.
+**[ОБМЕЖЕННЯ]** UI не показує внутрішній стан Mastra (memory, tool calls in-flight). UI показує лише те, що записано у MinIO (`runs/`) або доступне через Worker proxy до Orchestration Layer status.
 
 ### 2.4 Proposal Review UI
 
@@ -193,7 +193,7 @@ sequenceDiagram
     participant O as Owner
     participant UI as Frontend
     participant W as Worker
-    participant IG as Inngest
+    participant OL as Orchestration Layer
     participant S3 as MinIO
 
     rect rgb(230, 245, 255)
@@ -210,7 +210,7 @@ sequenceDiagram
         Note over O,UI: ФАЗА 2 — Run Agent
         O->>UI: Agent Catalog → "Run"
         UI->>W: POST /agents/run<br/>{agentId, params}
-        W->>IG: Event: agent/run.requested
+        W->>OL: Event: agent/run.requested
         W-->>UI: 200 OK<br/>{runId}
         UI->>UI: Перехід до Run Timeline
     end
@@ -261,7 +261,7 @@ sequenceDiagram
 | Потік | Тригер | Відмінність від основного |
 |-------|--------|--------------------------|
 | Telegram → Review | Telegram bot створює Inbox entry | Owner бачить proposal у Inbox UI без фази Run |
-| Cron Agent → Notification | Inngest cron тригер | Без фази Create; Owner отримує notification при completed run |
+| Cron Agent → Notification | Orchestration Layer cron тригер | Без фази Create; Owner отримує notification при completed run |
 | Auto-approve | Owner self-proposal або trusted source | Фази Review та Decide відсутні; proposal автоматично applied |
 | Rejection | Owner відхиляє proposal | Фаза View показує rejected proposal з decision_note |
 | Agent Error | Run завершується з помилкою | Фаза Observe показує error; Proposal не створюється |
@@ -280,7 +280,7 @@ sequenceDiagram
 | Авторизація | Перевірка прав на дію (Owner, Guest, Agent) | Ховає недоступні UI-елементи (cosmetic) |
 | Validation Gate | Валідація Inbox entry (auth, safe_outputs, rate limit) | Показує помилку, якщо entry відхилено |
 | Apply | Запис у Git, MinIO, KV | Показує результат (commit hash, applied status) |
-| Agent execution | Inngest orchestration + Mastra runtime | Показує progress, не керує виконанням |
+| Agent execution | Orchestration Layer + Mastra runtime | Показує progress, не керує виконанням |
 | Auto-approve | Оцінка правил, автоматичне схвалення | Не знає про auto-approve (бачить лише результат) |
 | Rate limiting | Обмеження запитів від джерела | Показує 429 error |
 
@@ -293,7 +293,7 @@ sequenceDiagram
 | Прямий запис у MinIO | Минає proposal lifecycle | `POST /inbox/submit` → Proposal → Apply |
 | Прямий commit у Git | Минає attribution та audit | Worker Apply Engine з атрибуцією |
 | Виклик Mastra API | Worker є єдиною точкою входу | `POST /agents/run` через Worker |
-| Виклик Inngest API | Worker є єдиною точкою входу | Worker проксює Inngest events |
+| Виклик Orchestration Layer API | Worker є єдиною точкою входу | Worker проксює orchestration events |
 | Виклик FastAPI/NotebookLM | Worker є єдиною точкою входу | Agent tools викликають через Mastra |
 | Зміна auto-approve правил у KV | Привілейована операція | `PATCH /settings/auto-approve` через Worker з Owner auth |
 | Активація агента без Owner consent | Agent Activation Gate обов'язковий | UI показує Activate button, Worker валідує |
@@ -339,7 +339,7 @@ graph TB
     end
 
     subgraph "Runtime Layer (backend authority)"
-        IG[Inngest<br/>Orchestration]
+        OL[Orchestration Layer<br/>Coordination]
         MA[Mastra<br/>Agent Runtime]
         FA[FastAPI<br/>NLM Proxy]
     end
@@ -362,12 +362,12 @@ graph TB
 
     F_CLIENT -->|"HTTPS (єдиний канал)"| W
 
-    W -->|Events| IG
+    W -->|Events| OL
     W -->|Read/Write| S3
     W -->|Commits| GH
     W -->|Auth, Rules| KV
 
-    IG -->|Execute| MA
+    OL -->|Execute| MA
     MA -->|Tools| FA
     MA -->|Read/Write| S3
 ```
@@ -386,8 +386,8 @@ graph LR
     end
 
     subgraph "3. Orchestration"
-        IG_EVENT["Inngest: Event"]
-        IG_STEPS["Inngest: Steps"]
+        OL_EVENT["Orchestration: Event"]
+        OL_STEPS["Orchestration: Steps"]
     end
 
     subgraph "4. Runtime"
@@ -403,14 +403,14 @@ graph LR
         UI_READ["Frontend: Read<br/>оновлений стан"]
     end
 
-    UI_ACTION --> W_AUTH --> W_INBOX --> IG_EVENT --> IG_STEPS --> MA_AGENT --> MA_TOOLS --> S3_WRITE --> UI_READ
+    UI_ACTION --> W_AUTH --> W_INBOX --> OL_EVENT --> OL_STEPS --> MA_AGENT --> MA_TOOLS --> S3_WRITE --> UI_READ
 
     style UI_ACTION fill:#e3f2fd
     style UI_READ fill:#e3f2fd
     style W_AUTH fill:#fff3e0
     style W_INBOX fill:#fff3e0
-    style IG_EVENT fill:#e8f5e9
-    style IG_STEPS fill:#e8f5e9
+    style OL_EVENT fill:#e8f5e9
+    style OL_STEPS fill:#e8f5e9
     style MA_AGENT fill:#fce4ec
     style MA_TOOLS fill:#fce4ec
     style S3_WRITE fill:#f3e5f5
@@ -444,7 +444,7 @@ graph LR
 
 ### Інваріант 6: Agent runtime is opaque
 
-**[ІНВАРІАНТ]** Frontend не знає про внутрішню реалізацію Mastra чи Inngest. UI працює з абстракціями: "agent", "run", "step", "proposal". Зміна runtime (наприклад, заміна Mastra на інший фреймворк) не повинна вимагати змін у frontend.
+**[ІНВАРІАНТ]** Frontend не знає про внутрішню реалізацію Mastra чи Orchestration Layer. UI працює з абстракціями: "agent", "run", "step", "proposal". Зміна runtime (наприклад, заміна Mastra на інший фреймворк) не повинна вимагати змін у frontend.
 
 ### Інваріант 7: Audit trail visibility
 

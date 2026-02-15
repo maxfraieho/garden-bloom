@@ -2,7 +2,7 @@
 
 > Створено: 2026-02-14
 > Автор: Архітектор системи
-> Базується на: КОНТРАКТ_АГЕНТА_V1.md, ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md, АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md, MANIFESTO.md
+> Базується на: КОНТРАКТ_АГЕНТА_V1.md, RUNTIME_ARCHITECTURE_CANONICAL.md, АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md, MANIFESTO.md
 > Статус: Специфікація
 
 ---
@@ -178,7 +178,7 @@ sequenceDiagram
 | GitHub (push event) | `propose-note` (sync) | Нова нотатка в Obsidian → sync до garden |
 | Obsidian Sync | `propose-edit` | Зміна нотатки в Obsidian |
 | External API | `propose-artifact` | Результат зовнішнього аналізу |
-| Inngest callback | `propose-artifact` | Результат agent run |
+| Orchestration callback | `propose-artifact` | Результат agent run |
 
 **[ОБМЕЖЕННЯ]** Кожен webhook source має бути **зареєстрований** у системі з:
 - `source-id` — унікальний ідентифікатор
@@ -188,24 +188,24 @@ sequenceDiagram
 
 Конфігурація webhook sources зберігається у Cloudflare KV (`webhook_sources:{source-id}`).
 
-### 2.4 Агенти (Mastra через Inngest)
+### 2.4 Агенти (Mastra через Orchestration Layer)
 
 **[РІШЕННЯ]** Результат виконання агента потрапляє в Inbox як proposal, а не записується напряму.
 
 ```mermaid
 sequenceDiagram
-    participant IG as Inngest
+    participant OL as Orchestration Layer
     participant MA as Mastra Agent
     participant W as Worker
     participant IB as Inbox (MinIO)
 
-    IG->>MA: Step: execute agent
+    OL->>MA: Step: execute agent
     MA->>MA: Reasoning + tool calls
     MA->>W: POST /inbox/submit<br/>source: agent<br/>identity: agent:archivist-violin
     W->>W: Валідація agent identity<br/>+ перевірка safe_outputs
     W->>IB: Зберегти entry<br/>inbox/pending/
     W-->>MA: 202 Accepted
-    MA-->>IG: Step complete
+    MA-->>OL: Step complete
 ```
 
 **[ПРИНЦИП]** Агент не знає, що він працює через Inbox. Mastra tool `create-proposal` внутрішньо робить `POST /inbox/submit`. Для агента це виглядає як один виклик інструменту.

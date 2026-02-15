@@ -1,7 +1,7 @@
 # Філософія: Все є Агентом
 
 > Джерело: MANIFESTO.md, розділи 2–3
-> Оновлено: 2026-02-15 | Архітектура: Mastra + Inngest
+> Оновлено: 2026-02-15 | Архітектура: Mastra + Orchestration Layer
 
 ---
 
@@ -61,25 +61,25 @@
 
 ---
 
-## Відображення на архітектуру Mastra + Inngest
+## Відображення на архітектуру Mastra + Orchestration Layer
 
 | Концепція маніфесту | Реалізація | Джерело |
 |--------------------|-----------|--------|
 | **Агент** | `agents/<slug>/_agent.md` — YAML frontmatter (конфігурація) + Markdown body (інструкції/pseudocode) | КОНТРАКТ_АГЕНТА_V1.md |
 | **Папка-як-Агент** | Кожна папка у MinIO `agents/<slug>/` визначає ідентичність агента | КОНТРАКТ_АГЕНТА_V1.md §1 |
 | **Файл-як-Інструкція** | Markdown body = інструкції природною мовою/pseudocode. Sources = `sources/*.md` | КОНТРАКТ_АГЕНТА_V1.md §2 |
-| **Контекст ≠ промпт** | Mastra tools (`read-context`, `read-notes`, `read-memory`) дозволяють агенту інкрементально досліджувати контекст | ЦІЛЬОВА_АРХІТЕКТУРА.md §6 |
+| **Контекст ≠ промпт** | Mastra tools (`read-context`, `read-notes`, `read-memory`) дозволяють агенту інкрементально досліджувати контекст | RUNTIME_ARCHITECTURE_CANONICAL.md §2.4 |
 | **Human-in-the-loop** | Proposals: агент створює proposal через `create-proposal` tool → Owner approve/reject через UI | INBOX_ТА_PROPOSAL.md §3–4 |
 | **Двоїстість знання–дії** | Знання = файли у MinIO/Git. Дія = Mastra tools. Міст = `_agent.md` як behavioral contract | DRAKON_ІНТЕГРАЦІЯ.md §3 |
 
 ### Ключова адаптація
 
-Mastra + Inngest замінюють gh-aw як runtime/orchestration:
+Mastra + Orchestration Layer замінюють gh-aw як runtime/orchestration:
 1. **Визначення агентів** живуть у MinIO (`agents/<slug>/`), не у `.github/agents/`
 2. **Safe outputs** відображаються на систему Proposals (агент пропонує, Owner затверджує)
 3. **DRAKON pseudocode** замінює Skills як канонічну логіку агента
 4. **Tools** включають NotebookLM (grounded AI) як головний когнітивний інструмент
-5. **Execution target** — Mastra runtime + Inngest orchestration, не GitHub Actions
+5. **Execution target** — Mastra runtime + Orchestration Layer (vendor-agnostic), не GitHub Actions
 
 ---
 

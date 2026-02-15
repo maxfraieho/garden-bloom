@@ -1,0 +1,320 @@
+# Execution Pipeline: Канонічна специфікація
+
+> Створено: 2026-02-15
+> Автор: Головний архітектор системи
+> Статус: Канонічна специфікація
+> Мова: Українська (канонічна)
+> Частина: RUNTIME_ARCHITECTURE_INDEX.md
+
+---
+
+## 0. Призначення
+
+Цей документ описує **execution pipeline** — послідовність кроків від ініціювання run до запису результату. Він визначає:
+
+- Повний pipeline від trigger до terminal state
+- Контракти між компонентами на кожному етапі
+- Data flow: що передається між компонентами
+- Ordering guarantees
+
+**[ПРИНЦИП]** Pipeline описано у термінах компонентних ролей, не vendor API. Конкретна реалізація Orchestration Layer може відрізнятися, але послідовність та контракти — canonical.
+
+---
+
+## 1. Pipeline Overview
+
+```
+Owner → Frontend → Worker → Orchestration Layer → Mastra → MinIO
+                                                        ↕
+                                                     FastAPI (NLM)
+```
+
+### 1.1 Фази pipeline
+
+| Фаза | Компонент | Вхід | Вихід |
+|------|----------|------|-------|
+| **1. Trigger** | Worker | HTTP request від frontend | Orchestration event/trigger |
+| **2. Enqueue** | Orchestration Layer | Event/trigger | Queued task |
+| **3. Load Context** | Orchestration Layer → MinIO | agent_slug | _agent.md + sources |
+| **4. Execute Agent** | Orchestration Layer → Mastra | Context + instructions | Structured output |
+| **5. Persist Results** | Orchestration Layer → MinIO | Proposal(и), step results | MinIO objects |
+| **6. Finalize** | Orchestration Layer → MinIO | Run summary | manifest.json + status.json=completed |
+| **7. Notify** | Worker → Frontend | Status change | Poll response / SSE event |
+
+---
+
+## 2. Pipeline Detail
+
+### 2.1 Phase 1: Trigger
+
+```mermaid
+sequenceDiagram
+    participant O as Owner
+    participant F as Frontend
+    participant W as Worker
+    participant S3 as MinIO
+
+    O->>F: Натискає "Run Agent"
+    F->>W: POST /agents/run {agent_slug, params}
+    W->>W: Validate JWT + permissions
+    W->>W: Generate run_id
+    W->>S3: Write status.json {status: "requested"}
+    W-->>F: 202 Accepted {run_id}
+```
+
+**Контракт:**
+- Worker **генерує** `run_id` (формат: `run_{date}_{time}_{random}`)
+- Worker **записує** початковий `status.json` з `status: requested`
+- Worker повертає **202 Accepted** (асинхронна операція)
+- Frontend починає polling `GET /runs/{runId}/status`
+
+### 2.2 Phase 2: Enqueue
+
+```mermaid
+sequenceDiagram
+    participant W as Worker
+    participant ORC as Orchestration Layer
+
+    W->>ORC: Trigger agent-run task {agent_slug, run_id, params}
+    ORC->>ORC: Check concurrency limits
+    alt Slot доступний
+        ORC->>ORC: Start execution immediately
+    else Slot зайнятий
+        ORC->>ORC: Enqueue for later
+    end
+```
+
+**Контракт:**
+- Worker передає trigger через Orchestration Layer Adapter
+- Orchestration Layer перевіряє concurrency (max 1 per agent)
+- Якщо slot зайнятий → run залишається в черзі, status → `queued`
+- Orchestration Layer оновлює status.json у MinIO
+
+### 2.3 Phase 3: Load Context
+
+```mermaid
+sequenceDiagram
+    participant ORC as Orchestration Layer
+    participant S3 as MinIO
+
+    Note over ORC: Step 1: load-context
+
+    ORC->>S3: GET agents/{slug}/_agent.md
+    S3-->>ORC: Agent definition
+
+    ORC->>S3: GET agents/{slug}/sources/*
+    S3-->>ORC: Source documents
+
+    ORC->>S3: GET agents/{slug}/memory/*
+    S3-->>ORC: Agent memory (if exists)
+
+    ORC->>S3: Write runs/{runId}/steps/1-load-context.json
+    ORC->>S3: Update status.json {status: running, step: 1}
+```
+
+**Контракт:**
+- Orchestration Layer wrapper виконує step та записує результат
+- Кожен step має свій JSON у `steps/`
+- Status.json оновлюється **після** успішного step write
+
+### 2.4 Phase 4: Execute Agent
+
+```mermaid
+sequenceDiagram
+    participant ORC as Orchestration Layer
+    participant MA as Mastra Agent
+    participant NLM as FastAPI (NLM)
+    participant S3 as MinIO
+
+    Note over ORC: Step 2: execute-agent
+
+    ORC->>MA: Invoke agent {definition, context, sources}
+
+    MA->>MA: Parse _agent.md → instructions
+    MA->>MA: Register tools
+
+    loop Agent reasoning (maxSteps)
+        MA->>S3: tool: read-context
+        S3-->>MA: Documents
+
+        MA->>NLM: tool: notebooklm-query {question, sources}
+        NLM-->>MA: Grounded response
+
+        MA->>MA: Reasoning cycle
+    end
+
+    MA-->>ORC: Structured output {proposals[], summary}
+
+    ORC->>S3: Write runs/{runId}/steps/2-execute-agent.json
+    ORC->>S3: Update status.json {step: 2, steps_completed: 2}
+```
+
+**Контракт:**
+- Orchestration Layer передає context у Mastra
+- Mastra виконує agent logic (LLM calls, tool use)
+- Mastra повертає **structured output** — не пише у MinIO напряму
+- Orchestration Layer wrapper записує результат step
+
+**[ІНВАРІАНТ]** Mastra **не пише** `status.json`. Mastra повертає результат Orchestration Layer, який є canonical writer.
+
+### 2.5 Phase 5: Persist Results
+
+```mermaid
+sequenceDiagram
+    participant ORC as Orchestration Layer
+    participant S3 as MinIO
+
+    Note over ORC: Step 3: persist-proposal
+
+    loop For each proposal in output
+        ORC->>S3: Write proposals/{proposalId}.json {status: pending}
+    end
+
+    ORC->>S3: Write runs/{runId}/steps/3-persist-proposal.json
+    ORC->>S3: Update status.json {step: 3, proposals_created: [...]}
+```
+
+**Контракт:**
+- Proposals створюються зі статусом `pending`
+- Proposal IDs додаються у status.json
+- Step result записується у MinIO
+
+### 2.6 Phase 6: Finalize
+
+```mermaid
+sequenceDiagram
+    participant ORC as Orchestration Layer
+    participant S3 as MinIO
+
+    Note over ORC: Step 4: finalize
+
+    ORC->>S3: Write runs/{runId}/manifest.json
+    ORC->>S3: Update status.json {status: completed, finished_at: now()}
+```
+
+**Контракт:**
+- Manifest.json містить summary всього run
+- Status.json → `completed` (terminal state)
+- Після цього — жодних writes до run directory
+
+### 2.7 Phase 7: Notify
+
+```mermaid
+sequenceDiagram
+    participant F as Frontend
+    participant W as Worker
+    participant S3 as MinIO
+
+    F->>W: GET /runs/{runId}/status (poll, 5s interval)
+    W->>S3: Read status.json
+    S3-->>W: {status: completed}
+    W-->>F: RunStatus {status: completed, proposals_created: [...]}
+    F->>F: Show notification, stop polling
+```
+
+**Контракт:**
+- Frontend дізнається про завершення через polling
+- Worker читає status.json з MinIO (canonical source)
+- Frontend зупиняє polling при terminal state
+
+---
+
+## 3. Data Flow Summary
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Data Flow                                 │
+│                                                                   │
+│  Frontend ──HTTP──▶ Worker ──Trigger──▶ Orchestration Layer       │
+│                       │                       │                   │
+│                       │                       ▼                   │
+│                       │               Mastra Agent                │
+│                       │                  │    │                   │
+│                       │          tools   │    │ tools             │
+│                       │                  ▼    ▼                   │
+│                       │               FastAPI  MinIO              │
+│                       │                         ▲                 │
+│                       │                         │                 │
+│                       │    Orchestration Layer───┘                │
+│                       │    writes status.json,                    │
+│                       │    steps/, proposals/                     │
+│                       │                         │                 │
+│                       ▼                         │                 │
+│  Frontend ◀──Poll──Worker ──Read────────────────┘                │
+│                                                                   │
+│  ═══════════════════════════════════════════════════════════════  │
+│  Canonical data: MinIO                                           │
+│  Ephemeral data: Orchestration Layer execution state              │
+│  No data: Frontend, Worker (stateless proxies)                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Ordering Guarantees
+
+### 4.1 Step ordering
+
+**[ІНВАРІАНТ]** Steps виконуються **послідовно** в межах одного run. Orchestration Layer гарантує:
+
+1. Step N завершується **перед** початком Step N+1
+2. Step result записується у MinIO **перед** початком наступного step
+3. Status.json оновлюється **після** запису step result
+
+### 4.2 Write ordering
+
+**[ІНВАРІАНТ]** Для кожного step:
+
+```
+1. Mastra повертає результат
+2. Step result → MinIO (steps/N.json)
+3. Status.json оновлюється (steps_completed++)
+```
+
+Ця послідовність гарантує, що status.json завжди відображає фактично завершені steps.
+
+### 4.3 Concurrency
+
+**[ІНВАРІАНТ]** Один агент має максимум **один** concurrent run.
+
+| Ситуація | Поведінка |
+|---------|----------|
+| Агент вже running | Новий run → queued |
+| Глобальний ліміт досягнуто | Новий run → queued |
+| Concurrency slot вільний | Run починається негайно |
+
+---
+
+## 5. Error Recovery
+
+### 5.1 Component failure matrix
+
+| Компонент | Failure | Recovery | Хто виконує |
+|----------|---------|----------|------------|
+| Mastra crash | Step fails | Orchestration Layer retries step | Orchestration Layer |
+| NLM unavailable | Tool call fails | Mastra retries tool; then step fails | Mastra → Orchestration Layer |
+| MinIO unavailable | Write fails | Orchestration Layer retries; then run fails | Orchestration Layer |
+| Orchestration Layer restart | In-flight run interrupted | Durable execution replays from last checkpoint | Orchestration Layer (inherent) |
+| Worker restart | API unavailable | Frontend retries poll | Frontend |
+
+### 5.2 Idempotency
+
+**[ІНВАРІАНТ]** Кожен step має бути **ідемпотентним** — повторне виконання не повинно створювати дублікати.
+
+- Step result записується з фіксованим path: `steps/{step_number}-{step_name}.json`
+- Proposal ID генерується детерміністично або з dedup check
+- Status.json update ідемпотентний (same status = no-op)
+
+---
+
+## Див. також
+
+- **RUNTIME_ARCHITECTURE_CANONICAL.md** — загальна canonical архітектура
+- **ORCHESTRATION_LAYER_ABSTRACTION.md** — абстракція Orchestration Layer
+- **RUN_LIFECYCLE_CANONICAL.md** — lifecycle стани run
+- **STORAGE_AUTHORITY_MODEL_CANONICAL.md** — storage authority
+- **RUNTIME_ARCHITECTURE_INDEX.md** — master index
+
+---
+
+*Цей документ є канонічною специфікацією Execution Pipeline. Він vendor-agnostic за задумом.*

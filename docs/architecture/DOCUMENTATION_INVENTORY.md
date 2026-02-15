@@ -7,20 +7,24 @@
 > Канонічна структура: відповідно до MinIO layout V1 та docs/ canonical spec
 
 > **POST-MIGRATION NOTE:** gh-aw артефакти, Starlight site content, legacy-en документи
-> та міграційний план переміщені до `archive/`. docs/ тепер містить ТІЛЬКИ canonical
-> Mastra + Inngest документацію. Структура archive/:
+> та міграційні плани переміщені до `archive/`. docs/ тепер містить ТІЛЬКИ canonical
+> vendor-agnostic документацію (Mastra + Orchestration Layer). Структура archive/:
 > - `archive/gh-aw/` — gh-aw специфічні артефакти
 > - `archive/legacy-en/` — англомовна legacy документація
 > - `archive/starlight-gh-aw/` — повний Starlight docs site (site/, schemas/, tests/)
-> - `archive/migration/` — план міграції gh-aw → Mastra + Inngest
+> - `archive/migration/` — план міграції gh-aw → Mastra runtime
+> - `archive/orchestration-migrations/` — плани міграції між оркестраторами (historical)
+> - `archive/deprecated/` — deprecated архітектурні документи
 > - `archive/GH_AW_DEPRECATION_NOTICE.md` — офіційний deprecation notice
+>
+> **NotebookLM режим:** використовувати docs/; ігнорувати archive/
 
 ---
 
 ## Канонічна цільова структура docs/
 
 ```
-docs/                    # ТІЛЬКИ canonical Mastra + Inngest документація
+docs/                    # ТІЛЬКИ canonical vendor-agnostic документація
   architecture/          # Архітектурні специфікації (UA canonical)
   backend/               # Backend специфікації (API contracts)
   frontend/              # Frontend специфікації (Lovable контракт)
@@ -34,7 +38,9 @@ archive/                 # Історичні документи (gh-aw era)
     site/                # Content (patterns, reference, guides, blog, examples)
     schemas/             # JSON schemas (mcp-gateway, safe-inputs)
     tests/               # Playwright tests
-  migration/             # План міграції gh-aw → Mastra + Inngest
+  migration/             # План міграції gh-aw → Mastra runtime
+  orchestration-migrations/ # Плани міграції оркестраторів
+  deprecated/            # Deprecated архітектурні документи
 ```
 
 ---
@@ -45,7 +51,7 @@ archive/                 # Історичні документи (gh-aw era)
 |--------|------|
 | **CANONICAL** | Канонічний документ, відповідає поточній архітектурі, українською мовою |
 | **NEEDS_TRANSLATION** | Актуальний за змістом, але англійською — потребує перекладу |
-| **NEEDS_UPDATE** | Частково актуальний, потребує оновлення до Mastra/Inngest архітектури |
+| **NEEDS_UPDATE** | Частково актуальний, потребує оновлення до поточної архітектури |
 | **DEPRECATED** | Описує gh-aw або іншу застарілу архітектуру |
 | **STUB** | Порожній або placeholder документ |
 | **GH-AW_ARTIFACT** | Артефакт gh-aw репозиторію, не є частиною поточної архітектури |
@@ -58,7 +64,7 @@ archive/                 # Історичні документи (gh-aw era)
 | Файл | Мова | Статус | Причина | Дія |
 |------|------|--------|---------|-----|
 | `АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md` | UA | **CANONICAL** | Фундаментальний документ поточної архітектури | KEEP |
-| `ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md` | UA | **CANONICAL** | Цільова архітектура Mastra + Inngest | KEEP |
+| `ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md` | UA | **DEPRECATED** | Замінено на RUNTIME_ARCHITECTURE_CANONICAL.md + ORCHESTRATION_LAYER_ABSTRACTION.md | MOVED → `archive/deprecated/` |
 | `КОНТРАКТ_АГЕНТА_V1.md` | UA | **NEEDS_UPDATE** | Не враховує оновлений canonical layout з `/zones/`, `/system/`, loader order | UPDATE |
 | `DRAKON_ІНТЕГРАЦІЯ_ТА_МОДЕЛЬ_ВИКОНАННЯ_АГЕНТА.md` | UA | **CANONICAL** | Специфікація DRAKON → pseudocode → runtime | KEEP |
 | `INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md` | UA | **NEEDS_UPDATE** | Потребує розділення на INBOX_ТА_RUN_LIFECYCLE_V1.md та PROPOSAL_SYSTEM_V1.md відповідно до нової структури | UPDATE + SPLIT |
@@ -79,7 +85,7 @@ archive/                 # Історичні документи (gh-aw era)
 |------|------|--------|---------|-----|
 | `MANIFESTO.md` | UA | **CANONICAL** | Маніфест — конституція проєкту. Повна UA версія (`MANIFESTO_EXTENDED`) | KEEP |
 | `MANIFESTO_EXTENDED.md` | EN | **DEPRECATED** | Англомовний розширений маніфест; зміст поглинутий українським `MANIFESTO.md` | DEPRECATE → legacy-en/ |
-| `GLOSSARY.md` | EN | **NEEDS_TRANSLATION** | Глосарій термінів; актуальний, потребує UA перекладу та оновлення (gh-aw → Mastra/Inngest) | TRANSLATE + UPDATE |
+| `GLOSSARY.md` | UA | **CANONICAL** | Глосарій термінів; оновлений, vendor-agnostic | KEEP |
 | `PHILOSOPHY_EVERYTHING_AGENT.md` | EN | **NEEDS_TRANSLATION** | Філософія "Everything is Agent"; актуальний принцип | TRANSLATE |
 
 ---
@@ -96,7 +102,7 @@ archive/                 # Історичні документи (gh-aw era)
 
 | Файл | Мова | Статус | Причина | Дія |
 |------|------|--------|---------|-----|
-| `ПЛАН_МІГРАЦІЇ_GH_AW_НА_MASTRA_INNGEST.md` | UA | **CANONICAL** | План міграції з gh-aw на Mastra + Inngest | KEEP |
+| `ПЛАН_МІГРАЦІЇ_GH_AW_НА_MASTRA_INNGEST.md` | UA | **DEPRECATED** | План міграції з gh-aw; переміщено до archive/ | MOVED → `archive/migration/` |
 
 ---
 
@@ -104,7 +110,7 @@ archive/                 # Історичні документи (gh-aw era)
 
 | Файл | Мова | Статус | Причина | Дія |
 |------|------|--------|---------|-----|
-| `MASTER_PLAN.md` | EN | **DEPRECATED** | Використовує gh-aw milestone (M0–M6), не відповідає Mastra/Inngest | DEPRECATE → legacy-en/ |
+| `MASTER_PLAN.md` | EN | **DEPRECATED** | Використовує gh-aw milestone (M0–M6), не відповідає поточній архітектурі | DEPRECATE → legacy-en/ |
 | `ROADMAP.md` | EN | **DEPRECATED** | Базується на MASTER_PLAN.md, gh-aw milestones | DEPRECATE → legacy-en/ |
 | `BACKLOG.md` | EN | **STUB** | Порожній placeholder | DELETE |
 | `EXECUTION_PLAN.md` | EN | **STUB** | Порожній placeholder | DELETE |
@@ -198,7 +204,7 @@ archive/                 # Історичні документи (gh-aw era)
 | Styles (`src/styles/`) | 1 | **INFRA** | KEEP |
 | Config (`astro.config.mjs`, `tsconfig.json`, `package.json`) | 4+ | **INFRA** | KEEP |
 
-**Рішення щодо docs/src/content/docs/:** Це Starlight-based documentation site для gh-aw. Весь content (~94 .md/.mdx файлів) описує gh-aw patterns (chatops, dailyops, issueops тощо), gh-aw reference (frontmatter, triggers, tools), gh-aw setup, gh-aw examples. Жоден з цих файлів не описує поточну Mastra/Inngest архітектуру.
+**Рішення щодо docs/src/content/docs/:** Це Starlight-based documentation site для gh-aw. Весь content (~94 .md/.mdx файлів) описує gh-aw patterns (chatops, dailyops, issueops тощо), gh-aw reference (frontmatter, triggers, tools), gh-aw setup, gh-aw examples. Жоден з цих файлів не описує поточну архітектуру. Переміщено до `archive/starlight-gh-aw/`.
 
 **Рекомендація:** Starlight site або (a) повністю перебудовується під нову архітектуру, або (b) зберігається як archived reference gh-aw documentation. Вирішує Owner.
 

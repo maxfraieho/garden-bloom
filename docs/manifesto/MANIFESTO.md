@@ -138,7 +138,7 @@ NotebookLM:
 ## 5. `_agent.md` як формат агентів
 
 > **DEPRECATED:** gh-aw (GitHub Agentic Workflows) більше не використовується як execution layer.
-> Замінено на Mastra (agent interpreter) + Inngest (orchestration).
+> Замінено на Mastra (agent interpreter) + Orchestration Layer (vendor-agnostic).
 > Див. `docs/deprecated/GH_AW_DEPRECATION_NOTICE.md`
 
 ### 5.1 Агент = Markdown + Frontmatter
@@ -153,7 +153,7 @@ NotebookLM:
 
 - Markdown body — логіка, інструкція, мислення.
 
-**Runtime:** Mastra інтерпретує `_agent.md`, Inngest оркеструє виконання.
+**Runtime:** Mastra інтерпретує `_agent.md`, Orchestration Layer оркеструє виконання.
 
 Це дозволяє:
 - переносити агентів між проєктами;

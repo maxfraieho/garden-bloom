@@ -24,7 +24,7 @@
 - **Ідентифікаторів коду** — назви змінних, функцій, класів, типів
 - **Шляхів до файлів** — `src/hooks/useGarden.ts`, `docs/architecture/`
 - **Шляхів API** — `/api/v1/gardens`, `/auth/callback`
-- **Назв зовнішніх технологій** — Mastra, Inngest, MinIO, FastAPI, NotebookLM, React, Vite, Supabase, TanStack Query тощо
+- **Назв зовнішніх технологій** — Mastra, MinIO, FastAPI, NotebookLM, React, Vite, Supabase, TanStack Query тощо
 - **Термінів без усталеного українського відповідника** — middleware, webhook, endpoint (за потреби з поясненням)
 
 ## Дата набуття чинності

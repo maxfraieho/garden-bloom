@@ -92,8 +92,8 @@ interface InboxEntry {
 ```mermaid
 stateDiagram-v2
     [*] --> requested : POST /agents/run
-    requested --> queued : Inngest прийняв event
-    queued --> running : Inngest починає execution
+    requested --> queued : Orchestration Layer прийняв задачу
+    queued --> running : Orchestration Layer починає execution
     running --> completed : Усі steps завершено
     running --> failed : Критична помилка
     failed --> [*] : Archived
@@ -104,18 +104,18 @@ stateDiagram-v2
 
 | Стан | Значення | Хто встановлює | UI-відображення |
 |------|---------|----------------|-----------------|
-| **requested** | Worker отримав запит, ще не надіслав Inngest event | Worker | Spinner: "Надсилається..." |
-| **queued** | Inngest прийняв event, run чекає у черзі (concurrency limit) | Inngest (через Worker callback) | Badge: "У черзі", позиція у черзі (якщо відома) |
-| **running** | Mastra активно виконує steps | Inngest/Mastra (через status.json) | Progress bar, step list з поточним highlighted |
-| **completed** | Усі steps завершено, proposal(и) створено | Inngest (через status.json) | Зелений badge, лінк на proposal(и) |
-| **failed** | Критична помилка (NLM недоступний, MinIO fail, timeout) | Inngest (через status.json) | Червоний badge, деталі помилки |
+| **requested** | Worker отримав запит, ще не передав Orchestration Layer | Worker | Spinner: "Надсилається..." |
+| **queued** | Orchestration Layer прийняв задачу, run чекає у черзі (concurrency limit) | Orchestration Layer (через status.json) | Badge: "У черзі", позиція у черзі (якщо відома) |
+| **running** | Mastra активно виконує steps | Orchestration Layer wrapper (через status.json) | Progress bar, step list з поточним highlighted |
+| **completed** | Усі steps завершено, proposal(и) створено | Orchestration Layer wrapper (через status.json) | Зелений badge, лінк на proposal(и) |
+| **failed** | Критична помилка (NLM недоступний, MinIO fail, timeout) | Orchestration Layer wrapper (через status.json) | Червоний badge, деталі помилки |
 
 ### 2.3 Transitions
 
 | Перехід | Тригер | UI-реакція |
 |---------|--------|------------|
 | `→ requested` | Owner натискає "Run" | Redirect до Run Timeline, spinner |
-| `requested → queued` | Inngest acknowledge | Badge: "У черзі" |
+| `requested → queued` | Orchestration Layer acknowledge | Badge: "У черзі" |
 | `queued → running` | Concurrency slot вільний | Progress bar з'являється |
 | `running → running` (step update) | Mastra завершує крок | Крок у списку помічається ✓ |
 | `running → completed` | Останній step завершено | Зелений badge, notification |
@@ -159,21 +159,21 @@ interface RunStep {
 
 ### 2.6 Status Writer
 
-**[ІНВАРІАНТ]** Canonical writer для `runs/<runId>/status.json` — це **оркестраційний шар** (Inngest/backend).
+**[ІНВАРІАНТ]** Canonical writer для `runs/<runId>/status.json` — це **Orchestration Layer wrapper**.
 
 Mastra **НЕ** пише `status.json` напряму. Потік:
 
 ```
-Mastra виконує step → повертає результат Inngest
-→ Inngest step function записує step result у MinIO
-→ Inngest оновлює status.json (статус, current_step, steps_completed)
+Mastra виконує step → повертає результат Orchestration Layer
+→ Orchestration Layer wrapper записує step result у MinIO
+→ Orchestration Layer оновлює status.json (статус, current_step, steps_completed)
 → UI polling читає status.json через Worker
 ```
 
 Це забезпечує:
 - Єдиний writer для status (no race conditions)
 - Mastra залишається stateless інтерпретатором
-- Inngest контролює retry/timeout/concurrency
+- Orchestration Layer контролює retry/timeout/concurrency
 
 ---
 

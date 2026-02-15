@@ -2,7 +2,7 @@
 
 > Створено: 2026-02-14
 > Автор: Головний архітектор системи
-> Базується на: MANIFESTO.md §6, КОНТРАКТ_АГЕНТА_V1.md, ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md, INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md
+> Базується на: MANIFESTO.md §6, КОНТРАКТ_АГЕНТА_V1.md, RUNTIME_ARCHITECTURE_CANONICAL.md, INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md
 > Статус: Архітектурна специфікація
 
 ---
@@ -251,7 +251,7 @@ sequenceDiagram
     participant DG as drakongen
     participant AE as agentExporter()
     participant S3 as MinIO (Storage)
-    participant IG as Inngest
+    participant ORC as Orchestration Layer
     participant MA as Mastra (Runtime)
     participant NLM as NotebookLM
     participant IB as Inbox
@@ -312,7 +312,7 @@ sequenceDiagram
 
 | Крок | Вхід | Дія | Вихід | Де зберігається |
 |------|------|-----|-------|-----------------|
-| R1 | Тригер (event/cron/manual) | Inngest створює run | `run_id` | Inngest state |
+| R1 | Тригер (event/cron/manual) | Orchestration Layer створює run | `run_id` | Orchestration Layer state |
 | R2 | `_agent.md` з MinIO | Parse frontmatter + body | Agent config + instructions | In-memory |
 | R3 | instructions (pseudocode) | LLM інтерпретує кроки | Tool calls + reasoning | In-memory → `runs/<id>/steps/` |
 | R4 | Reasoning result | `create-proposal` tool call | Proposal JSON | `proposals/pending/` |
@@ -330,7 +330,7 @@ sequenceDiagram
 
 ---
 
-## 5. Взаємодія з Mastra і Inngest
+## 5. Взаємодія з Mastra і Orchestration Layer
 
 ### 5.1 Mastra: інтерпретатор контракту
 
@@ -354,11 +354,11 @@ sequenceDiagram
 
 **[ОБМЕЖЕННЯ]** Mastra не інтерпретує pseudocode як програмний код. Pseudocode потрапляє до LLM як частина system prompt (instructions). LLM слідує pseudocode як інструкціям, використовуючи зареєстровані tools.
 
-### 5.2 Inngest: оркестратор lifecycle
+### 5.2 Orchestration Layer: оркестратор lifecycle
 
-**[РІШЕННЯ]** Inngest керує **коли** і **з якою надійністю** виконується агент. Він не знає про зміст `_agent.md` і не інтерпретує pseudocode.
+**[РІШЕННЯ]** Orchestration Layer керує **коли** і **з якою надійністю** виконується агент. Він не знає про зміст `_agent.md` і не інтерпретує pseudocode.
 
-Що Inngest робить:
+Що Orchestration Layer робить:
 
 | Операція | Механізм |
 |----------|----------|
@@ -370,15 +370,15 @@ sequenceDiagram
 | Зберегти результат | Step: write run log та proposal у MinIO |
 | Завершити run | Emit event `agent/run.finished` |
 
-Що Inngest НЕ робить:
+Що Orchestration Layer НЕ робить:
 
-**[ОБМЕЖЕННЯ]** Inngest не парсить frontmatter і не читає pseudocode. Для Inngest `_agent.md` — це opaque blob, який передається Mastra.
+**[ОБМЕЖЕННЯ]** Orchestration Layer не парсить frontmatter і не читає pseudocode. Для Orchestration Layer `_agent.md` — це opaque blob, який передається Mastra.
 
-**[ОБМЕЖЕННЯ]** Inngest не приймає рішень про поведінку агента. Рішення про розгалуження, вибір tool, формулювання proposal — це відповідальність Mastra + LLM.
+**[ОБМЕЖЕННЯ]** Orchestration Layer не приймає рішень про поведінку агента. Рішення про розгалуження, вибір tool, формулювання proposal — це відповідальність Mastra + LLM.
 
-**[ОБМЕЖЕННЯ]** Durable state у Inngest — це **ефемерний** стан workflow. Після завершення run канонічний результат записується у MinIO. Inngest може втратити свій state без наслідків для системи.
+**[ОБМЕЖЕННЯ]** Durable state у Orchestration Layer — це **ефемерний** стан workflow. Після завершення run канонічний результат записується у MinIO. Orchestration Layer може втратити свій state без наслідків для системи.
 
-### 5.3 Межі між Mastra і Inngest
+### 5.3 Межі між Mastra і Orchestration Layer
 
 ```mermaid
 graph TB
@@ -387,7 +387,7 @@ graph TB
         RESULTS[runs/<br/>proposals/<br/>audit/]
     end
 
-    subgraph "Inngest — Orchestration"
+    subgraph "Orchestration Layer"
         direction TB
         TRIGGER[Тригер<br/>event / cron / manual]
         LOAD[Step: Завантажити<br/>_agent.md з MinIO]
@@ -413,8 +413,8 @@ graph TB
 
 ### 5.4 Таблиця: хто що контролює
 
-| Аспект | DRAKON | MinIO | Mastra | Inngest |
-|--------|--------|-------|--------|---------|
+| Аспект | DRAKON | MinIO | Mastra | Orchestration Layer |
+|--------|--------|-------|--------|---------------------|
 | **Визначення логіки** | Авторитетне джерело | Зберігає | — | — |
 | **Behavioral contract** | Генерує (через drakongen) | Зберігає | Читає | — |
 | **Конфігурація агента** | — | Зберігає | Парсить і застосовує | — |
@@ -446,7 +446,7 @@ Pseudocode описує *бажану поведінку*, а не послід�
 
 **[ІНВАРІАНТ 3]** Storage (MinIO) є єдиним source of truth.
 
-Усі артефакти визначення агента (`_agent.md`, `pseudocode.md`, `.drakon.json`) зберігаються у MinIO. Runtime (Mastra) і orchestrator (Inngest) не є джерелами істини. При втраті їхнього стану — система відновлюється з MinIO без втрат.
+Усі артефакти визначення агента (`_agent.md`, `pseudocode.md`, `.drakon.json`) зберігаються у MinIO. Runtime (Mastra) і Orchestration Layer не є джерелами істини. При втраті їхнього стану — система відновлюється з MinIO без втрат.
 
 ---
 

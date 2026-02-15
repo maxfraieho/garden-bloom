@@ -1,9 +1,16 @@
+> **DEPRECATED** — Vendor-specific orchestration model. Замінено абстрактним Orchestration Layer.
+> Canonical документ: **RUNTIME_ARCHITECTURE_CANONICAL.md**
+> Orchestration Layer абстракція: **ORCHESTRATION_LAYER_ABSTRACTION.md**
+> Master index: **RUNTIME_ARCHITECTURE_INDEX.md**
+> Дата deprecation: 2026-02-15
+> Причина: Архітектура переведена на vendor-agnostic модель. Inngest-specific секції (§2.3, §3, §7) замінені abstract Orchestration Layer. Решта секцій (MinIO layout, Mastra roles, FastAPI, Worker, Frontend) залишаються у canonical runtime docs.
+
 # Цільова архітектура: Mastra + Inngest
 
 > Створено: 2026-02-14
 > Автор: Архітектор системи
 > Базується на: АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md, MANIFESTO.md, SYSTEM_OVERVIEW.md
-> Статус: Архітектурне рішення (цільовий стан)
+> Статус: **DEPRECATED** — замінено RUNTIME_ARCHITECTURE_CANONICAL.md
 
 ---
 

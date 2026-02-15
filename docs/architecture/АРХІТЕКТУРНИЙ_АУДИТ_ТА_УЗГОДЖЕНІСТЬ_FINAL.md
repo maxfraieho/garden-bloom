@@ -97,11 +97,11 @@ agents/<slug>/
 
 ---
 
-### Інваріант 4: Mastra/Inngest = runtime layers, не джерело істини
+### Інваріант 4: Mastra/Orchestration Layer = runtime layers, не джерело істини
 
 **ПІДТВЕРДЖЕНО**
 
-[ЦІЛЬОВА] §1, [КОНТРАКТ] §0, [DRAKON] §5, [LAYOUT] §1: "Mastra/Inngest можуть мати свій стан у БД/кеші, але канонічний слід завжди в MinIO: runs/, proposals/, audit/."
+[RUNTIME] §1, [КОНТРАКТ] §0, [DRAKON] §5, [LAYOUT] §1: "Mastra/Orchestration Layer можуть мати свій стан у БД/кеші, але канонічний слід завжди в MinIO: runs/, proposals/, audit/."
 
 Жодних суперечностей.
 
@@ -117,7 +117,7 @@ agents/<slug>/
 
 | Write path | Хто пише | Через Proposal? | Обґрунтування |
 |-----------|----------|-----------------|---------------|
-| `agents/<slug>/runs/` | Inngest/Mastra | **Ні** | Запис факту виконання, не зміна знань |
+| `agents/<slug>/runs/` | Orchestration Layer/Mastra | **Ні** | Запис факту виконання, не зміна знань |
 | `agents/<slug>/memory/` | Mastra (`write-memory`) | **Ні** | Operational data агента |
 | `/audit/` | Worker | **Ні** | Запис аудит-лог |
 | `agents/index.json` | System | **Ні** | Кеш/індекс, не source of truth |
@@ -161,7 +161,7 @@ MinIO — passive storage. [LAYOUT] уточнює глобальну струк
 | Writer | Paths | Mechanism |
 |--------|-------|-----------|
 | Owner (через Worker) | `_agent.md`, `pseudocode.md`, `drakon/`, `system/` | Direct + audit log |
-| Runtime (Mastra/Inngest) | `runs/`, `memory/` | Operational writes |
+| Runtime (Mastra/Orchestration Layer) | `runs/`, `memory/` | Operational writes |
 | Worker (Apply Engine) | `proposals/`, zone data | Через proposal lifecycle |
 | Worker (Audit) | `audit/` | Append-only |
 
@@ -171,11 +171,11 @@ MinIO — passive storage. [LAYOUT] уточнює глобальну струк
 
 Mastra = інтерпретатор. Читає `_agent.md` + `pseudocode.md` + `memory/*`. Не зберігає стан між runs. Не модифікує контракт.
 
-### 2.3 Orchestration authority (Inngest)
+### 2.3 Orchestration authority (Orchestration Layer)
 
 **Визначено чітко.**
 
-Inngest = "коли" + "retry" + "durability". Не знає зміст `_agent.md`. Канонічні events:
+Orchestration Layer = "коли" + "retry" + "durability". Не знає зміст `_agent.md`. Канонічні events:
 - `inbox.item.created`
 - `agent.run.requested`
 - `agent.run.completed`
@@ -263,7 +263,7 @@ agents/<slug>/proposals/<proposalId>/
 
 | Сценарій | Визначена поведінка |
 |----------|-------------------|
-| **Runtime crash** | Inngest забезпечує retry (durable execution). Partial run зберігається як `status: failed` з наявними steps у `runs/<id>/status.json`. Agent → `error` якщо 3 consecutive failures. |
+| **Runtime crash** | Orchestration Layer забезпечує retry (durable execution). Partial run зберігається як `status: failed` з наявними steps у `runs/<id>/status.json`. Agent → `error` якщо 3 consecutive failures. |
 | **Proposal approval після contract change** | `proposal.json` зберігає `agent_version`. Apply Engine показує warning "agent version changed", але не блокує. Owner — final authority. |
 | **Partial artifact write** | Порядок: Git commit → MinIO status update. Якщо MinIO fail — retry status update. Якщо Git fail — proposal → `failed`. |
 
@@ -271,7 +271,7 @@ agents/<slug>/proposals/<proposalId>/
 
 | Сценарій | Визначена поведінка |
 |----------|-------------------|
-| **Два run одного агента** | Default concurrency = 1 per agent. Concurrent run → queued (Inngest native). |
+| **Два run одного агента** | Default concurrency = 1 per agent. Concurrent run → queued (Orchestration Layer native). |
 | **Два proposals на один target** | FIFO обробка. Apply Engine перевіряє `target_hash` у proposal (optimistic concurrency). Конфлікт → proposal `failed`. |
 
 ### 4.3 Contract evolution
@@ -287,8 +287,8 @@ agents/<slug>/proposals/<proposalId>/
 | Сценарій | Визначена поведінка |
 |----------|-------------------|
 | **Mastra restart** | Не має in-memory state між runs. Перезапуск = lossless (MinIO canonical). |
-| **Inngest restart** | Durable execution забезпечує replay in-flight runs. Pending events — replayed. |
-| **Registry rebuild** | При startup Agent Service: (1) connect MinIO, (2) rebuild `agents/index.json`, (3) register Inngest functions, (4) resume pending events. |
+| **Orchestration Layer restart** | Durable execution забезпечує replay in-flight runs. Pending events — replayed. |
+| **Registry rebuild** | При startup Agent Service: (1) connect MinIO, (2) rebuild `agents/index.json`, (3) register Orchestration Layer tasks, (4) resume pending events. |
 | **Replay failed run** | New run з new `runId` + поточна версія `_agent.md`. No determinism guarantee (LLM nondeterminism). |
 
 ---
@@ -327,7 +327,7 @@ agents/<slug>/proposals/<proposalId>/
 | **Behavioral logic** (що робити) | `_agent.md` + `pseudocode.md` (MinIO) | ✅ Поза runtime |
 | **Tool implementation** (як tool працює) | Runtime код Mastra | ✅ Допустимо — tool = interface implementation |
 | **LLM interpretation** (як зрозуміти pseudocode) | LLM (inherent nondeterminism) | ✅ By design — pseudocode = intent, не exact execution |
-| **Orchestration logic** (retry, timeout, concurrency) | Inngest config | ✅ Допустимо — operational, не behavioral |
+| **Orchestration logic** (retry, timeout, concurrency) | Orchestration Layer config | ✅ Допустимо — operational, не behavioral |
 | **Loader order** | Runtime код | ✅ Визначено в [LAYOUT] §2, реалізовано в runtime |
 
 **Заборонені патерни (інваріант):**
@@ -386,7 +386,7 @@ agents/<slug>/proposals/<proposalId>/
 |-----------|---------|----------|
 | `reviewing` state | UI-only стан, серверний стан не змінюється | PROPOSAL_SYSTEM_V1.md §1.3 |
 | Run `queued` state | Доданий: `requested → queued → running → completed/failed` | INBOX_AND_RUN_LIFECYCLE_V1.md §2.1 |
-| Status writer | Canonical writer = Inngest/backend, Mastra НЕ пише status.json | INBOX_AND_RUN_LIFECYCLE_V1.md §2.6 |
+| Status writer | Canonical writer = Orchestration Layer wrapper, Mastra НЕ пише status.json | INBOX_AND_RUN_LIFECYCLE_V1.md §2.6 |
 | Notification transport | MVP = polling, опціонально SSE в майбутньому | INBOX_AND_RUN_LIFECYCLE_V1.md §3 |
 | Inbox expiry UX | Expired entries приховані, доступні через фільтр | INBOX_AND_RUN_LIFECYCLE_V1.md §1.4 |
 | Concurrent proposals | base_revision + target_hash для optimistic concurrency | PROPOSAL_SYSTEM_V1.md §3 |
@@ -414,7 +414,8 @@ docs/
 
   architecture/                  ← UA canonical
     АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md          ✅
-    ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md ✅
+    RUNTIME_ARCHITECTURE_CANONICAL.md      ✅ (замінює ЦІЛЬОВА_АРХІТЕКТУРА)
+    ORCHESTRATION_LAYER_ABSTRACTION.md     ✅
     КОНТРАКТ_АГЕНТА_V1.md                 ✅ (потребує update до нового layout)
     INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md      ✅ (потребує split на два docs)
     DRAKON_ІНТЕГРАЦІЯ_ТА_МОДЕЛЬ_ВИКОНАННЯ_АГЕНТА.md ✅
