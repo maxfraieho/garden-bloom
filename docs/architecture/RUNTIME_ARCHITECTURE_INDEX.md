@@ -15,6 +15,16 @@
 
 ---
 
+## 0.1 Project Entry Point
+
+| Документ | Опис |
+|---------|------|
+| **[PROJECT_DESCRIPTION_CANONICAL.md](../PROJECT_DESCRIPTION_CANONICAL.md)** | Canonical, vendor-agnostic опис проєкту — overview, principles, layers, authority model |
+
+> Рекомендовано читати першим для загального розуміння системи.
+
+---
+
 ## 1. Canonical Runtime Documents
 
 | # | Документ | Опис | Ключові розділи |
