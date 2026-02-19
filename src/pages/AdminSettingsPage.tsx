@@ -96,7 +96,7 @@ export default function AdminSettingsPage() {
 
   if (authLoading) {
     return (
-      <Layout>
+      <Layout hideSidebar>
         <div className="min-h-screen flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -109,7 +109,7 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <Layout>
+    <Layout hideSidebar>
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
