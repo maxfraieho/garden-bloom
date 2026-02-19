@@ -172,32 +172,7 @@
      rawContent: content,
    };
  
-   // Editor textarea component
-   const EditorTextarea = ({ className = '' }: { className?: string }) => (
-     <div className={cn("relative flex-1 min-h-0", className)}>
-       <Textarea
-         ref={textareaRef}
-         value={content}
-         onChange={handleTextareaChange}
-         onSelect={handleTextareaSelect}
-         onClick={handleTextareaSelect}
-         onKeyUp={handleTextareaSelect}
-         placeholder={t.editor?.placeholder || 'Start writing...'}
-         className={cn(
-           "h-full w-full font-mono text-sm resize-none",
-           "border-0 rounded-none focus-visible:ring-0",
-           "bg-transparent"
-         )}
-         disabled={isSaving}
-       />
-       <WikilinkAutocomplete
-         query={wikilinkState.query}
-         isOpen={wikilinkState.isActive}
-         onSelect={handleWikilinkSelect}
-         onClose={() => setCursorPosition(0)}
-       />
-     </div>
-   );
+    // Editor textarea - rendered inline to avoid remount on each keystroke
  
    // Preview panel component
    const PreviewPanel = ({ className = '' }: { className?: string }) => (
@@ -296,7 +271,29 @@
                onInsertWikilink={handleInsertWikilink}
                disabled={isSaving}
              />
-             <EditorTextarea />
+              <div className="relative flex-1 min-h-0">
+                <Textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={handleTextareaChange}
+                  onSelect={handleTextareaSelect}
+                  onClick={handleTextareaSelect}
+                  onKeyUp={handleTextareaSelect}
+                  placeholder={t.editor?.placeholder || 'Start writing...'}
+                  className={cn(
+                    "h-full w-full font-mono text-sm resize-none",
+                    "border-0 rounded-none focus-visible:ring-0",
+                    "bg-transparent"
+                  )}
+                  disabled={isSaving}
+                />
+                <WikilinkAutocomplete
+                  query={wikilinkState.query}
+                  isOpen={wikilinkState.isActive}
+                  onSelect={handleWikilinkSelect}
+                  onClose={() => setCursorPosition(0)}
+                />
+              </div>
            </Card>
          </TabsContent>
          
