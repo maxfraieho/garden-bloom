@@ -410,6 +410,53 @@ export interface Translations {
     link: string;
   };
 
+  // Admin Settings page
+  adminSettings: {
+    title: string;
+    subtitle: string;
+    tabSecurity: string;
+    tabAccessControl: string;
+    tabDiagnostics: string;
+    tabAdvanced: string;
+    changePassword: string;
+    changePasswordDesc: string;
+    currentPassword: string;
+    currentPasswordPlaceholder: string;
+    newPassword: string;
+    newPasswordPlaceholder: string;
+    confirmNewPassword: string;
+    confirmNewPasswordPlaceholder: string;
+    passwordChanged: string;
+    changePasswordBtn: string;
+    securityBestPractices: string;
+    tipStrongPassword: string;
+    tipChangeRegularly: string;
+    tipNeverShare: string;
+    accessZones: string;
+    accessZonesDesc: string;
+    accessZonesInfo: string;
+    manageZones: string;
+    accessControlInfo: string;
+    webAccess: string;
+    webAccessDesc: string;
+    mcpAccess: string;
+    mcpAccessDesc: string;
+    ttlAccess: string;
+    ttlAccessDesc: string;
+    gardenInfo: string;
+    gardenInfoDesc: string;
+    status: string;
+    activeReady: string;
+    ownerMode: string;
+    enabled: string;
+    advancedOptions: string;
+    advancedOptionsDesc: string;
+    featureMcpGateway: string;
+    featureNotebookLM: string;
+    featureFolderRestrictions: string;
+    featureAccessTTL: string;
+  };
+
   // DRAKON diagram widget labels
   drakon: {
     yes: string;
