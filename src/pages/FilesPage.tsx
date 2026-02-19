@@ -1,7 +1,7 @@
 // Full-screen file/folder structure view
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus, FilePlus, Pencil } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus, FilePlus, Pencil, GitBranch } from 'lucide-react';
 import { getFolderStructure, getHomeNote } from '@/lib/notes/noteLoader';
 import { GardenHeader } from '@/components/garden/GardenHeader';
 import { GardenFooter } from '@/components/garden/GardenFooter';
@@ -55,18 +55,24 @@ function FolderItem({ folder, level = 0, isAuthenticated = false }: FolderItemPr
           <span className="text-left">{folder.name}</span>
         </button>
         
-        {/* Add note button - visible on hover */}
+        {/* Add note / DRAKON buttons - visible on hover */}
         {isAuthenticated && (
-          <Link
-            to={`/notes/new?folder=${encodeURIComponent(folder.path)}`}
-            className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity",
-              "p-2 mr-2 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary"
-            )}
-            title={t.editor?.newNoteHere || 'New note here'}
-          >
-            <FilePlus className="w-4 h-4" />
-          </Link>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mr-2">
+            <Link
+              to={`/notes/new?folder=${encodeURIComponent(folder.path)}`}
+              className="p-2 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary"
+              title={t.editor?.newNoteHere || 'New note here'}
+            >
+              <FilePlus className="w-4 h-4" />
+            </Link>
+            <Link
+              to={`/drakon?new=true&folder=${encodeURIComponent(folder.path)}`}
+              className="p-2 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary"
+              title={t.drakonEditor?.newDrakonHere || 'New DRAKON here'}
+            >
+              <GitBranch className="w-4 h-4" />
+            </Link>
+          </div>
         )}
       </div>
       

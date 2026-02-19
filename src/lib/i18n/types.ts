@@ -372,6 +372,11 @@ export interface Translations {
     createAndEdit: string;
     newDrakon: string;
     enterDiagramId: string;
+    enterDiagramName: string;
+    diagramNamePlaceholder: string;
+    selectFolder: string;
+    selectFolderPlaceholder: string;
+    newDrakonHere: string;
     savedIn: string;
     accessDenied: string;
     ownerOnly: string;
