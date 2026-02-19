@@ -663,33 +663,41 @@ async function handleHealth() {
 async function handleAuthStatus(env) {
   const initialized = await env.KV.get('owner_initialized');
 
-  // Check NotebookLM backend status (Replit/FastAPI)
-  let notebookLMReady = false;
-  let notebookLMMessage = null;
-  let notebookCount = null;
-
-  try {
-    const res = await fetchNotebookLM(env, '/auth/status', { method: 'GET' });
-    if (res.ok && res.data) {
-      notebookLMReady = res.data.ok === true;
-      notebookLMMessage = res.data.message || null;
-      notebookCount = res.data.notebook_count || null;
-    } else {
-      notebookLMReady = false;
-      notebookLMMessage = res?.data?.message || res?.data?.error || null;
-    }
-  } catch (e) {
-    notebookLMReady = false;
-    notebookLMMessage = e?.message || String(e);
-  }
-
-  return jsonResponse({
+  // Return auth status immediately — do NOT block on NotebookLM/Replit backend.
+  // NotebookLM status is fetched separately with a short timeout (best-effort).
+  const authResponse = {
     success: true,
     initialized: initialized === 'true',
-    notebookLMReady,
-    notebookLMMessage,
-    notebookCount,
-  });
+    notebookLMReady: false,
+    notebookLMMessage: null,
+    notebookCount: null,
+  };
+
+  // Best-effort NotebookLM check with a short timeout (3s).
+  // If Replit is down (e.g. credits exhausted), we still return auth status.
+  try {
+    const nlmTimeout = 3000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort('nlm-timeout'), nlmTimeout);
+
+    const res = await fetchNotebookLM(env, '/auth/status', {
+      method: 'GET',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok && res.data) {
+      authResponse.notebookLMReady = res.data.ok === true;
+      authResponse.notebookLMMessage = res.data.message || null;
+      authResponse.notebookCount = res.data.notebook_count || null;
+    } else {
+      authResponse.notebookLMMessage = res?.data?.message || res?.data?.error || 'Backend unavailable';
+    }
+  } catch (e) {
+    authResponse.notebookLMMessage = 'Backend unreachable';
+  }
+
+  return jsonResponse(authResponse);
 }
 
 async function handleAuthSetup(request, env) {
