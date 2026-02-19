@@ -827,7 +827,7 @@ export async function authRequest(
   const baseUrl = getGatewayBaseUrl();
   const url = `${baseUrl}${path}`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
