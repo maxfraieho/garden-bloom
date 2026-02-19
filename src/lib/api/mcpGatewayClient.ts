@@ -196,6 +196,33 @@ function generateCorrelationId(): string {
 
 async function requestJson<T>(
   path: string,
+  init: RequestInit & { requireAuth?: boolean; timeoutMs?: number; retries?: number; retryDelayMs?: number } = {}
+): Promise<T> {
+  const maxRetries = init.retries ?? 0;
+  const baseDelay = init.retryDelayMs ?? 1500;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await requestJsonOnce<T>(path, init);
+    } catch (err: unknown) {
+      const isRetryable = err && typeof err === 'object' && 'retryable' in err && (err as ApiError).retryable;
+      const is503 = err && typeof err === 'object' && 'httpStatus' in err && (err as ApiError).httpStatus === 503;
+
+      if (attempt < maxRetries && (isRetryable || is503)) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`[gateway] Retry ${attempt + 1}/${maxRetries} after ${delay}ms (503/retryable)`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  // Unreachable but TypeScript needs it
+  throw createApiError('UNKNOWN');
+}
+
+async function requestJsonOnce<T>(
+  path: string,
   init: RequestInit & { requireAuth?: boolean; timeoutMs?: number } = {}
 ): Promise<T> {
   const baseUrl = getGatewayBaseUrl();
@@ -597,6 +624,8 @@ export async function commitNote(payload: NoteCommitRequest): Promise<NoteCommit
     method: 'POST',
     body: JSON.stringify(payload),
     requireAuth: true,
+    retries: 2,
+    retryDelayMs: 2000,
   });
 }
 
@@ -607,6 +636,8 @@ export async function deleteNote(slug: string): Promise<NoteDeleteResponse> {
   return requestJson<NoteDeleteResponse>(`/v1/notes/${encodeURIComponent(slug)}`, {
     method: 'DELETE',
     requireAuth: true,
+    retries: 2,
+    retryDelayMs: 2000,
   });
 }
 
