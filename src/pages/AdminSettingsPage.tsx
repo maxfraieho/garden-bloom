@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
   const [health, setHealth] = useState<any>(null);
   const [authStatus, setAuthStatus] = useState<any>(null);
   const [gitStatus, setGitStatus] = useState<any>(null);
-  const [gitPath, setGitPath] = useState('README.md');
+  const [gitPath, setGitPath] = useState('src/site/notes/Test Garden Seedling 2026.md');
   const [gitLoading, setGitLoading] = useState(false);
   const [chatTest, setChatTest] = useState<{
     notebookUrl: string;
@@ -357,7 +357,7 @@ export default function AdminSettingsPage() {
                   Tests <span className="font-mono">GET /v1/git/status</span> — checks if file exists in <span className="font-mono">garden-seedling</span> repo.
                 </p>
                 <div className="flex gap-2">
-                  <Input value={gitPath} onChange={(e) => setGitPath(e.target.value)} placeholder="README.md" className="flex-1" />
+                  <Input value={gitPath} onChange={(e) => setGitPath(e.target.value)} placeholder="src/site/notes/..." className="flex-1" />
                   <Button variant="default" size="sm" disabled={gitLoading || !gitPath.trim()} onClick={async () => {
                     setGitStatus(null); setGitLoading(true);
                     try {

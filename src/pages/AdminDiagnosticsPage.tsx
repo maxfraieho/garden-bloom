@@ -25,7 +25,7 @@ export default function AdminDiagnosticsPage() {
   const [health, setHealth] = useState<any>(null);
   const [authStatus, setAuthStatus] = useState<any>(null);
   const [gitStatus, setGitStatus] = useState<any>(null);
-  const [gitPath, setGitPath] = useState('README.md');
+  const [gitPath, setGitPath] = useState('src/site/notes/Test Garden Seedling 2026.md');
   const [gitLoading, setGitLoading] = useState(false);
   const [chatTest, setChatTest] = useState({
     notebookUrl: '',
