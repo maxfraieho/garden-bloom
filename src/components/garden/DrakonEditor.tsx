@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useTheme } from '@/components/theme-provider';
+import { slugify } from '@/lib/utils';
 import { 
   Loader2, AlertCircle, Save, Undo, Redo, Download, Home, Plus,
   ZoomIn, ZoomOut, Copy, Scissors, Trash2, ClipboardPaste, MousePointer, Hand, FileText
@@ -248,7 +249,8 @@ export function DrakonEditor({
 
         // Use provided diagram or empty template for new
         const diagramToLoad = diagram || createEmptyDiagram(t);
-        await widget.setDiagram(diagramId, diagramToLoad, editSender);
+        const effectiveId = diagramId || 'new-diagram';
+        await widget.setDiagram(effectiveId, diagramToLoad, editSender);
         widget.setZoom(5000); // 50% zoom for editor
         
         setIsLoading(false);
@@ -360,13 +362,16 @@ export function DrakonEditor({
   const handleSave = useCallback(async () => {
     if (!widgetRef.current) return;
     
+    // For new diagrams, generate ID from name
+    const effectiveId = isNew && !diagramId ? slugify(diagramName) : diagramId;
+    if (!effectiveId) return;
+
     const jsonString = widgetRef.current.exportJson();
     const diagramData = JSON.parse(jsonString);
     
-    // Wrap in StoredDrakonDiagram format
     const storedDiagram = {
       version: '1.0' as const,
-      id: diagramId,
+      id: effectiveId,
       name: diagramName,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -375,7 +380,7 @@ export function DrakonEditor({
 
     saveMutation.mutate(
       {
-        diagramId,
+        diagramId: effectiveId,
         diagram: storedDiagram,
         name: diagramName,
         isNew,
@@ -384,7 +389,7 @@ export function DrakonEditor({
         onSuccess: (result) => {
           if (result.success) {
             setHasChanges(false);
-            onSaved?.(diagramId);
+            onSaved?.(effectiveId);
           }
         },
       }
