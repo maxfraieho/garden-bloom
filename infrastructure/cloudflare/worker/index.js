@@ -14,7 +14,7 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Session-Id, X-Zone-Id, X-Zone-Code',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Session-Id, X-Zone-Id, X-Zone-Code, X-Correlation-Id',
       ...extraHeaders
     }
   });
@@ -26,7 +26,7 @@ function corsResponse() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Session-Id, X-Zone-Id, X-Zone-Code',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Session-Id, X-Zone-Id, X-Zone-Code, X-Correlation-Id',
       'Access-Control-Max-Age': '86400'
     }
   });
