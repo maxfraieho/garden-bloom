@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { GardenHeader } from '@/components/garden/GardenHeader';
 import { GardenFooter } from '@/components/garden/GardenFooter';
 import { DrakonEditor } from '@/components/garden/DrakonEditor';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { useLocale } from '@/hooks/useLocale';
+import { getFolderStructure } from '@/lib/notes/noteLoader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Lock, ArrowLeft, GitBranch, Plus } from 'lucide-react';
+import { slugify } from '@/lib/utils';
 
 export default function DrakonPage() {
   const [searchParams] = useSearchParams();
@@ -23,8 +26,26 @@ export default function DrakonPage() {
   const isNew = searchParams.get('new') === 'true';
 
   // State for new diagram creation
-  const [newDiagramId, setNewDiagramId] = useState('');
+  const [diagramName, setDiagramName] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState(folderSlug || '');
   const [step, setStep] = useState<'select' | 'edit'>(diagramIdFromUrl ? 'edit' : 'select');
+
+  // Auto-generate slug from name
+  const autoSlug = useMemo(() => slugify(diagramName), [diagramName]);
+
+  // Get available folders
+  const folders = useMemo(() => {
+    const structure = getFolderStructure();
+    const paths: { value: string; label: string }[] = [];
+    function collectPaths(items: typeof structure, depth = 0) {
+      for (const f of items) {
+        paths.push({ value: f.path, label: '  '.repeat(depth) + f.name });
+        collectPaths(f.subfolders, depth + 1);
+      }
+    }
+    collectPaths(structure);
+    return paths;
+  }, []);
 
   // Redirect non-owners
   if (!isAuthenticated) {
@@ -54,24 +75,22 @@ export default function DrakonPage() {
   }
 
   const handleStartEdit = () => {
-    if (!newDiagramId.trim()) return;
-    // Update URL and switch to edit mode
+    if (!autoSlug) return;
     const params = new URLSearchParams();
-    params.set('id', newDiagramId);
+    params.set('id', autoSlug);
     params.set('new', 'true');
-    if (folderSlug) params.set('folder', folderSlug);
+    if (selectedFolder) params.set('folder', selectedFolder);
     navigate(`/drakon?${params.toString()}`, { replace: true });
     setStep('edit');
   };
 
-  const handleSaved = (id: string) => {
-    // Navigate to the note if folder was specified
-    if (folderSlug) {
-      navigate(`/notes/${folderSlug}`);
+  const handleSaved = (_id: string) => {
+    if (folderSlug || selectedFolder) {
+      navigate(`/notes/${folderSlug || selectedFolder}`);
     }
   };
 
-  const currentDiagramId = diagramIdFromUrl || newDiagramId;
+  const currentDiagramId = diagramIdFromUrl || autoSlug;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -83,7 +102,7 @@ export default function DrakonPage() {
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
               <Link 
-                to="/" 
+                to={folderSlug ? `/notes/${folderSlug}` : '/files'}
                 className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -99,42 +118,62 @@ export default function DrakonPage() {
           </div>
 
           {step === 'select' ? (
-            /* Step 1: Enter diagram ID */
+            /* Step 1: Enter diagram name + pick folder */
             <Card className="max-w-lg mx-auto w-full p-6">
               <div className="space-y-4">
                 <div className="text-center mb-6">
                   <GitBranch className="h-12 w-12 text-primary mx-auto mb-3" />
                   <h2 className="text-lg font-semibold">{t.drakonEditor.createNewDiagram}</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {t.drakonEditor.enterDiagramId}
+                    {t.drakonEditor.enterDiagramName || 'Enter a name for your diagram'}
                   </p>
                 </div>
 
+                {/* Diagram name */}
                 <div className="space-y-2">
-                  <Label htmlFor="diagram-id">{t.drakonEditor.diagramId}</Label>
+                  <Label htmlFor="diagram-name">{t.drakonEditor.diagramName}</Label>
                   <Input
-                    id="diagram-id"
-                    value={newDiagramId}
-                    onChange={(e) => setNewDiagramId(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '-'))}
-                    placeholder="user-flow"
+                    id="diagram-name"
+                    value={diagramName}
+                    onChange={(e) => setDiagramName(e.target.value)}
+                    placeholder={t.drakonEditor.diagramNamePlaceholder || 'User Registration Flow'}
                     autoFocus
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {t.drakonEditor.diagramIdHint}
-                  </p>
+                  {autoSlug && (
+                    <p className="text-xs text-muted-foreground">
+                      ID: <code className="text-foreground">{autoSlug}</code>
+                    </p>
+                  )}
                 </div>
 
-                {folderSlug && (
+                {/* Folder picker */}
+                <div className="space-y-2">
+                  <Label>{t.drakonEditor.selectFolder || 'Save to folder'}</Label>
+                  <Select value={selectedFolder} onValueChange={setSelectedFolder}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t.drakonEditor.selectFolderPlaceholder || 'Choose folder...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {folders.map((f) => (
+                        <SelectItem key={f.value} value={f.value}>
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedFolder && autoSlug && (
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground">
-                      {t.drakonEditor.savedIn} <code className="text-foreground">{folderSlug}/diagrams/</code>
+                      {t.drakonEditor.savedIn} <code className="text-foreground">{selectedFolder}/diagrams/{autoSlug}.drakon.json</code>
                     </p>
                   </div>
                 )}
 
                 <Button 
                   onClick={handleStartEdit} 
-                  disabled={!newDiagramId.trim()}
+                  disabled={!autoSlug || !selectedFolder}
                   className="w-full"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -147,7 +186,7 @@ export default function DrakonPage() {
             <div className="flex-1 min-h-0">
               <DrakonEditor
                 diagramId={currentDiagramId}
-                folderSlug={folderSlug}
+                folderSlug={folderSlug || selectedFolder}
                 height={600}
                 isNew={isNew}
                 onSaved={handleSaved}
