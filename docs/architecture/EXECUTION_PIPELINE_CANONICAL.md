@@ -35,9 +35,9 @@ Owner → Frontend → Worker → Orchestration Layer → Mastra → MinIO
 |------|----------|------|-------|
 | **1. Trigger** | Worker | HTTP request від frontend | Orchestration event/trigger |
 | **2. Enqueue** | Orchestration Layer | Event/trigger | Queued task |
-| **3. Load Context** | Orchestration Layer → MinIO | agent_slug | _agent.md + sources |
-| **4. Execute Agent** | Orchestration Layer → Mastra | Context + instructions | Structured output |
-| **5. Persist Results** | Orchestration Layer → MinIO | Proposal(и), step results | MinIO objects |
+| **3. Load Context** | Orchestration Layer → MinIO + git monorepo | agent_slug | _agent.md + sources + memory (Layer 1) |
+| **4. Execute Agent** | Orchestration Layer → Mastra | Context + instructions + memory | Structured output |
+| **5. Persist Results** | Orchestration Layer → MinIO + Gateway | Proposal(и), step results, memory-update | MinIO objects + git commit |
 | **6. Finalize** | Orchestration Layer → MinIO | Run summary | manifest.json + status.json=completed |
 | **7. Notify** | Worker → Frontend | Status change | Poll response / SSE event |
 
@@ -105,8 +105,10 @@ sequenceDiagram
     ORC->>S3: GET agents/{slug}/sources/*
     S3-->>ORC: Source documents
 
-    ORC->>S3: GET agents/{slug}/memory/*
-    S3-->>ORC: Agent memory (if exists)
+    ORC->>GIT: GET /memory/{agentId}/read?mode=basic
+    GIT-->>ORC: Memory Layer 1 (snapshot.md + open_loops.md, ≤4100 tokens)
+
+    Note over ORC: mode=wide якщо агент вказав потребу в повному контексті
 
     ORC->>S3: Write runs/{runId}/steps/1-load-context.json
     ORC->>S3: Update status.json {status: running, step: 1}
@@ -116,6 +118,8 @@ sequenceDiagram
 - Orchestration Layer wrapper виконує step та записує результат
 - Кожен step має свій JSON у `steps/`
 - Status.json оновлюється **після** успішного step write
+- Memory Layer 1 завантажується через Gateway `/memory/:agentId/read` (git monorepo)
+- Layer 2 (decisions, runs, timeline) — **не завантажується автоматично** (архітектурний інваріант)
 
 ### 2.4 Phase 4: Execute Agent
 
@@ -164,19 +168,25 @@ sequenceDiagram
     participant ORC as Orchestration Layer
     participant S3 as MinIO
 
-    Note over ORC: Step 3: persist-proposal
+    Note over ORC: Step 3: persist-results
 
-    loop For each proposal in output
+    loop For each content proposal in output
         ORC->>S3: Write proposals/{proposalId}.json {status: pending}
     end
 
-    ORC->>S3: Write runs/{runId}/steps/3-persist-proposal.json
+    opt Якщо агент виявив нові факти або змінився стан
+        ORC->>GW: POST /memory/{agentId}/propose {type: memory-update, updates: [...]}
+        GW-->>ORC: {proposalId, status: pending | auto_applied}
+    end
+
+    ORC->>S3: Write runs/{runId}/steps/3-persist-results.json
     ORC->>S3: Update status.json {step: 3, proposals_created: [...]}
 ```
 
 **Контракт:**
-- Proposals створюються зі статусом `pending`
-- Proposal IDs додаються у status.json
+- Content proposals (propose-edit, propose-summary тощо) → MinIO зі статусом `pending`
+- Memory-update proposals → Gateway (git monorepo); можуть бути auto-approved (normal priority)
+- Logic-update proposals → Gateway; завжди `requiresHumanReview: true`, ніколи auto-approved
 - Step result записується у MinIO
 
 ### 2.6 Phase 6: Finalize

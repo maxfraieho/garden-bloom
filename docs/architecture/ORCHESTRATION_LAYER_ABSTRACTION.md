@@ -17,7 +17,7 @@
 - Заборони (що Orchestration Layer НЕ робить)
 - Критерії вибору vendor
 
-**[ПРИНЦИП]** Orchestration Layer — замінний компонент. Архітектура системи описується без vendor-specific термінів. Конкретна реалізація (Trigger.dev, Temporal, BullMQ, Celery, custom) — деталь розгортання, не архітектурне рішення.
+**[ПРИНЦИП]** Orchestration Layer — замінний компонент. Архітектура системи описується без vendor-specific термінів. Конкретна реалізація — деталь розгортання, не архітектурне рішення. Рекомендовані варіанти (за результатами дослідження 2026-02-21): **Hatchet** (MIT, FastAPI-native Python SDK, Hatchet Lite ~1-2 GB) або **Restate** (BUSL 1.1, single Rust binary ~256 MB, SDK MIT). Детальне порівняння — §6.
 
 ---
 
@@ -149,17 +149,24 @@ Task: agent-run
 
   Step 1: load-context
     → Завантажити _agent.md та sources з MinIO
+    → Завантажити memory Layer 1 (snapshot.md + open_loops.md) через Gateway
+      (mode=basic ≤4100 токенів; mode=wide ≤13000 якщо агент вказав)
     → Записати step result у MinIO
     → Оновити status.json: running, step=1
 
   Step 2: execute-agent
-    → Викликати Mastra agent з context
-    → Agent використовує tools (NLM, read-context, etc.)
+    → Викликати Mastra agent з context (definition + sources + memory Layer 1)
+    → Agent використовує tools (NLM, read-context, read-memory, etc.)
     → Записати step result у MinIO
     → Оновити status.json: step=2
 
-  Step 3: persist-proposal
-    → Зберегти proposal(и) у MinIO
+  Step 3: persist-results
+    → Зберегти content proposal(и) у MinIO {status: pending}
+    → ЯКЩО агент виявив зміни в знаннях:
+        POST /memory/{agentId}/propose {type: memory-update}
+        (може бути auto-approved якщо priority=normal)
+    → ЯКЩО оптимізатор пропонує logic-update:
+        POST /logic/{agentId}/propose {type: logic-update, requiresHumanReview: true}
     → Записати step result у MinIO
     → Оновити status.json: step=3
 
@@ -225,15 +232,23 @@ Orchestration Layer **НЕ повинен:**
 
 **[ПРИНЦИП]** Цей розділ містить implementation notes, не архітектурні рішення. Вибір vendor не впливає на архітектуру.
 
-Кандидати для реалізації Orchestration Layer:
+Результати дослідження (2026-02-21): порівняно 9 варіантів з фокусом на durable execution, Python/FastAPI-інтеграцію, ресурсні вимоги, open-source ліцензію.
 
-| Vendor | Тип | Durable | Steps | Cron | Concurrency | Self-hosted |
-|--------|-----|---------|-------|------|-------------|-------------|
-| Trigger.dev v3 | Managed + self-hosted | Так | Так | Так | Так | Docker |
-| Temporal | Self-hosted | Так | Так | Так | Так | Go binary |
-| BullMQ | Library | Ні (manual) | Manual | Через cron lib | Manual | Redis |
-| Celery | Library | Ні | Manual | Celery Beat | Manual | Redis/RabbitMQ |
-| Custom | — | Manual | Manual | Manual | Manual | — |
+| Vendor | Ліцензія | RAM (мін) | Durable Exec | FastAPI DX | Рекомендація |
+|--------|---------|-----------|--------------|------------|-------------|
+| **Hatchet** | MIT | ~1-2 GB (Lite) | ✅ Postgres-backed | ✅ Відмінний (FastAPI-style SDK) | **✅ Рекомендовано (primary)** |
+| **Restate** | BUSL 1.1 (SDK: MIT) | ~256 MB | ✅ Event-sourced | Добрий | **✅ Рекомендовано (low-resource)** |
+| Temporal | MIT | ~4-8 GB | ✅ Event-sourced | Добрий | Для production, якщо ресурси дозволяють |
+| Prefect | Apache 2.0 (server: PCL) | ~2 GB | ⚠️ Частково | ✅ Відмінний | Альтернатива, але PCL-сервер |
+| Celery+Redis | BSD | ~256 MB | ❌ Немає | ✅ Відмінний | Тільки для простих job queues |
+| Trigger.dev v3 | Open-core | ~1 GB | Так | Добрий | Не рекомендовано (не Python-native) |
+
+**Рекомендований вибір:**
+- **Hatchet Lite** для $10-20/місяць VPS (4 GB RAM): MIT ліцензія, FastAPI-native Python SDK (`@hatchet.task()` декоратори), Postgres-backed durable execution
+- **Restate** для мінімальних ресурсів (Raspberry Pi, $5 VPS): single binary ~256 MB, event-sourced durability, SDK MIT
+- **Temporal** якщо є 8+ GB RAM і потрібна максимальна production-надійність
+
+**Adapter Pattern:** незалежно від вибору vendor, система взаємодіє через `OrchestratorAdapter` інтерфейс (§2.2). Заміна vendor = нова реалізація адаптера без зміни бізнес-логіки.
 
 **[РІШЕННЯ]** Конкретний vendor обирається на етапі реалізації. Документація canonical architecture не залежить від цього вибору.
 

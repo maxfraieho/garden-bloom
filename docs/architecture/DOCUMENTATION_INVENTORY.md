@@ -1,7 +1,7 @@
 # Інвентаризація документації Garden Seedling
 
 > Створено: 2026-02-15
-> Оновлено: 2026-02-15 (post-migration cleanup)
+> Оновлено: 2026-02-21 (додано AGENT_MEMORY та AGENT_LOGIC_VERSIONING як CANONICAL)
 > Автор: Головний архітектор системи
 > Метод: Повний аудит docs/ та кореневих .md файлів
 > Канонічна структура: відповідно до MinIO layout V1 та docs/ canonical spec
@@ -65,7 +65,9 @@ archive/                 # Історичні документи (gh-aw era)
 |------|------|--------|---------|-----|
 | `АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md` | UA | **CANONICAL** | Фундаментальний документ поточної архітектури | KEEP |
 | `ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md` | UA | **DEPRECATED** | Замінено на RUNTIME_ARCHITECTURE_CANONICAL.md + ORCHESTRATION_LAYER_ABSTRACTION.md | MOVED → `archive/deprecated/` |
-| `КОНТРАКТ_АГЕНТА_V1.md` | UA | **NEEDS_UPDATE** | Не враховує оновлений canonical layout з `/zones/`, `/system/`, loader order | UPDATE |
+| `AGENT_MEMORY_GIT_DIFFMEM_V1.md` | UA | **CANONICAL** | Git-based агентна пам'ять v1.1.0; два шари, HARD ліміти, eviction model | KEEP |
+| `AGENT_LOGIC_VERSIONING_V1.md` | UA | **CANONICAL** | Версіонування логіки агентів v1.0.0; logic/ структура, optimizer agent, logic-update Proposals | KEEP |
+| `КОНТРАКТ_АГЕНТА_V1.md` | UA | **NEEDS_UPDATE** → **UPDATED v1.1** | Оновлено модель пам'яті відповідно до AGENT_MEMORY_GIT_DIFFMEM_V1.md; memory/ перенесено до git monorepo | UPDATED |
 | `DRAKON_ІНТЕГРАЦІЯ_ТА_МОДЕЛЬ_ВИКОНАННЯ_АГЕНТА.md` | UA | **CANONICAL** | Специфікація DRAKON → pseudocode → runtime | KEEP |
 | `INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md` | UA | **NEEDS_UPDATE** | Потребує розділення на INBOX_ТА_RUN_LIFECYCLE_V1.md та PROPOSAL_SYSTEM_V1.md відповідно до нової структури | UPDATE + SPLIT |
 | `АРХІТЕКТУРНИЙ_АУДИТ_ТА_УЗГОДЖЕНІСТЬ.md` | UA | **DEPRECATED** | Замінюється новим FINAL аудитом | DEPRECATE |
@@ -246,15 +248,15 @@ archive/                 # Історичні документи (gh-aw era)
 
 | Статус | Кількість файлів | % |
 |--------|-------------------|---|
-| **CANONICAL** | 11 | 16% |
+| **CANONICAL** | 13 (+2 нових) | 18% |
 | **NEEDS_TRANSLATION** | 5 | 7% |
-| **NEEDS_UPDATE** | 8 | 12% |
+| **NEEDS_UPDATE** | 6 (-2 оновлено) | 9% |
 | **DEPRECATED** | 13 | 19% |
 | **GH-AW_ARTIFACT** | 15+ (без docs/src/content ~94) | 22% |
 | **STUB** | 2 | 3% |
 | **INFRA** | 14 | 20% |
 
-**Ключовий висновок:** ~60% документації потребує дій (переклад, оновлення, deprecation або видалення). Лише 16% є канонічними документами, готовими для використання. Основний масив gh-aw артефактів (~94 Starlight content файли) потребує окремого рішення Owner.
+**Ключовий висновок:** ~60% документації потребує дій (переклад, оновлення, deprecation або видалення). 18% є канонічними документами (+2 нових: AGENT_MEMORY та AGENT_LOGIC_VERSIONING). Основний масив gh-aw артефактів (~94 Starlight content файли) потребує окремого рішення Owner.
 
 ---
 

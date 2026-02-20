@@ -42,6 +42,24 @@
 │  └── agents/index.json            (registry)     │
 │                                                  │
 ├────────────────────────────────────────────────┤
+│       garden-bloom-memory (Git Monorepo)          │
+│                                                  │
+│  Tier 1: Agent Memory (Layer 1 — auto-load)      │
+│  ├── memory/{agentId}/snapshot.md  (≤2K tokens)  │
+│  ├── memory/{agentId}/facts.md     (≤8K tokens)  │
+│  └── memory/{agentId}/open_loops.md(≤2K tokens)  │
+│                                                  │
+│  Tier 2: Agent Memory (Layer 2 — explicit only)  │
+│  ├── memory/{agentId}/decisions.md               │
+│  ├── memory/{agentId}/changelog.md               │
+│  └── memory/{agentId}/runs/                      │
+│                                                  │
+│  Tier 3: Agent Logic (versioned)                 │
+│  ├── logic/{agentId}/current.drakon.json         │
+│  ├── logic/{agentId}/current.pseudo.md           │
+│  └── logic/{agentId}/versions/                   │
+│                                                  │
+├────────────────────────────────────────────────┤
 │              GitHub (Content Persistence)         │
 │  ├── notes/                       (published)    │
 │  └── drakon/                      (committed)    │
@@ -66,7 +84,8 @@
 | `agents/{slug}/sources/*` | Owner (через Worker) | Upload knowledge sources | — |
 | `agents/{slug}/pseudocode.md` | Owner (через Worker) | Behavioral contract update | — |
 | `agents/{slug}/drakon/*` | Owner (через Worker) | DRAKON diagram save | — |
-| `agents/{slug}/memory/*` | Orchestration Layer wrapper | Post-run memory update | — |
+| `memory/{agentId}/*` (git monorepo) | Gateway (via Proposal `memory-update`) | Post-run memory update через Proposal lifecycle | — |
+| `logic/{agentId}/current.*` (git monorepo) | Gateway (via Proposal `logic-update`) | Logic versioning через Proposal lifecycle (завжди human review) | — |
 | `agents/{slug}/runs/{runId}/status.json` | **Orchestration Layer wrapper** | Run lifecycle updates | Worker (initial `requested`) |
 | `agents/{slug}/runs/{runId}/manifest.json` | Orchestration Layer wrapper | Run finalize | — |
 | `agents/{slug}/runs/{runId}/steps/*.json` | Orchestration Layer wrapper | Step completion | — |
@@ -103,9 +122,12 @@
 
 | Компонент | Що читає | Як | Навіщо |
 |----------|---------|-----|--------|
-| **Worker** | Все | S3 API (direct) | Proxy для frontend; apply engine |
-| **Orchestration Layer wrapper** | `_agent.md`, sources, memory | S3 API (direct) | Context для agent execution |
-| **Mastra** | sources, memory | Через tool: `read-context` | Agent reasoning |
+| **Worker** | Все (MinIO) | S3 API (direct) | Proxy для frontend; apply engine |
+| **Orchestration Layer wrapper** | `_agent.md`, sources (MinIO) | S3 API (direct) | Context для agent execution |
+| **Orchestration Layer wrapper** | `memory/<agentId>/` (git monorepo) | Gateway API `/memory/:agentId/read` | Завантаження пам'яті Шару 1 перед виконанням |
+| **Mastra** | sources | Через tool: `read-context` | Agent reasoning |
+| **Mastra** | `memory/<agentId>/` (Шар 1) | Через tool: `read-memory()` | Відновлення контексту між запусками |
+| **Optimizer agent** | `logic/<agentId>/`, `runs/` (явний запит) | Через tools | Аналіз для propose-logic-update |
 | **Frontend** | **Нічого напряму** | Через Worker API | Projection layer |
 | **FastAPI** | **Нічого** | — | Ізольований NLM proxy |
 
@@ -159,7 +181,10 @@ Frontend оперує **API responses**, не MinIO objects. Це забезпе
 | Proposals (applied) | Permanent (audit trail) | — |
 | Proposals (expired/rejected) | 30 days | Cron cleanup |
 | Audit log | Permanent | — |
-| Agent memory | Permanent | Owner resets |
+| Agent memory Layer 1 (`snapshot.md`, `facts.md`, `open_loops.md`) | Permanent; старі факти → git-history (eviction при >HARD LIMIT) | Gateway eviction |
+| Agent memory Layer 2 (`runs/`, `timeline/`) | 90 днів у git monorepo; потім MinIO deep storage | Cron |
+| Agent logic (`logic/<agentId>/current.*`) | Permanent | — |
+| Agent logic versions (`logic/<agentId>/versions/`) | Permanent (незмінний архів) | — |
 
 ### 5.2 Consistency Model
 

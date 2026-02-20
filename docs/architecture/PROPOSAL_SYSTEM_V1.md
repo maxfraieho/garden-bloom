@@ -111,7 +111,7 @@ interface Proposal {
     run_id?: string;             // якщо від агента
   };
 
-  action: string;                // "propose-edit" | "propose-summary" | ...
+  action: string;                // "propose-edit" | "propose-summary" | "memory-update" | "logic-update" | "logic-rollback" | ...
   target: {
     type: "note" | "artifact" | "tag" | "comment";
     path: string;                // MinIO/Git path
@@ -264,6 +264,68 @@ interface ConflictWarning {
 - Причина зберігається у `approval.decision_note`
 - Причина відображається в аудит-лозі
 - Причина доступна для аналізу агентних помилок (agent memory)
+
+---
+
+## 6. Типи Proposals: агентна пам'ять та логіка
+
+### 6.1 `memory-update` — оновлення пам'яті агента
+
+| Параметр | Значення |
+|---------|---------|
+| Ініціатор | Агент (через propose-memory-update()) або людина |
+| `auto-approve` | Дозволено для `priority: normal` |
+| `requiresHumanReview` | Тільки для `priority: high` |
+| Target | `memory/<agentId>/` у git monorepo `garden-bloom-memory` |
+| Spec | AGENT_MEMORY_GIT_DIFFMEM_V1.md §4.2 |
+
+```json
+{
+  "type": "memory-update",
+  "agentId": "archivist-violin",
+  "runId": "run_abc123",
+  "expectedVersion": 42,
+  "updates": [
+    { "file": "facts.md", "operation": "append", "content": "...", "section": "Домен" },
+    { "file": "snapshot.md", "operation": "replace", "content": "..." }
+  ],
+  "autoApprove": true,
+  "priority": "normal"
+}
+```
+
+### 6.2 `logic-update` — зміна логіки агента
+
+| Параметр | Значення |
+|---------|---------|
+| Ініціатор | Агент-оптимізатор або людина |
+| `auto-approve` | **Заборонено** — завжди `requiresHumanReview: true` |
+| `requiresHumanReview` | **Завжди true, без виключень** |
+| Target | `logic/<agentId>/current.*` у git monorepo `garden-bloom-memory` |
+| Spec | AGENT_LOGIC_VERSIONING_V1.md §6 |
+
+```json
+{
+  "type": "logic-update",
+  "targetAgentId": "archivist-violin",
+  "optimizerRunId": "run_opt_789",
+  "currentVersion": "v006",
+  "proposedChanges": { "current.pseudo.md": { "operation": "patch", "diff": "..." } },
+  "rationale": { "problem": "...", "evidenceRuns": ["run_098"], "expectedImprovement": "..." },
+  "requiresHumanReview": true
+}
+```
+
+> **[ПРАВИЛО]** Proposals типу `logic-update` НЕ можуть бути auto-approved навіть якщо глобально auto-approve увімкнений. Це архітектурний інваріант, не конфігурація.
+
+### 6.3 `logic-rollback` — відкат логіки до попередньої версії
+
+| Параметр | Значення |
+|---------|---------|
+| Ініціатор | Людина |
+| `auto-approve` | **Заборонено** |
+| `requiresHumanReview` | **Завжди true** |
+| Механізм | Proposal з вмістом `versions/v<N>.*` як нова поточна версія |
 
 ---
 
