@@ -10,7 +10,7 @@ AccessZone створюється через API, повертає 200 OK, ал�
 
 ### Investigation Areas
 
-1. **Worker Handler** - `infrastructure/cloudflare/worker/index.js`
+1. **Worker Handler** - `_collab/infrastructure/cloudflare/worker/index.js`
    - [ ] Перевірити KV.put() виклик
    - [ ] Перевірити error handling
    - [ ] Додати логування

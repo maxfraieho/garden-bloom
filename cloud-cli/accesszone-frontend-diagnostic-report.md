@@ -30,7 +30,7 @@ Three critical issues identified in AccessZone frontend implementation:
 
 ### Root Cause
 
-**File:** `src/hooks/useAccessZones.ts:62` + `infrastructure/cloudflare/worker/index.js:774-784`
+**File:** `src/hooks/useAccessZones.ts:62` + `_collab/infrastructure/cloudflare/worker/index.js:774-784`
 
 ```typescript
 // Frontend expects (line 10-22):
@@ -269,7 +269,7 @@ return (
 
 ### Root Cause #1: Backend Missing Access Code Validation
 
-**File:** `infrastructure/cloudflare/worker/index.js:650-672`
+**File:** `_collab/infrastructure/cloudflare/worker/index.js:650-672`
 
 ```javascript
 async function handleZonesValidate(zoneId, env) {
@@ -368,7 +368,7 @@ interface ZoneData {
 
 **REQUIRED BACKEND FIX** (Cannot avoid - security critical)
 
-**File:** `infrastructure/cloudflare/worker/index.js:650-672`
+**File:** `_collab/infrastructure/cloudflare/worker/index.js:650-672`
 
 Replace entire `handleZonesValidate`:
 
@@ -409,7 +409,7 @@ async function handleZonesValidate(zoneId, env, request) {
 }
 ```
 
-**File:** `infrastructure/cloudflare/worker/index.js:995-998` (router)
+**File:** `_collab/infrastructure/cloudflare/worker/index.js:995-998` (router)
 
 Update to pass request object:
 
@@ -445,7 +445,7 @@ if (method === 'GET' && validateMatch) {
 3. Test zone access with valid/invalid codes
 
 **Files:**
-- `infrastructure/cloudflare/worker/index.js` (lines 650-672, 995-998)
+- `_collab/infrastructure/cloudflare/worker/index.js` (lines 650-672, 995-998)
 
 **Estimated Effort:** 30 minutes
 **Risk:** Low (isolated function, well-defined contract)

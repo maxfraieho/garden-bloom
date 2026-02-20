@@ -31,7 +31,7 @@ Browser-based AI агент для:
 
 ### З Lovable
 
-1. Lovable оновлює `infrastructure/cloudflare/worker/index.js`
+1. Lovable оновлює `_collab/infrastructure/cloudflare/worker/index.js`
 2. Comet деплоїть через Dashboard
 3. Comet перевіряє `/health`
 4. Comet повідомляє результат

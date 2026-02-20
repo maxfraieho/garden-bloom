@@ -2,7 +2,7 @@
 
 ## Pre-Deploy
 
-- [ ] Код worker оновлений в `infrastructure/cloudflare/worker/index.js`
+- [ ] Код worker оновлений в `_collab/infrastructure/cloudflare/worker/index.js`
 - [ ] Немає syntax errors
 - [ ] Немає hardcoded secrets
 
