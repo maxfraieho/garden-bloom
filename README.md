@@ -78,6 +78,7 @@ src/           — React application code
 public/        — static assets and runtime libs
 vendor/        — embedded runtime libraries (DRAKON widget)
 docs/          — canonical architecture and API contracts
+.github/       — CI/CD workflows
 _collab/       — agent collaboration and migration artifacts
 _quarantine/   — legacy and non-frontend code isolated from runtime
 ```
