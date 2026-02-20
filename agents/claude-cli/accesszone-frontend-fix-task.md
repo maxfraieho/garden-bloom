@@ -1,6 +1,6 @@
 # AccessZone Frontend & Integration Fix Task
 
-**Шлях до файлу:** `agents/claude-cli/accesszone-frontend-fix-task.md`
+**Шлях до файлу:** `_collab/agents/claude-cli/accesszone-frontend-fix-task.md`
 
 ---
 
@@ -61,7 +61,7 @@ cat src/hooks/useZoneValidation.ts
 cat src/hooks/useOwnerAuth.tsx
 
 # Cloudflare Worker (для референсу API)
-cat infrastructure/cloudflare/worker/index.js
+cat _collab/infrastructure/cloudflare/worker/index.js
 ```
 
 ---
@@ -218,4 +218,4 @@ cat infrastructure/cloudflare/worker/index.js
 | Pages | `src/pages/Index.tsx`, `src/pages/ZoneViewPage.tsx` |
 | Components | `src/components/garden/AccessZonesManager.tsx`, `src/components/garden/ZoneQRDialog.tsx`, `src/components/garden/ZoneNoteRenderer.tsx` |
 | Hooks | `src/hooks/useAccessZones.ts`, `src/hooks/useZoneValidation.ts`, `src/hooks/useOwnerAuth.tsx` |
-| Backend (ref) | `infrastructure/cloudflare/worker/index.js` |
+| Backend (ref) | `_collab/infrastructure/cloudflare/worker/index.js` |

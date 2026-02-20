@@ -68,7 +68,7 @@ docker exec garden-redis redis-cli ping
 Якщо використовуєте `docker-compose.yml` з цього репозиторію:
 
 ```bash
-cd infrastructure/n8n-migration
+cd _collab/infrastructure/n8n-migration
 docker-compose up -d redis
 ```
 

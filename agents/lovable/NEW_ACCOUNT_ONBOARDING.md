@@ -104,7 +104,7 @@ VITE_MCP_GATEWAY_URL=https://garden-mcp.exodus.pp.ua
 | Owner auth | `src/hooks/useOwnerAuth.tsx` |
 | DRAKON editor | `src/pages/DrakonPage.tsx` |
 | Нотатки | `src/site/notes/` |
-| Worker код | `infrastructure/cloudflare/worker/` |
+| Worker код | `_collab/infrastructure/cloudflare/worker/` |
 | Локалізація | `src/lib/i18n/locales/` |
 
 ---
