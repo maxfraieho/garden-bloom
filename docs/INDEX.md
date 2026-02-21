@@ -12,6 +12,7 @@
 
 Коротко: **AI, який пропонує — людина, яка вирішує.**
 
+**Архітектурний корінь:** [architecture/ARCHITECTURE_ROOT.md](architecture/ARCHITECTURE_ROOT.md) — аксіоми, ролі компонентів, authority boundaries, canonical flow.
 Детальніший технічний опис: [PROJECT_DESCRIPTION_CANONICAL.md](PROJECT_DESCRIPTION_CANONICAL.md)
 Філософія та бачення: [manifesto/MANIFESTO.md](manifesto/MANIFESTO.md)
 Продуктова стратегія: [product/PRODUCT_STRATEGY.md](product/PRODUCT_STRATEGY.md)
@@ -24,11 +25,10 @@
 
 ```
 1. manifesto/MANIFESTO.md                          — чому і навіщо
-2. PROJECT_DESCRIPTION_CANONICAL.md                — що це технічно
-3. architecture/RUNTIME_ARCHITECTURE_INDEX.md      — master index архітектури
-4. architecture/RUNTIME_ARCHITECTURE_CANONICAL.md  — повна архітектура
-5. architecture/КОНТРАКТ_АГЕНТА_V1.md              — що таке агент
-6. architecture/EXECUTION_PIPELINE_CANONICAL.md    — як виконується run
+2. architecture/ARCHITECTURE_ROOT.md               — аксіоми, ролі, canonical flow
+3. architecture/RUNTIME_ARCHITECTURE_CANONICAL.md  — повна архітектура
+4. architecture/КОНТРАКТ_АГЕНТА_V1.md              — що таке агент
+5. architecture/EXECUTION_PIPELINE_CANONICAL.md    — як виконується run
 ```
 
 ### B. Frontend розробник (Lovable)
@@ -83,9 +83,9 @@
 ### Канонічна архітектура
 | Файл | Опис |
 |------|------|
-| `architecture/RUNTIME_ARCHITECTURE_INDEX.md` | Master index — починати звідси |
+| `architecture/ARCHITECTURE_ROOT.md` | **Архітектурний корінь** — аксіоми, ролі, authority, canonical flow |
 | `architecture/RUNTIME_ARCHITECTURE_CANONICAL.md` | Повна vendor-agnostic архітектура |
-| `architecture/АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md` | Системні інваріанти та принципи |
+| `architecture/АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md` | Системні інваріанти (historical snapshot 2026-02-14) |
 | `architecture/КОНТРАКТ_АГЕНТА_V1.md` | Контракт агента v1.1 |
 | `architecture/AGENT_MEMORY_GIT_DIFFMEM_V1.md` | Git-based пам'ять агента, HARD ліміти |
 | `architecture/AGENT_LOGIC_VERSIONING_V1.md` | Версіонування логіки агента |
@@ -102,7 +102,7 @@
 |------|------|
 | `backend/API_CONTRACTS_V1.md` | Повні API schemas та endpoints |
 
-**Разом Tier 1: 19 файлів**
+**Разом Tier 1: 20 файлів**
 
 ---
 

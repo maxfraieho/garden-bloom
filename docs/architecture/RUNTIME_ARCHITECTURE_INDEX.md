@@ -15,13 +15,14 @@
 
 ---
 
-## 0.1 Project Entry Point
+## 0.1 Architectural Root & Entry Points
 
 | Документ | Опис |
 |---------|------|
-| **[PROJECT_DESCRIPTION_CANONICAL.md](../PROJECT_DESCRIPTION_CANONICAL.md)** | Canonical, vendor-agnostic опис проєкту — overview, principles, layers, authority model |
+| **[ARCHITECTURE_ROOT.md](ARCHITECTURE_ROOT.md)** | **Архітектурний корінь** — 7 аксіом, ролі компонентів, authority boundaries, canonical flow |
+| **[../PROJECT_DESCRIPTION_CANONICAL.md](../PROJECT_DESCRIPTION_CANONICAL.md)** | Canonical, vendor-agnostic опис проєкту — overview, principles, layers, authority model |
 
-> Рекомендовано читати першим для загального розуміння системи.
+> Рекомендовано читати першим: ARCHITECTURE_ROOT.md (аксіоми) → цей файл (детальний index).
 
 ---
 
