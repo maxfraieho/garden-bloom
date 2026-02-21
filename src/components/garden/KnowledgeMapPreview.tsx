@@ -169,7 +169,7 @@ export function KnowledgeMapPreview() {
       const nd = simRef.current.find(n => n.slug === dragNode);
       if (nd) nd.dragging = false;
       if (!dragMovedRef.current) {
-        navigate(`/note/${encodeURIComponent(dragNode)}`);
+        navigate(`/note/${dragNode}`);
       }
       setDragNode(null);
     }
