@@ -263,4 +263,21 @@ Orchestration Layer **НЕ повинен:**
 
 ---
 
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[ARCHITECTURE_ROOT]] — аксіома A4 (orchestration is replaceable): цей документ є її повним розкриттям
+
+**Цей документ залежить від:**
+- [[STORAGE_AUTHORITY_MODEL_CANONICAL]] — Hatchet wrapper є canonical status writer
+- [[AGENT_MEMORY_GIT_DIFFMEM_V1]] — Task Definition Step 1: завантаження memory Layer 1
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — Task Definition Step 3: persist-results → Proposal creation
+
+**Від цього документа залежать:**
+- [[EXECUTION_PIPELINE_CANONICAL]] — pipeline координується через Orchestration Layer
+- [[RUN_LIFECYCLE_CANONICAL]] — state transitions встановлює Orchestration Layer wrapper
+- [[RUNTIME_ARCHITECTURE_CANONICAL]] — деталізує роль Orchestration у загальній архітектурі
+
+---
+
 *Цей документ є канонічною специфікацією Orchestration Layer як абстрактного компонента. Він vendor-agnostic за задумом.*

@@ -775,5 +775,21 @@ logic/<agentId>/current.pseudo.md ← агент знає ЯК діяти
 
 ---
 
-*Документ є канонічним і стає частиною рантайм-архітектури Garden Bloom з моменту публікації.*  
+*Документ є канонічним і стає частиною рантайм-архітектури Garden Bloom з моменту публікації.*
 *Пов'язані документи: `docs/architecture/AGENT_MEMORY_GIT_DIFFMEM_V1.md`*
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[ARCHITECTURE_ROOT]] — аксіома A2 (logic-update — завжди через Proposal, завжди human review)
+
+**Цей документ залежить від:**
+- [[STORAGE_AUTHORITY_MODEL_CANONICAL]] — logic/ storage tier у git monorepo (§1, Tier 3)
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — logic-update Proposal: єдиний механізм зміни логіки
+- [[DRAKON_ІНТЕГРАЦІЯ_ТА_МОДЕЛЬ_ВИКОНАННЯ_АГЕНТА]] — DRAKON як canonical format для current.drakon.json
+
+**Від цього документа залежать:**
+- [[КОНТРАКТ_АГЕНТА_V1]] — §1.2 logic definition: _agent.md + pseudocode.md з logic/
+- [[AGENT_MEMORY_GIT_DIFFMEM_V1]] — суміжний storage tier у тому самому git monorepo

@@ -327,4 +327,22 @@ sequenceDiagram
 
 ---
 
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[ARCHITECTURE_ROOT]] — §5 Canonical Flow: цей документ є його повним розкриттям
+
+**Цей документ залежить від:**
+- [[ORCHESTRATION_LAYER_ABSTRACTION]] — Hatchet виконує кроки pipeline
+- [[RUN_LIFECYCLE_CANONICAL]] — state transitions прив'язані до фаз pipeline
+- [[STORAGE_AUTHORITY_MODEL_CANONICAL]] — write authority на кожній фазі
+- [[AGENT_MEMORY_GIT_DIFFMEM_V1]] — Phase 3: завантаження memory Layer 1
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — Phase 5: Proposal lifecycle після run
+
+**Від цього документа залежать:**
+- [[RUNTIME_ARCHITECTURE_CANONICAL]] — pipeline є серцевиною runtime архітектури
+- [[КОНТРАКТ_АГЕНТА_V1]] — що Mastra отримує на вході кожного step
+
+---
+
 *Цей документ є канонічною специфікацією Execution Pipeline. Він vendor-agnostic за задумом.*

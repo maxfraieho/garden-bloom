@@ -685,3 +685,21 @@ sequenceDiagram
 ---
 
 *Цей документ описує архітектуру Inbox та Proposal як єдиного каналу змін. Він не є планом впровадження — це специфікація контракту.*
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[ARCHITECTURE_ROOT]] — аксіома A2 (mutation requires consent): цей документ є її повним розкриттям
+
+**Цей документ залежить від:**
+- [[STORAGE_AUTHORITY_MODEL_CANONICAL]] — proposals зберігаються у MinIO; transitions authority
+- [[RUN_LIFECYCLE_CANONICAL]] — run → completed породжує proposals
+- [[AGENT_MEMORY_GIT_DIFFMEM_V1]] — memory-update Proposal: окремий тип з auto-approve для normal priority
+- [[AGENT_LOGIC_VERSIONING_V1]] — logic-update Proposal: окремий тип, завжди human review
+
+**Від цього документа залежать:**
+- [[EXECUTION_PIPELINE_CANONICAL]] — Phase 5 (Persist Results): proposals creation
+- [[КОНТРАКТ_АГЕНТА_V1]] — агент генерує proposals як єдиний safe output
+- [[PROPOSAL_SYSTEM_V1]] — frontend-орієнтований витяг (state machine, поля для UI)

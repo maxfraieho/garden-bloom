@@ -11,7 +11,7 @@
 
 Цей документ є **архітектурним коренем** Garden Bloom. Він не описує деталі реалізації. Він визначає, **з яких аксіом система побудована**, які ролі має кожен компонент і як із цих аксіом випливає canonical flow.
 
-Всі інші архітектурні документи є деталізацією цього кореня.
+Всі інші архітектурні документи є деталізацією цього кореня. Читач або агент, що починає з цього документа, отримує повну семантичну карту системи.
 
 ---
 
@@ -37,6 +37,8 @@ MinIO та git monorepo `garden-bloom-memory` є **єдиними canonical sour
 
 Жоден runtime-компонент (Hatchet, Mastra, Gateway) не є авторитетним. Якщо вони втрачають стан — система відновлюється зі сховища. Якщо сховище втрачає дані — система втрачає дані. Це асиметрія за задумом.
 
+> Реалізовано у: [[STORAGE_AUTHORITY_MODEL_CANONICAL]] · [[AGENT_MEMORY_GIT_DIFFMEM_V1]]
+
 ### A2 — Мутація вимагає згоди
 
 **Жоден компонент не змінює canonical storage напряму.**
@@ -49,11 +51,15 @@ Proposal (pending) → Approval → Apply → Storage updated
 
 Агент не пише. Агент пропонує.
 
+> Реалізовано у: [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] · [[STORAGE_AUTHORITY_MODEL_CANONICAL#Proposal Status Transitions]]
+
 ### A3 — Виконання є stateless
 
 Mastra є **stateless interpreter**. При кожному запуску він завантажує визначення агента (`_agent.md`) зі сховища та не зберігає між запусками нічого власного.
 
 Стан між запусками живе в пам'яті агента (git monorepo), не в Mastra.
+
+> Реалізовано у: [[RUNTIME_ARCHITECTURE_CANONICAL]] · [[КОНТРАКТ_АГЕНТА_V1]] · [[AGENT_MEMORY_GIT_DIFFMEM_V1]]
 
 ### A4 — Orchestration є замінним
 
@@ -61,17 +67,23 @@ Orchestration Layer (Hatchet) відповідає за **коли**, **в як�
 
 Заміна Hatchet на Temporal, Restate або будь-який інший оркестратор не змінює архітектуру — лише реалізацію адаптера.
 
+> Реалізовано у: [[ORCHESTRATION_LAYER_ABSTRACTION]]
+
 ### A5 — Gateway є єдиною точкою входу
 
 Cloudflare Worker є **єдиним авторизованим gateway** між зовнішнім світом та системою.
 
 Frontend не звертається до Mastra, Hatchet або MinIO напряму. Все — через Worker.
 
+> Реалізовано у: [[RUNTIME_ARCHITECTURE_CANONICAL]] · [[STORAGE_AUTHORITY_MODEL_CANONICAL#Read Authority Matrix]]
+
 ### A6 — Frontend є проекцією
 
 Frontend читає canonical state через Worker. Він не має write authority. Він лише відображає.
 
 Будь-який стан, що відображається у Frontend, має своїм джерелом MinIO або git monorepo — не Frontend.
+
+> Реалізовано у: [[RUNTIME_ARCHITECTURE_CANONICAL]] · [[STORAGE_AUTHORITY_MODEL_CANONICAL#Anti-Patterns]]
 
 ### A7 — Пам'ять агента є обмеженою
 
@@ -82,20 +94,22 @@ Frontend читає canonical state через Worker. Він не має write 
 
 Перевищення HARD limit веде до автоматичного eviction. Безмежна пам'ять порушує A1.
 
+> Реалізовано у: [[AGENT_MEMORY_GIT_DIFFMEM_V1]] · [[КОНТРАКТ_АГЕНТА_V1]]
+
 ---
 
 ## 3. Компоненти та їхні ролі
 
 | Компонент | Роль | Авторитет |
 |-----------|------|-----------|
-| **MinIO** | Canonical storage: визначення агентів, runs, proposals, аудит | Source of truth |
-| **git monorepo** (`garden-bloom-memory`) | Canonical storage: пам'ять агентів (Layer 1/2), логіка (logic/) | Source of truth |
-| **Hatchet** (Orchestration Layer) | Durable execution, concurrency control, scheduling, status writer | Execution coordinator |
-| **Mastra** (Runtime) | Stateless interpreter `_agent.md` + pseudocode; викликає tools; повертає proposals | Interpreter |
+| **[[STORAGE_AUTHORITY_MODEL_CANONICAL\|MinIO]]** | Canonical storage: визначення агентів, runs, proposals, аудит | Source of truth (A1) |
+| **[[AGENT_MEMORY_GIT_DIFFMEM_V1\|git monorepo]]** (`garden-bloom-memory`) | Canonical storage: пам'ять агентів (Layer 1/2), логіка (logic/) | Source of truth (A1, A7) |
+| **[[ORCHESTRATION_LAYER_ABSTRACTION\|Hatchet]]** (Orchestration Layer) | Durable execution, concurrency control, scheduling, status writer | Execution coordinator (A4) |
+| **[[RUNTIME_ARCHITECTURE_CANONICAL\|Mastra]]** (Runtime) | Stateless interpreter `_agent.md` + pseudocode; викликає tools; повертає proposals | Interpreter (A3) |
 | **FastAPI** | Isolated cognitive proxy до NotebookLM (NLM) | Isolated tool endpoint |
-| **Cloudflare Worker** (Gateway) | Auth, routing, write gatekeeper; початковий запис status "requested" | Entrypoint & gatekeeper |
-| **Frontend** (Lovable) | Projection layer: відображає canonical state, ініціює дії Owner | Читач |
-| **Optimizer agent** | Спеціалізований агент: аналізує runs, пропонує logic-update Proposals | Агент (не компонент) |
+| **[[RUNTIME_ARCHITECTURE_CANONICAL\|Cloudflare Worker]]** (Gateway) | Auth, routing, write gatekeeper; початковий запис status "requested" | Entrypoint & gatekeeper (A5) |
+| **Frontend** (Lovable) | Projection layer: відображає canonical state, ініціює дії Owner | Читач (A6) |
+| **[[AGENT_LOGIC_VERSIONING_V1\|Optimizer agent]]** | Спеціалізований агент: аналізує runs, пропонує logic-update Proposals | Агент (A2) |
 
 ---
 
@@ -116,6 +130,8 @@ Frontend читає canonical state через Worker. Він не має write 
 | `logic/{agentId}/current.*` | Gateway (Proposal lifecycle) | Завжди human review |
 
 **[ІНВАРІАНТ]** Mastra не пише нічого. FastAPI не пише нічого. Frontend не пише нічого.
+
+Повна матриця: [[STORAGE_AUTHORITY_MODEL_CANONICAL#Write Authority Matrix]]
 
 ### 4.2 Execute authority
 
@@ -138,6 +154,8 @@ Frontend читає canonical state через Worker. Він не має write 
 | Frontend | Нічого напряму | Через Worker API |
 | FastAPI | Нічого | — |
 
+Повна матриця: [[STORAGE_AUTHORITY_MODEL_CANONICAL#Read Authority Matrix]]
+
 ---
 
 ## 5. Canonical Flow
@@ -149,79 +167,101 @@ Owner / Cron
 [Intent]
 Дія або розклад ініціює run
 
-     │
+     │   → [[RUN_LIFECYCLE_CANONICAL]] state: (none)
      ▼
-[Inbox — Cloudflare Worker]
+[Inbox — Cloudflare Worker]          → A5
 Validate JWT → Generate run_id → Write status "requested" → Trigger Hatchet → 202 Accepted
-
-     │
+     │   → [[RUN_LIFECYCLE_CANONICAL]] state: requested
      ▼
-[Orchestration — Hatchet]
+[Orchestration — Hatchet]            → [[ORCHESTRATION_LAYER_ABSTRACTION]] · A4
 Enqueue → Concurrency check → Start durable execution
-
-     │
+     │   → [[RUN_LIFECYCLE_CANONICAL]] state: queued → running
      ▼
 [Context Load — Hatchet wrapper]
 Load _agent.md + sources (MinIO) → Load memory Layer 1 (git monorepo via Gateway)
+     │   → [[КОНТРАКТ_АГЕНТА_V1]] · [[AGENT_MEMORY_GIT_DIFFMEM_V1#Layer 1]]
 Write step 1 result → Update status: running
 
      │
      ▼
-[Runtime — Mastra]
+[Runtime — Mastra]                   → [[RUNTIME_ARCHITECTURE_CANONICAL]] · A3
 Parse _agent.md → Register tools → Execute (LLM + tools: NLM, read-context, read-memory)
 Return structured output {proposals[], memory_updates[]}
+     │   → [[КОНТРАКТ_АГЕНТА_V1]] · [[DRAKON_ІНТЕГРАЦІЯ_ТА_МОДЕЛЬ_ВИКОНАННЯ_АГЕНТА]]
 Write step 2 result → Update status: step 2
 
      │
      ▼
-[Proposal — Hatchet wrapper]
+[Proposal — Hatchet wrapper]         → [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] · A2
 Write content proposals → MinIO {status: pending}
-POST memory-update → Gateway {auto или human approval}
-POST logic-update (якщо optimizer) → Gateway {завжди human review}
+POST memory-update → Gateway {auto або human approval}    → [[AGENT_MEMORY_GIT_DIFFMEM_V1]]
+POST logic-update (якщо optimizer) → Gateway {human review} → [[AGENT_LOGIC_VERSIONING_V1]]
 Write step 3 result → Update status: step 3
 
      │
      ▼
 [Finalize — Hatchet wrapper]
 Write manifest.json → Update status: completed
+     │   → [[RUN_LIFECYCLE_CANONICAL]] state: completed
 
      │
      ▼
-[Apply — Cloudflare Worker]
+[Apply — Cloudflare Worker]          → [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА#Apply]] · A2, A5
 Owner approves via Frontend → Worker applies:
   content proposal → MinIO write
-  memory-update → git commit (garden-bloom-memory)
-  logic-update → git commit (з human review)
+  memory-update → git commit (garden-bloom-memory)   → [[AGENT_MEMORY_GIT_DIFFMEM_V1]]
+  logic-update → git commit (з human review)         → [[AGENT_LOGIC_VERSIONING_V1]]
 
      │
      ▼
-[Storage — MinIO / git monorepo]
+[Storage — MinIO / git monorepo]     → A1
 Canonical state updated. This is the truth.
 
      │
      ▼
-[Projection — Frontend]
+[Projection — Frontend]              → A6
 Poll Worker → Read status.json → Display state
 ```
 
+Повний pipeline з фазами: [[EXECUTION_PIPELINE_CANONICAL]]
+
 ---
 
-## 6. Деталізація в інших документах
+## 6. Semantic Map
 
-Цей документ є коренем. Деталі — в спеціалізованих specs:
+ARCHITECTURE_ROOT визначає аксіоми. Від нього виходять концептуальні вузли knowledge graph:
 
-| Аспект | Документ |
-|--------|----------|
-| Повна runtime архітектура | `RUNTIME_ARCHITECTURE_CANONICAL.md` |
-| Orchestration Layer контракт | `ORCHESTRATION_LAYER_ABSTRACTION.md` |
-| Storage authority (повна матриця) | `STORAGE_AUTHORITY_MODEL_CANONICAL.md` |
-| Execution pipeline (7 фаз) | `EXECUTION_PIPELINE_CANONICAL.md` |
-| Run lifecycle (state machine) | `RUN_LIFECYCLE_CANONICAL.md` |
-| Agent memory model | `AGENT_MEMORY_GIT_DIFFMEM_V1.md` |
-| Logic versioning | `AGENT_LOGIC_VERSIONING_V1.md` |
-| Proposal system | `INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md` |
-| Agent contract | `КОНТРАКТ_АГЕНТА_V1.md` |
-| API contracts | `../backend/API_CONTRACTS_V1.md` |
+### Execution
+
+- [[EXECUTION_PIPELINE_CANONICAL]] — 7 фаз canonical flow (деталізація §5)
+  - залежить від [[RUN_LIFECYCLE_CANONICAL]] — state machine кожного run
+  - координується через [[ORCHESTRATION_LAYER_ABSTRACTION]] — A4: replaceable coordination
+
+### Storage
+
+- [[STORAGE_AUTHORITY_MODEL_CANONICAL]] — повна write/read authority матриця (A1, A5, A6)
+  - включає як storage tier: [[AGENT_MEMORY_GIT_DIFFMEM_V1]] — git monorepo, A7
+  - включає як storage tier: [[AGENT_LOGIC_VERSIONING_V1]] — logic/ versioning
+
+### Mutation
+
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — consent-based mutation lifecycle (A2)
+  - зберігає proposals у [[STORAGE_AUTHORITY_MODEL_CANONICAL]]
+  - породжує memory-update → [[AGENT_MEMORY_GIT_DIFFMEM_V1]]
+  - породжує logic-update → [[AGENT_LOGIC_VERSIONING_V1]]
+
+### Agent
+
+- [[КОНТРАКТ_АГЕНТА_V1]] — що визначає агента: `_agent.md` + memory + logic
+  - пам'ять агента: [[AGENT_MEMORY_GIT_DIFFMEM_V1]] — DiffMem, HARD limits
+  - логіка агента: [[AGENT_LOGIC_VERSIONING_V1]] — versioned, optimizer agent
+  - формат логіки: [[DRAKON_ІНТЕГРАЦІЯ_ТА_МОДЕЛЬ_ВИКОНАННЯ_АГЕНТА]] — DRAKON → pseudocode → runtime
+
+### Runtime
+
+- [[RUNTIME_ARCHITECTURE_CANONICAL]] — повна архітектура execution layer
+  - деталізує [[ORCHESTRATION_LAYER_ABSTRACTION]] — Hatchet adapter contract
+  - деталізує [[КОНТРАКТ_АГЕНТА_V1]] — що Mastra отримує і що повертає
 
 ---
 
@@ -231,13 +271,39 @@ Poll Worker → Read status.json → Display state
 
 | Термін | Значення в цьому документі |
 |--------|---------------------------|
-| **Gateway** | Cloudflare Worker — єдина точка входу |
-| **Orchestration Layer** | Hatchet (або будь-який vendor через Adapter) — coordination |
-| **Runtime** | Mastra — stateless agent interpreter |
+| **Gateway** | Cloudflare Worker — єдина точка входу (A5) |
+| **Orchestration Layer** | Hatchet (або будь-який vendor через Adapter) — coordination (A4) |
+| **Runtime** | Mastra — stateless agent interpreter (A3) |
 | **Cognitive proxy** | FastAPI — isolated NLM endpoint |
 
-> **Зауваження щодо АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md**: цей документ (2026-02-14) використовує термін "Orchestration Layer" для Cloudflare Worker і описує Replit FastAPI як "Backend шар". Обидва терміни належать до попередньої архітектурної епохи. Актуальна термінологія — у цьому документі.
+> **Зауваження щодо [[АРХІТЕКТУРНА_БАЗА_СИСТЕМИ]]**: цей документ (2026-02-14) використовує термін "Orchestration Layer" для Cloudflare Worker і описує Replit FastAPI як "Backend шар". Обидва терміни належать до попередньої архітектурної епохи. Актуальна термінологія — у цьому документі.
 
 ---
 
-*Цей документ є архітектурним коренем Garden Bloom. Він визначає аксіоми, ролі та canonical flow. Деталізація — у спеціалізованих documents, перелічених у §6.*
+## Семантичні зв'язки
+
+**З цього документа виходять (semantic children):**
+
+| Документ | Аксіома |
+|----------|---------|
+| [[STORAGE_AUTHORITY_MODEL_CANONICAL]] | A1 — storage authority |
+| [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] | A2 — mutation consent |
+| [[RUNTIME_ARCHITECTURE_CANONICAL]] | A3 — stateless execution |
+| [[ORCHESTRATION_LAYER_ABSTRACTION]] | A4 — replaceable orchestration |
+| [[EXECUTION_PIPELINE_CANONICAL]] | §5 canonical flow |
+| [[RUN_LIFECYCLE_CANONICAL]] | §5 run states |
+| [[КОНТРАКТ_АГЕНТА_V1]] | A3, A7 — agent definition |
+| [[AGENT_MEMORY_GIT_DIFFMEM_V1]] | A1, A7 — bounded memory |
+| [[AGENT_LOGIC_VERSIONING_V1]] | A2 — logic-update via proposal |
+| [[DRAKON_ІНТЕГРАЦІЯ_ТА_МОДЕЛЬ_ВИКОНАННЯ_АГЕНТА]] | A3 — logic format |
+
+**До цього документа відносяться (semantic parents):**
+
+| Документ | Роль |
+|----------|------|
+| [[RUNTIME_ARCHITECTURE_INDEX]] | Operational index з посиланнями |
+| [[manifesto/MANIFESTO]] | Філософський корінь (цей документ — технічний) |
+
+---
+
+*Цей документ є архітектурним коренем Garden Bloom. Деталізація — у вузлах §6 Semantic Map.*

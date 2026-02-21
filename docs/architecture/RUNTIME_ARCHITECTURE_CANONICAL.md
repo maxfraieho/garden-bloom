@@ -346,3 +346,20 @@ sequenceDiagram
 ---
 
 *Цей документ є канонічним описом runtime-архітектури Garden Seedling. Він замінює vendor-specific ЦІЛЬОВА_АРХІТЕКТУРА_MASTRA_INNGEST.md.*
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[ARCHITECTURE_ROOT]] — аксіоми A3 (stateless runtime), A4 (replaceable orchestration), A5 (gateway), A6 (frontend isolation)
+
+**Цей документ залежить від:**
+- [[ORCHESTRATION_LAYER_ABSTRACTION]] — Hatchet adapter contract
+- [[STORAGE_AUTHORITY_MODEL_CANONICAL]] — authority model для кожного компонента
+- [[КОНТРАКТ_АГЕНТА_V1]] — що Mastra отримує і що повертає
+
+**Від цього документа залежать:**
+- [[EXECUTION_PIPELINE_CANONICAL]] — pipeline є деталізацією runtime flow
+- [[RUN_LIFECYCLE_CANONICAL]] — state machine реалізується в runtime
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — proposals — вихід runtime execution

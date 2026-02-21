@@ -257,3 +257,18 @@ SSE генерується Worker з MinIO (не з Orchestration Layer). Fronte
 ---
 
 *Цей документ є канонічною специфікацією Run Lifecycle. Він vendor-agnostic за задумом.*
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[ARCHITECTURE_ROOT]] — §5 Canonical Flow: стани requested → queued → running → completed/failed
+
+**Цей документ залежить від:**
+- [[ORCHESTRATION_LAYER_ABSTRACTION]] — Orchestration Layer wrapper є canonical status writer
+- [[STORAGE_AUTHORITY_MODEL_CANONICAL]] — status.json writer contract (§2.2)
+
+**Від цього документа залежать:**
+- [[EXECUTION_PIPELINE_CANONICAL]] — кожна фаза pipeline відповідає стану lifecycle
+- [[INBOX_AND_RUN_LIFECYCLE_V1]] — frontend-orієнтований витяг цього lifecycle

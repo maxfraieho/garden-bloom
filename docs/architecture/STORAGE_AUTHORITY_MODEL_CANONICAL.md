@@ -228,4 +228,21 @@ Frontend оперує **API responses**, не MinIO objects. Це забезпе
 
 ---
 
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[ARCHITECTURE_ROOT]] — аксіоми A1 (storage authority), A5 (gateway entrypoint), A6 (frontend isolation)
+
+**Цей документ залежить від:**
+- [[AGENT_MEMORY_GIT_DIFFMEM_V1]] — git monorepo як окремий storage tier (memory/, logic/)
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — proposal lifecycle визначає transitions статусів
+
+**Від цього документа залежать:**
+- [[EXECUTION_PIPELINE_CANONICAL]] — хто що пише на кожній фазі pipeline
+- [[RUNTIME_ARCHITECTURE_CANONICAL]] — загальна authority model
+- [[ORCHESTRATION_LAYER_ABSTRACTION]] — Hatchet wrapper як status writer
+- [[RUN_LIFECYCLE_CANONICAL]] — status.json writer contract
+
+---
+
 *Цей документ є канонічною специфікацією Storage Authority Model. Він vendor-agnostic за задумом.*

@@ -481,3 +481,19 @@ Runtime завантажує `_agent.md` з MinIO при кожному запу
 ---
 
 *Цей документ є архітектурною специфікацією, не планом реалізації. Він визначає контракти і інваріанти, яким повинна відповідати будь-яка реалізація системи виконання агентів.*
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[ARCHITECTURE_ROOT]] — аксіома A3 (stateless): DRAKON → pseudocode → _agent.md є declarative definition
+- [[КОНТРАКТ_АГЕНТА_V1]] — §3 behavioral logic: DRAKON як джерело pseudocode.md
+
+**Цей документ залежить від:**
+- [[КОНТРАКТ_АГЕНТА_V1]] — _agent.md є кінцевою формою, яку інтерпретує Mastra
+- [[RUNTIME_ARCHITECTURE_CANONICAL]] — Runtime інтерпретує pseudocode, не DRAKON напряму
+
+**Від цього документа залежать:**
+- [[AGENT_LOGIC_VERSIONING_V1]] — current.drakon.json є canonical logic format у logic/ tier
+- [[EXECUTION_PIPELINE_CANONICAL]] — Phase 4 (Execute Agent): Mastra виконує logic з _agent.md
