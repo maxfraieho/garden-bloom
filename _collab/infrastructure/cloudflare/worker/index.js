@@ -387,7 +387,7 @@ async function deleteFromMinIO(env, path) {
  */
 async function fetchNotebookLM(env, path, init = {}) {
   const baseUrl = (env.NOTEBOOKLM_BASE_URL || 'https://notebooklm-gateway.replit.app').replace(/\/$/, '');
-  const timeoutMs = Number.parseInt(env.NOTEBOOKLM_TIMEOUT_MS, 10) || 15000;
+  const timeoutMs = Number.parseInt(env.NOTEBOOKLM_TIMEOUT_MS, 10) || 120000;
   const url = `${baseUrl}${path}`;
 
   const headers = new Headers(init.headers || {});
@@ -1062,10 +1062,12 @@ async function handleZonesCreate(request, env, host) {
 
     try {
       // 1) Create notebook
+      console.log(`[NotebookLM] Creating notebook for zone ${zoneId}, title: ${notebookTitle || name}`);
       const createRes = await fetchNotebookLM(env, '/v1/notebooks', {
         method: 'POST',
         body: JSON.stringify({ title: notebookTitle || name }),
       });
+      console.log(`[NotebookLM] Create response: status=${createRes.status}, ok=${createRes.ok}, data=`, JSON.stringify(createRes.data)?.slice(0, 500));
       if (!createRes.ok) {
         throw new Error(createRes?.data?.error || createRes?.data?.detail || `Create notebook failed (${createRes.status})`);
       }
@@ -1103,10 +1105,12 @@ async function handleZonesCreate(request, env, host) {
         throw new Error('NotebookLM import blocked: no notes were exported to MinIO');
       }
 
+      console.log(`[NotebookLM] Importing ${importBody.sources.length} sources for notebook ${notebookId}`);
       const importRes = await fetchNotebookLM(env, `/v1/notebooks/${notebookId}/sources/import`, {
         method: 'POST',
         body: JSON.stringify(importBody),
       });
+      console.log(`[NotebookLM] Import response: status=${importRes.status}, ok=${importRes.ok}, data=`, JSON.stringify(importRes.data)?.slice(0, 500));
       if (!importRes.ok) {
         throw new Error(importRes?.data?.error || importRes?.data?.detail || `Import failed (${importRes.status})`);
       }
