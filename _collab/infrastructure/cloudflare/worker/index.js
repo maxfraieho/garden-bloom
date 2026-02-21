@@ -304,18 +304,25 @@ function convertNoteToMarkdown(note) {
  */
 async function syncZoneNotesToMinIO(env, zoneId, notes) {
   const list = Array.isArray(notes) ? notes : [];
-  const keys = [];
+  if (list.length === 0) return [];
 
-  // Upload sequentially to keep memory small and simplify tracing.
-  for (const n of list) {
-    const slug = safeNoteSlug(n?.slug || n?.title);
-    const key = `zones/${zoneId}/notes/${slug}.md`;
-    const markdown = convertNoteToMarkdown(n);
-    await uploadToMinIO(env, key, markdown, 'text/markdown');
-    keys.push(key);
-  }
+  // Cloudflare Workers free plan: max 50 subrequests per invocation.
+  // Instead of uploading each note as a separate file (N fetches),
+  // combine all notes into a single markdown file (1 fetch).
+  const combined = list
+    .map((n) => {
+      const title = n?.title || n?.slug || 'Untitled';
+      const tags = Array.isArray(n?.tags) ? n.tags : [];
+      const tagsLine = tags.length ? `\n\nTags: ${tags.map((t) => `#${t}`).join(' ')}` : '';
+      return `# ${title}\n\n${n?.content || ''}${tagsLine}`;
+    })
+    .join('\n\n---\n\n');
 
-  return keys;
+  const combinedKey = `zones/${zoneId}/notes-all.md`;
+  await uploadToMinIO(env, combinedKey, combined, 'text/markdown');
+  console.log(`[Zones] Uploaded combined markdown (${list.length} notes) to ${combinedKey}`);
+
+  return [combinedKey];
 }
 
 async function deleteFromMinIO(env, path) {
@@ -1302,7 +1309,7 @@ async function handleZoneNotebookLMRetryImport(zoneId, env) {
     }
 
     const timestamp = Date.now();
-    const noteKeys = (zone.notes || []).map((n) => `zones/${zoneId}/notes/${safeNoteSlug(n?.slug || n?.title)}.md`);
+    const noteKeys = [`zones/${zoneId}/notes-all.md`];
     const importRes = await fetchNotebookLM(env, `/v1/notebooks/${mapping.notebookId}/sources/import`, {
       method: 'POST',
       body: JSON.stringify({
