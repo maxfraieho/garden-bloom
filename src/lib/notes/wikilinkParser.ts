@@ -40,17 +40,21 @@ export function parseWikilinks(content: string): ParsedWikilink[] {
 }
 
 /**
- * Convert a note title to a URL-safe slug
+ * Convert a wikilink target to a slug matching noteLoader's pathToSlug format.
+ * Wikilink targets can be:
+ *   - Full paths: "exodus.pp.ua/architecture/ARCHITECTURE_ROOT"
+ *   - Short names: "ARCHITECTURE_ROOT"
+ * The noteLoader stores slugs as encodeURIComponent of the file path (without .md).
+ * So we just trim and encodeURIComponent the target as-is.
  */
 export function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '');
+  const trimmed = text.trim();
+  // If it looks like a path (contains /), encode the whole path
+  if (trimmed.includes('/')) {
+    return encodeURIComponent(trimmed);
+  }
+  // Short name — try to match as-is (encoded)
+  return encodeURIComponent(trimmed);
 }
 
 /**
