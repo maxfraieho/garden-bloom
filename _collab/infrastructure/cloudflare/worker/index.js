@@ -3279,6 +3279,29 @@ export default {
         return await handleZonesDelete(zoneDeleteMatch[1], env);
       }
 
+      // GET /zones/:zoneId/download (owner-only, proxy to Replit)
+      const zoneDownloadMatch = path.match(/^\/zones\/([^\/]+)\/download$/);
+      if (method === 'GET' && zoneDownloadMatch) {
+        const zoneId = zoneDownloadMatch[1];
+        try {
+          const resp = await fetchNotebookLM(env, `/v1/zones/${zoneId}/download`);
+          if (!resp.ok) {
+            return errorResponse(`Download failed: ${resp.status}`, resp.status);
+          }
+          const body = resp.body;
+          return new Response(body, {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/markdown; charset=utf-8',
+              'Content-Disposition': `attachment; filename="notes-all.md"`,
+              'Access-Control-Allow-Origin': '*',
+            },
+          });
+        } catch (e) {
+          return errorResponse(`Download error: ${e.message}`, 502);
+        }
+      }
+
       // GET /zones/list
       if (method === 'GET' && path === '/zones/list') {
         return await handleZonesList(env);
