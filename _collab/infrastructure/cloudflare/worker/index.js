@@ -164,9 +164,14 @@ async function hmacSha256Hex(key, message) {
   return [...sig].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function uploadToMinIO(env, path, content, contentType = 'application/json; charset=utf-8') {
+async function uploadToMinIO(env, path, content, contentType = 'application/json; charset=utf-8', retries = 2) {
   const endpoint = env.MINIO_ENDPOINT;
   const bucket = env.MINIO_BUCKET;
+
+  if (!endpoint || !bucket || !env.MINIO_ACCESS_KEY || !env.MINIO_SECRET_KEY) {
+    throw new Error(`MinIO config missing: endpoint=${!!endpoint}, bucket=${!!bucket}, accessKey=${!!env.MINIO_ACCESS_KEY}, secretKey=${!!env.MINIO_SECRET_KEY}`);
+  }
+
   const key = path;
   const encodedKey = encodeS3KeyForPath(key);
   const base = String(endpoint || '').replace(/\/+$/, '');
@@ -218,24 +223,48 @@ async function uploadToMinIO(env, path, content, contentType = 'application/json
     `SignedHeaders=${signedHeaders}`,
     `Signature=${signature}`,
   ].join(', ');
-  
-  const response = await fetch(url, {
-    method,
-    headers: {
-      'Content-Type': contentType,
-      'x-amz-content-sha256': payloadHash,
-      'x-amz-date': date,
-      'Authorization': authorization,
-    },
-    body: content,
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`MinIO upload failed: ${response.status} - ${errorText}`);
+
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      if (attempt > 0) {
+        // Exponential backoff: 500ms, 1500ms
+        await new Promise(r => setTimeout(r, 500 * attempt));
+        console.log(`[MinIO] Retry ${attempt}/${retries} for ${key}`);
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': contentType,
+          'x-amz-content-sha256': payloadHash,
+          'x-amz-date': date,
+          'Authorization': authorization,
+        },
+        body: content,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        lastError = new Error(`MinIO upload failed: ${response.status} - ${errorText}`);
+        console.error(`[MinIO] Upload ${key} failed (attempt ${attempt}): ${response.status} - ${errorText}`);
+        if (response.status >= 400 && response.status < 500) {
+          // Client error — don't retry (wrong credentials, bad path, etc.)
+          throw lastError;
+        }
+        continue; // Server error — retry
+      }
+      
+      return { bucket, key, url };
+    } catch (err) {
+      lastError = err;
+      if (err?.message?.includes('MinIO upload failed: 4')) {
+        throw err; // Don't retry 4xx
+      }
+    }
   }
-  
-  return { bucket, key, url };
+
+  throw lastError || new Error(`MinIO upload failed after ${retries + 1} attempts: ${key}`);
 }
 
 function safeNoteSlug(slug) {
@@ -961,19 +990,17 @@ async function handleZonesCreate(request, env, host) {
   // Upload zone content to MinIO for MCP access
   // ============================================
   let minioNoteKeys = null;
+  let minioSyncError = null;
   // IMPORTANT: If NotebookLM is requested, per-note files must exist before we call import.
   if (createNotebookLM) {
     try {
       minioNoteKeys = await syncZoneNotesToMinIO(env, zoneId, notes);
       console.log(`[Zones] Synced per-note Markdown to MinIO for NotebookLM: ${zoneId} -> ${minioNoteKeys.length} files`);
     } catch (err) {
-      console.error('[Zones] MinIO sync required for NotebookLM failed:', err);
-      return errorResponse(
-        'Failed to sync notes to MinIO (required for NotebookLM import)',
-        502,
-        { message: err?.message || String(err), zoneId, prefix: `zones/${zoneId}/notes/` },
-        'MINIO_SYNC_FAILED'
-      );
+      console.error('[Zones] MinIO sync for NotebookLM failed (zone created, NotebookLM skipped):', err);
+      minioSyncError = err?.message || String(err);
+      // DON'T return error — zone is already created in KV.
+      // NotebookLM import will be skipped, but zone is usable.
     }
   }
 
@@ -1022,7 +1049,7 @@ async function handleZonesCreate(request, env, host) {
   // ============================================
   let notebooklmResult = null;
 
-  if (createNotebookLM) {
+  if (createNotebookLM && !minioSyncError) {
     const notebooklmMapping = {
       zoneId,
       notebookId: null,
@@ -1121,6 +1148,20 @@ async function handleZonesCreate(request, env, host) {
     await env.KV.put(`zone_notebooklm:${zoneId}`, JSON.stringify(notebooklmMapping), {
       expirationTtl: ttlMinutes * 60,
     });
+  } else if (createNotebookLM && minioSyncError) {
+    // MinIO sync failed — zone created but NotebookLM skipped
+    notebooklmResult = {
+      notebookId: null,
+      notebookUrl: null,
+      importJobId: null,
+      status: 'failed',
+      error: `MinIO sync failed: ${minioSyncError}. Zone created, NotebookLM skipped. Use retry import.`,
+    };
+  }
+
+  const warnings = [];
+  if (minioSyncError) {
+    warnings.push(`MinIO sync failed: ${minioSyncError}. Zone created without MinIO files.`);
   }
 
   return jsonResponse({
@@ -1131,6 +1172,7 @@ async function handleZonesCreate(request, env, host) {
     expiresAt,
     noteCount: notes.length,
     ...(notebooklmResult ? { notebooklm: notebooklmResult } : {}),
+    ...(warnings.length ? { warnings } : {}),
   });
 }
 
