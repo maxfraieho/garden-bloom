@@ -3244,6 +3244,7 @@ export default {
         (method === 'POST' && path === '/zones/create') ||
         (method === 'POST' && path === '/notebooklm/chat') ||
         (method === 'DELETE' && path.match(/^\/zones\/[^\/]+$/)) ||
+        (method === 'GET' && path.match(/^\/zones\/[^\/]+\/download$/)) ||
         (method === 'GET' && path === '/zones/list');
 
       if (isProtectedRoute) {
