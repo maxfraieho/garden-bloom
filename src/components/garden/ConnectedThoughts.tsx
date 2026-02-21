@@ -89,11 +89,11 @@ export function ConnectedThoughts({ maxLinks = 3 }: { maxLinks?: number }) {
                 key={idx}
                 className="border-l-2 border-primary pl-4 py-2"
               >
-                <div className="flex items-start gap-2 mb-1">
+                <div className="flex items-start gap-2 mb-1 min-w-0">
                   <Link2 className="w-4 h-4 mt-1 text-primary flex-shrink-0" />
-                  <div>
+                  <div className="min-w-0 overflow-hidden">
                     {/* From → To */}
-                    <div className="font-medium text-sm text-primary">
+                    <div className="font-medium text-sm text-primary truncate">
                       <Link
                         to={`/notes/${connection.from.slug}`}
                         className="hover:underline"
