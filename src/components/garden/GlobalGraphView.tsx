@@ -1,7 +1,7 @@
-// Global graph visualization component
-// Renders a visual representation of the entire knowledge graph
+// Global graph visualization — interactive force-directed layout
+// Nodes are draggable, the graph uses physics simulation (repulsion + attraction)
 
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,238 +13,211 @@ interface GlobalGraphViewProps {
   edges: GraphEdge[];
 }
 
-interface PositionedNode extends GraphNode {
+interface SimNode extends GraphNode {
   x: number;
   y: number;
+  vx: number;
+  vy: number;
+  fx: number | null; // fixed x (when dragging)
+  fy: number | null;
+  connections: number;
 }
 
-interface ViewState {
-  zoom: number;
-  panX: number;
-  panY: number;
-}
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 5;
+const ZOOM_STEP = 0.15;
+const CANVAS_W = 900;
+const CANVAS_H = 700;
 
-const MIN_ZOOM = 0.25;
-const MAX_ZOOM = 4;
-const ZOOM_STEP = 0.25;
+// Force simulation parameters
+const REPULSION = 3000;
+const ATTRACTION = 0.008;
+const DAMPING = 0.85;
+const CENTER_GRAVITY = 0.01;
+const MIN_DIST = 30;
 
-/**
- * Hierarchical tree layout algorithm
- * Uses BFS from root nodes to assign levels, then spaces nodes within each level
- * Falls back to force-nudging for disconnected components
- */
-function computeTreeLayout(
-  nodes: GraphNode[],
-  edges: GraphEdge[],
-  width: number,
-  height: number
-): PositionedNode[] {
-  if (nodes.length === 0) return [];
+function initSimulation(nodes: GraphNode[], edges: GraphEdge[]): SimNode[] {
+  const connCount = new Map<string, number>();
+  for (const e of edges) {
+    connCount.set(e.source, (connCount.get(e.source) || 0) + 1);
+    connCount.set(e.target, (connCount.get(e.target) || 0) + 1);
+  }
 
-  const slugSet = new Set(nodes.map(n => n.slug));
+  // Place nodes in a circle initially
+  const cx = CANVAS_W / 2;
+  const cy = CANVAS_H / 2;
+  const radius = Math.min(CANVAS_W, CANVAS_H) * 0.35;
 
-  // Build directed adjacency (source -> targets) and inbound count
-  const children = new Map<string, string[]>();
-  const inboundCount = new Map<string, number>();
-  nodes.forEach(n => {
-    children.set(n.slug, []);
-    inboundCount.set(n.slug, 0);
+  return nodes.map((n, i) => {
+    const angle = (2 * Math.PI * i) / nodes.length;
+    return {
+      ...n,
+      x: cx + radius * Math.cos(angle) + (Math.random() - 0.5) * 20,
+      y: cy + radius * Math.sin(angle) + (Math.random() - 0.5) * 20,
+      vx: 0,
+      vy: 0,
+      fx: null,
+      fy: null,
+      connections: connCount.get(n.slug) || 0,
+    };
   });
-
-  // Only count edges where both endpoints exist in the node set
-  const validEdges = edges.filter(e => slugSet.has(e.source) && slugSet.has(e.target));
-  for (const e of validEdges) {
-    children.get(e.source)!.push(e.target);
-    inboundCount.set(e.target, (inboundCount.get(e.target) || 0) + 1);
-  }
-
-  // Find root nodes (no inbound edges). If none, pick the most-connected node.
-  let roots = nodes.filter(n => (inboundCount.get(n.slug) || 0) === 0).map(n => n.slug);
-  if (roots.length === 0) {
-    // Pick node with most outbound connections as root
-    const sorted = [...nodes].sort((a, b) => 
-      (children.get(b.slug)?.length || 0) - (children.get(a.slug)?.length || 0)
-    );
-    roots = [sorted[0].slug];
-  }
-
-  // BFS to assign levels
-  const level = new Map<string, number>();
-  const queue: string[] = [];
-  for (const r of roots) {
-    if (!level.has(r)) {
-      level.set(r, 0);
-      queue.push(r);
-    }
-  }
-
-  let head = 0;
-  while (head < queue.length) {
-    const current = queue[head++];
-    const currentLevel = level.get(current)!;
-    for (const child of children.get(current) || []) {
-      if (!level.has(child)) {
-        level.set(child, currentLevel + 1);
-        queue.push(child);
-      }
-    }
-  }
-
-  // Handle disconnected nodes — assign them to level 0 and BFS from them
-  for (const n of nodes) {
-    if (!level.has(n.slug)) {
-      level.set(n.slug, 0);
-      queue.push(n.slug);
-      // BFS for this component
-      let compHead = queue.length - 1;
-      while (compHead < queue.length) {
-        const current = queue[compHead++];
-        const currentLevel = level.get(current)!;
-        for (const child of children.get(current) || []) {
-          if (!level.has(child)) {
-            level.set(child, currentLevel + 1);
-            queue.push(child);
-          }
-        }
-      }
-    }
-  }
-
-  // Group nodes by level
-  const levels = new Map<number, GraphNode[]>();
-  for (const n of nodes) {
-    const l = level.get(n.slug) || 0;
-    if (!levels.has(l)) levels.set(l, []);
-    levels.get(l)!.push(n);
-  }
-
-  const maxLevel = Math.max(...levels.keys());
-  const levelCount = maxLevel + 1;
-  const padding = 60;
-
-  // Position nodes: Y by level (top-to-bottom), X spread within level
-  const positions: PositionedNode[] = [];
-  for (const [l, levelNodes] of levels.entries()) {
-    const y = levelCount <= 1 
-      ? height / 2 
-      : padding + (l / (levelCount - 1)) * (height - padding * 2);
-
-    const count = levelNodes.length;
-    const spacing = Math.min(
-      (width - padding * 2) / Math.max(count, 1),
-      80
-    );
-    const totalWidth = spacing * (count - 1);
-    const startX = (width - totalWidth) / 2;
-
-    for (let i = 0; i < count; i++) {
-      positions.push({
-        ...levelNodes[i],
-        x: count === 1 ? width / 2 : startX + i * spacing,
-        y,
-      });
-    }
-  }
-
-  // Light force simulation to reduce overlaps while preserving hierarchy
-  const iterations = 30;
-  let posArr = [...positions];
-  const slugToIdx = new Map(posArr.map((n, i) => [n.slug, i]));
-
-  for (let iter = 0; iter < iterations; iter++) {
-    const forces = posArr.map(() => ({ fx: 0, fy: 0 }));
-
-    // Horizontal repulsion between same-level nodes
-    for (let i = 0; i < posArr.length; i++) {
-      for (let j = i + 1; j < posArr.length; j++) {
-        if (level.get(posArr[i].slug) !== level.get(posArr[j].slug)) continue;
-        const dx = posArr[j].x - posArr[i].x;
-        const dist = Math.abs(dx) || 1;
-        if (dist < 60) {
-          const force = (60 - dist) * 0.3;
-          const dir = dx > 0 ? 1 : -1;
-          forces[i].fx -= dir * force;
-          forces[j].fx += dir * force;
-        }
-      }
-    }
-
-    // Gentle attraction along edges (X only, to align parent-child)
-    for (const edge of validEdges) {
-      const i = slugToIdx.get(edge.source);
-      const j = slugToIdx.get(edge.target);
-      if (i === undefined || j === undefined) continue;
-      const dx = posArr[j].x - posArr[i].x;
-      forces[i].fx += dx * 0.02;
-      forces[j].fx -= dx * 0.02;
-    }
-
-    posArr = posArr.map((pos, i) => ({
-      ...pos,
-      x: Math.max(padding, Math.min(width - padding, pos.x + forces[i].fx * 0.5)),
-      // Keep Y fixed to preserve tree structure
-    }));
-  }
-
-  return posArr;
 }
 
-/**
- * Truncate text for display
- */
-function truncateTitle(title: string, maxLength: number = 16): string {
-  if (title.length <= maxLength) return title;
-  return title.slice(0, maxLength - 1) + '…';
+function stepSimulation(simNodes: SimNode[], edges: GraphEdge[]): void {
+  const n = simNodes.length;
+  const cx = CANVAS_W / 2;
+  const cy = CANVAS_H / 2;
+
+  // Reset forces
+  for (const node of simNodes) {
+    if (node.fx !== null) { node.x = node.fx; node.y = node.fy!; node.vx = 0; node.vy = 0; continue; }
+    node.vx *= DAMPING;
+    node.vy *= DAMPING;
+  }
+
+  // Repulsion (all pairs)
+  for (let i = 0; i < n; i++) {
+    const a = simNodes[i];
+    if (a.fx !== null) continue;
+    for (let j = i + 1; j < n; j++) {
+      const b = simNodes[j];
+      let dx = a.x - b.x;
+      let dy = a.y - b.y;
+      let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (dist < MIN_DIST) dist = MIN_DIST;
+      const force = REPULSION / (dist * dist);
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      a.vx += fx;
+      a.vy += fy;
+      if (b.fx === null) { b.vx -= fx; b.vy -= fy; }
+    }
+  }
+
+  // Attraction along edges
+  const slugIdx = new Map(simNodes.map((n, i) => [n.slug, i]));
+  for (const e of edges) {
+    const ai = slugIdx.get(e.source);
+    const bi = slugIdx.get(e.target);
+    if (ai === undefined || bi === undefined) continue;
+    const a = simNodes[ai];
+    const b = simNodes[bi];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const force = dist * ATTRACTION;
+    const fx = (dx / dist) * force;
+    const fy = (dy / dist) * force;
+    if (a.fx === null) { a.vx += fx; a.vy += fy; }
+    if (b.fx === null) { b.vx -= fx; b.vy -= fy; }
+  }
+
+  // Center gravity
+  for (const node of simNodes) {
+    if (node.fx !== null) continue;
+    node.vx += (cx - node.x) * CENTER_GRAVITY;
+    node.vy += (cy - node.y) * CENTER_GRAVITY;
+  }
+
+  // Apply velocities
+  for (const node of simNodes) {
+    if (node.fx !== null) continue;
+    node.x += node.vx;
+    node.y += node.vy;
+  }
+}
+
+function truncateTitle(title: string, max = 18): string {
+  return title.length <= max ? title : title.slice(0, max - 1) + '…';
+}
+
+function nodeRadius(connections: number): number {
+  return Math.max(4, Math.min(16, 4 + connections * 1.5));
 }
 
 export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   const navigate = useNavigate();
   const { t } = useLocale();
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [viewState, setViewState] = useState<ViewState>({ zoom: 1, panX: 0, panY: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
+  const simRef = useRef<SimNode[]>([]);
+  const rafRef = useRef<number>(0);
+  const [, forceRender] = useState(0);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [dragNode, setDragNode] = useState<string | null>(null);
+  const [viewState, setViewState] = useState({ zoom: 1, panX: 0, panY: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0 });
 
-  const width = 1200;
-  const height = Math.max(800, nodes.length * 12);
+  // Init simulation
+  useEffect(() => {
+    simRef.current = initSimulation(nodes, edges);
+    let running = true;
+    let tick = 0;
 
-  const positionedNodes = useMemo(
-    () => computeTreeLayout(nodes, edges, width, height),
-    [nodes, edges]
-  );
+    const loop = () => {
+      if (!running) return;
+      stepSimulation(simRef.current, edges);
+      tick++;
+      // Render every 2nd frame for perf
+      if (tick % 2 === 0) forceRender(v => v + 1);
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
 
-  const nodeMap = useMemo(() => {
-    const map = new Map<string, PositionedNode>();
-    positionedNodes.forEach(n => map.set(n.slug, n));
-    return map;
-  }, [positionedNodes]);
+    return () => { running = false; cancelAnimationFrame(rafRef.current); };
+  }, [nodes, edges]);
 
-  const handleNodeClick = useCallback(
-    (node: PositionedNode) => {
-      if (!node.exists) return;
-      navigate(`/notes/${node.slug}`);
-    },
-    [navigate]
-  );
-
-  const handleZoomIn = useCallback(() => {
-    setViewState(prev => ({
-      ...prev,
-      zoom: Math.min(MAX_ZOOM, prev.zoom + ZOOM_STEP),
-    }));
+  // Drag handlers
+  const svgPoint = useCallback((clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM()?.inverse();
+    if (!ctm) return { x: clientX, y: clientY };
+    const svgP = pt.matrixTransform(ctm);
+    return { x: svgP.x, y: svgP.y };
   }, []);
 
-  const handleZoomOut = useCallback(() => {
-    setViewState(prev => ({
-      ...prev,
-      zoom: Math.max(MIN_ZOOM, prev.zoom - ZOOM_STEP),
-    }));
+  const handleNodeMouseDown = useCallback((e: React.MouseEvent, slug: string) => {
+    e.stopPropagation();
+    setDragNode(slug);
+    const node = simRef.current.find(n => n.slug === slug);
+    if (node) {
+      node.fx = node.x;
+      node.fy = node.y;
+    }
   }, []);
 
-  const handleReset = useCallback(() => {
-    setViewState({ zoom: 1, panX: 0, panY: 0 });
-  }, []);
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (dragNode) {
+      const p = svgPoint(e.clientX, e.clientY);
+      const node = simRef.current.find(n => n.slug === dragNode);
+      if (node) { node.fx = p.x; node.fy = p.y; }
+    } else if (isPanning) {
+      setViewState(prev => ({
+        ...prev,
+        panX: e.clientX - panStartRef.current.x,
+        panY: e.clientY - panStartRef.current.y,
+      }));
+    }
+  }, [dragNode, isPanning, svgPoint]);
+
+  const handleMouseUp = useCallback(() => {
+    if (dragNode) {
+      const node = simRef.current.find(n => n.slug === dragNode);
+      if (node) { node.fx = null; node.fy = null; }
+      setDragNode(null);
+    }
+    setIsPanning(false);
+  }, [dragNode]);
+
+  const handleBgMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    setIsPanning(true);
+    panStartRef.current = { x: e.clientX - viewState.panX, y: e.clientY - viewState.panY };
+  }, [viewState.panX, viewState.panY]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -255,31 +228,16 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
     }));
   }, []);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only left click
-    setIsPanning(true);
-    setPanStart({ x: e.clientX - viewState.panX, y: e.clientY - viewState.panY });
-  }, [viewState.panX, viewState.panY]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isPanning) return;
-    setViewState(prev => ({
-      ...prev,
-      panX: e.clientX - panStart.x,
-      panY: e.clientY - panStart.y,
-    }));
-  }, [isPanning, panStart]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsPanning(false);
-  }, []);
-
-  // Handle mouse leaving the SVG area
   useEffect(() => {
-    const handleGlobalMouseUp = () => setIsPanning(false);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, []);
+    const up = () => { handleMouseUp(); };
+    window.addEventListener('mouseup', up);
+    return () => window.removeEventListener('mouseup', up);
+  }, [handleMouseUp]);
+
+  const handleNodeClick = useCallback((node: SimNode) => {
+    if (!node.exists) return;
+    navigate(`/notes/${node.slug}`);
+  }, [navigate]);
 
   if (nodes.length === 0) {
     return (
@@ -289,140 +247,91 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
     );
   }
 
-  // Calculate viewBox based on zoom and pan
-  const viewBoxWidth = width / viewState.zoom;
-  const viewBoxHeight = height / viewState.zoom;
-  const viewBoxX = (width - viewBoxWidth) / 2 - viewState.panX / viewState.zoom;
-  const viewBoxY = (height - viewBoxHeight) / 2 - viewState.panY / viewState.zoom;
+  const vbW = CANVAS_W / viewState.zoom;
+  const vbH = CANVAS_H / viewState.zoom;
+  const vbX = (CANVAS_W - vbW) / 2 - viewState.panX / viewState.zoom;
+  const vbY = (CANVAS_H - vbH) / 2 - viewState.panY / viewState.zoom;
 
-  // Labels should be visible by default (requested). Keep them subtle on low zoom.
-  const showLabels = viewState.zoom >= 0.75;
+  const simNodes = simRef.current;
+  const slugMap = new Map(simNodes.map(n => [n.slug, n]));
 
   return (
     <div className="w-full overflow-hidden rounded-lg border border-border bg-card">
-      {/* Zoom controls */}
+      {/* Controls */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleZoomOut}
-            disabled={viewState.zoom <= MIN_ZOOM}
-            title={t.graph.zoomOut}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewState(p => ({ ...p, zoom: Math.max(MIN_ZOOM, p.zoom - ZOOM_STEP) }))} disabled={viewState.zoom <= MIN_ZOOM} title={t.graph.zoomOut}>
             <ZoomOut className="h-4 w-4" />
           </Button>
-          <span className="text-xs text-muted-foreground w-12 text-center">
-            {Math.round(viewState.zoom * 100)}%
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleZoomIn}
-            disabled={viewState.zoom >= MAX_ZOOM}
-            title={t.graph.zoomIn}
-          >
+          <span className="text-xs text-muted-foreground w-12 text-center">{Math.round(viewState.zoom * 100)}%</span>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewState(p => ({ ...p, zoom: Math.min(MAX_ZOOM, p.zoom + ZOOM_STEP) }))} disabled={viewState.zoom >= MAX_ZOOM} title={t.graph.zoomIn}>
             <ZoomIn className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 ml-1"
-            onClick={handleReset}
-            title={t.graph.reset}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8 ml-1" onClick={() => setViewState({ zoom: 1, panX: 0, panY: 0 })} title={t.graph.reset}>
             <Maximize2 className="h-4 w-4" />
           </Button>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {t.graph.dragToPan}
-        </span>
+        <span className="text-xs text-muted-foreground">{t.graph.dragToPan}</span>
       </div>
 
-      {/* Graph SVG */}
+      {/* Graph */}
       <svg
         ref={svgRef}
-        viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`}
-        className="w-full h-auto min-h-[400px] select-none"
-        style={{ 
-          maxHeight: '70vh',
-          cursor: isPanning ? 'grabbing' : 'grab',
-        }}
+        viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+        className="w-full select-none"
+        style={{ height: '70vh', cursor: dragNode ? 'grabbing' : isPanning ? 'grabbing' : 'grab' }}
         onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
+        onMouseDown={handleBgMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
         {/* Edges */}
-        <g className="edges">
+        <g>
           {edges.map((edge, i) => {
-            const source = nodeMap.get(edge.source);
-            const target = nodeMap.get(edge.target);
-            if (!source || !target) return null;
-
-            const isHighlighted =
-              hoveredNode === edge.source || hoveredNode === edge.target;
-
+            const s = slugMap.get(edge.source);
+            const tg = slugMap.get(edge.target);
+            if (!s || !tg) return null;
+            const highlighted = hoveredNode === edge.source || hoveredNode === edge.target;
             return (
               <line
-                key={`edge-${i}`}
-                x1={source.x}
-                y1={source.y}
-                x2={target.x}
-                y2={target.y}
-                stroke="hsl(var(--border))"
-                strokeWidth={isHighlighted ? 2 : 1}
-                strokeOpacity={isHighlighted ? 0.9 : 0.4}
-                className="transition-all duration-150"
+                key={`e-${i}`}
+                x1={s.x} y1={s.y} x2={tg.x} y2={tg.y}
+                stroke="hsl(var(--primary))"
+                strokeWidth={highlighted ? 1.8 : 0.7}
+                strokeOpacity={highlighted ? 0.8 : 0.25}
               />
             );
           })}
         </g>
 
         {/* Nodes */}
-        <g className="nodes">
-          {positionedNodes.map(node => {
+        <g>
+          {simNodes.map(node => {
             const isHovered = hoveredNode === node.slug;
-            const nodeRadius = isHovered ? 8 : 6;
-
+            const r = nodeRadius(node.connections);
             return (
               <g
                 key={node.slug}
-                transform={`translate(${node.x}, ${node.y})`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNodeClick(node);
-                }}
+                transform={`translate(${node.x},${node.y})`}
+                onMouseDown={e => handleNodeMouseDown(e, node.slug)}
                 onMouseEnter={() => setHoveredNode(node.slug)}
                 onMouseLeave={() => setHoveredNode(null)}
-                className={node.exists ? 'cursor-pointer' : 'opacity-50'}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => {
-                  if (node.exists && (e.key === 'Enter' || e.key === ' ')) {
-                    handleNodeClick(node);
-                  }
-                }}
+                onClick={e => { e.stopPropagation(); handleNodeClick(node); }}
+                className="cursor-pointer"
               >
-                {/* Node circle */}
                 <circle
-                  r={nodeRadius}
-                  fill={node.exists ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
-                  className="transition-all duration-150"
+                  r={isHovered ? r + 2 : r}
+                  fill="hsl(var(--primary))"
+                  fillOpacity={isHovered ? 1 : 0.85}
+                  stroke={isHovered ? 'hsl(var(--primary-foreground))' : 'none'}
+                  strokeWidth={isHovered ? 2 : 0}
                 />
-
-                {/* Node label */}
-                {(isHovered || showLabels) && (
+                {(isHovered || viewState.zoom >= 0.8) && (
                   <text
-                    y={nodeRadius + 14}
+                    y={r + 12}
                     textAnchor="middle"
-                    className="text-[10px] font-sans fill-foreground"
-                    style={{
-                      pointerEvents: 'none',
-                      opacity: isHovered ? 1 : viewState.zoom < 1 ? 0.6 : 0.85,
-                    }}
+                    className="text-[9px] font-sans fill-foreground"
+                    style={{ pointerEvents: 'none', opacity: isHovered ? 1 : 0.7 }}
                   >
                     {truncateTitle(node.title, isHovered ? 30 : 16)}
                   </text>
