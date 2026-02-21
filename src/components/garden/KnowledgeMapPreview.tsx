@@ -5,9 +5,8 @@ import { getFullGraph } from '@/lib/notes/linkGraph';
 import { useLocale } from '@/hooks/useLocale';
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 
-const W = 400;
-const H = 250;
-const REPULSION = 2000;
+const SIZE = 400;
+const REPULSION = 2200;
 const ATTRACTION = 0.012;
 const DAMPING = 0.82;
 const CENTER_GRAVITY = 0.015;
@@ -15,24 +14,27 @@ const MIN_DIST = 20;
 
 interface MiniNode {
   slug: string;
+  title: string;
   x: number;
   y: number;
   vx: number;
   vy: number;
   connections: number;
+  dragging?: boolean;
 }
 
 export function KnowledgeMapPreview() {
   const { t } = useLocale();
   const graph = useMemo(() => getFullGraph(), []);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [dragNode, setDragNode] = useState<string | null>(null);
 
   const nodeCount = graph.nodes.length;
   const edgeCount = graph.edges.length;
 
-  // Init mini simulation nodes
   const simRef = useRef<MiniNode[]>([]);
   const rafRef = useRef<number>(0);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -45,14 +47,15 @@ export function KnowledgeMapPreview() {
       connCount.set(e.target, (connCount.get(e.target) || 0) + 1);
     }
 
-    const cx = W / 2;
-    const cy = H / 2;
-    const radius = Math.min(W, H) * 0.35;
+    const cx = SIZE / 2;
+    const cy = SIZE / 2;
+    const radius = SIZE * 0.35;
 
     simRef.current = nodes.map((n, i) => {
       const angle = (2 * Math.PI * i) / nodes.length;
       return {
         slug: n.slug,
+        title: n.title,
         x: cx + radius * Math.cos(angle) + (Math.random() - 0.5) * 15,
         y: cy + radius * Math.sin(angle) + (Math.random() - 0.5) * 15,
         vx: 0,
@@ -69,10 +72,11 @@ export function KnowledgeMapPreview() {
       const sn = simRef.current;
       const n = sn.length;
 
-      // Damping
-      for (const nd of sn) { nd.vx *= DAMPING; nd.vy *= DAMPING; }
+      for (const nd of sn) {
+        if (nd.dragging) { nd.vx = 0; nd.vy = 0; continue; }
+        nd.vx *= DAMPING; nd.vy *= DAMPING;
+      }
 
-      // Repulsion
       for (let i = 0; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
           let dx = sn[i].x - sn[j].x;
@@ -82,12 +86,11 @@ export function KnowledgeMapPreview() {
           const f = REPULSION / (dist * dist);
           const fx = (dx / dist) * f;
           const fy = (dy / dist) * f;
-          sn[i].vx += fx; sn[i].vy += fy;
-          sn[j].vx -= fx; sn[j].vy -= fy;
+          if (!sn[i].dragging) { sn[i].vx += fx; sn[i].vy += fy; }
+          if (!sn[j].dragging) { sn[j].vx -= fx; sn[j].vy -= fy; }
         }
       }
 
-      // Attraction
       const idx = new Map(sn.map((nd, i) => [nd.slug, i]));
       for (const e of edges) {
         const ai = idx.get(e.source);
@@ -100,17 +103,20 @@ export function KnowledgeMapPreview() {
         const f = dist * ATTRACTION;
         const fx = (dx / dist) * f;
         const fy = (dy / dist) * f;
-        a.vx += fx; a.vy += fy;
-        b.vx -= fx; b.vy -= fy;
+        if (!a.dragging) { a.vx += fx; a.vy += fy; }
+        if (!b.dragging) { b.vx -= fx; b.vy -= fy; }
       }
 
-      // Center gravity
-      const cxc = W / 2, cyc = H / 2;
+      const cxc = SIZE / 2, cyc = SIZE / 2;
       for (const nd of sn) {
+        if (nd.dragging) continue;
         nd.vx += (cxc - nd.x) * CENTER_GRAVITY;
         nd.vy += (cyc - nd.y) * CENTER_GRAVITY;
         nd.x += nd.vx;
         nd.y += nd.vy;
+        // Clamp to bounds
+        nd.x = Math.max(15, Math.min(SIZE - 15, nd.x));
+        nd.y = Math.max(15, Math.min(SIZE - 15, nd.y));
       }
 
       frame++;
@@ -124,8 +130,49 @@ export function KnowledgeMapPreview() {
 
   const nodeR = useCallback((connections: number) => Math.max(3, Math.min(10, 3 + connections * 1.2)), []);
 
+  const getSVGPoint = useCallback((e: React.MouseEvent) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const rect = svg.getBoundingClientRect();
+    const scale = SIZE / rect.width;
+    return {
+      x: (e.clientX - rect.left) * scale,
+      y: (e.clientY - rect.top) * scale,
+    };
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent, slug: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    (e.target as Element).setPointerCapture(e.pointerId);
+    setDragNode(slug);
+    const nd = simRef.current.find(n => n.slug === slug);
+    if (nd) nd.dragging = true;
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragNode) return;
+    const pt = getSVGPoint(e);
+    const nd = simRef.current.find(n => n.slug === dragNode);
+    if (nd) {
+      nd.x = Math.max(15, Math.min(SIZE - 15, pt.x));
+      nd.y = Math.max(15, Math.min(SIZE - 15, pt.y));
+    }
+  }, [dragNode, getSVGPoint]);
+
+  const handlePointerUp = useCallback(() => {
+    if (dragNode) {
+      const nd = simRef.current.find(n => n.slug === dragNode);
+      if (nd) nd.dragging = false;
+      setDragNode(null);
+    }
+  }, [dragNode]);
+
   const simNodes = simRef.current;
   const slugMap = new Map(simNodes.map(n => [n.slug, n]));
+
+  const truncateTitle = (title: string, max = 14) =>
+    title.length > max ? title.slice(0, max) + '…' : title;
 
   return (
     <div className="border border-border rounded-lg p-4 bg-card transition-all duration-200">
@@ -136,13 +183,20 @@ export function KnowledgeMapPreview() {
         </h2>
       </div>
 
-      {/* Live mini graph */}
-      <div className="bg-gradient-to-b from-background to-background/50 rounded-lg border border-border/50 mb-4 overflow-hidden hover:border-border transition-colors duration-200">
+      {/* Square interactive graph */}
+      <div
+        className="bg-gradient-to-b from-background to-background/50 rounded-lg border border-border/50 mb-4 overflow-hidden hover:border-border transition-colors duration-200"
+        style={{ aspectRatio: '1 / 1' }}
+      >
         <svg
+          ref={svgRef}
           width="100%"
-          height="250"
-          viewBox={`0 0 ${W} ${H}`}
-          className="block"
+          height="100%"
+          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          className="block touch-none"
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         >
           {/* Edges */}
           {graph.edges.map((edge, i) => {
@@ -161,24 +215,39 @@ export function KnowledgeMapPreview() {
             );
           })}
 
-          {/* Nodes */}
+          {/* Nodes + Labels */}
           {simNodes.map(node => {
             const isHovered = hoveredNode === node.slug;
             const r = nodeR(node.connections);
             return (
-              <circle
-                key={node.slug}
-                cx={node.x}
-                cy={node.y}
-                r={isHovered ? r + 2 : r}
-                fill="hsl(var(--primary))"
-                fillOpacity={isHovered ? 1 : 0.85}
-                stroke={isHovered ? 'hsl(var(--primary-foreground))' : 'none'}
-                strokeWidth={isHovered ? 1.5 : 0}
-                onMouseEnter={() => setHoveredNode(node.slug)}
-                onMouseLeave={() => setHoveredNode(null)}
-                className="cursor-pointer"
-              />
+              <g key={node.slug}>
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={isHovered ? r + 2 : r}
+                  fill="hsl(var(--primary))"
+                  fillOpacity={isHovered ? 1 : 0.85}
+                  stroke={isHovered ? 'hsl(var(--primary-foreground))' : 'none'}
+                  strokeWidth={isHovered ? 1.5 : 0}
+                  onPointerDown={(e) => handlePointerDown(e, node.slug)}
+                  onMouseEnter={() => setHoveredNode(node.slug)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  className="cursor-grab active:cursor-grabbing"
+                />
+                <text
+                  x={node.x}
+                  y={node.y + r + 8}
+                  textAnchor="middle"
+                  fill="hsl(var(--foreground))"
+                  fillOpacity={isHovered ? 0.9 : 0.55}
+                  fontSize={isHovered ? 7 : 5.5}
+                  fontWeight={isHovered ? 600 : 400}
+                  pointerEvents="none"
+                  className="select-none"
+                >
+                  {truncateTitle(node.title)}
+                </text>
+              </g>
             );
           })}
         </svg>
