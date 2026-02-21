@@ -53,7 +53,7 @@ function AppContent() {
         <SearchHighlightProvider>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/notes/:slug" element={<NotePage />} />
+            <Route path="/notes/*" element={<NotePage />} />
             <Route path="/notes/:slug/edit" element={<EditorPage />} />
             <Route path="/notes/new" element={<EditorPage />} />
             <Route path="/drakon" element={<DrakonPage />} />

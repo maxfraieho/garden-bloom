@@ -846,6 +846,34 @@ export async function revokeZone(zoneId: string): Promise<any> {
   });
 }
 
+export async function downloadZoneNotes(zoneId: string, zoneName: string): Promise<void> {
+  const base = getGatewayBaseUrl();
+  const token = getOwnerToken();
+  const headers: Record<string, string> = {
+    'X-Correlation-Id': generateCorrelationId(),
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const resp = await fetch(`${base}/zones/${zoneId}/download`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Download failed: ${resp.status}`);
+  }
+
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${zoneName}-notes.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // ============================================
 // Auth API (used by useOwnerAuth hook)
 // ============================================

@@ -9,7 +9,7 @@ import { ArrowLeft, FileQuestion, Clock, Loader2 } from 'lucide-react';
 import { getGitStatus } from '@/lib/api/mcpGatewayClient';
 
 export default function NotePage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { '*': slug } = useParams();
   const { t } = useLocale();
   const note = slug ? getNoteBySlug(slug) : null;
   
