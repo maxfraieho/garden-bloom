@@ -11,6 +11,7 @@ import {
   Link2,
   AlertCircle,
   Loader2,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -237,6 +238,21 @@ export function AccessZonesManager() {
                       </Button>
                     )}
 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                    >
+                      <a
+                        href={`https://apiminio.exodus.pp.ua/mcpstorage/zones/${zone.id}/notes-all.md`}
+                        download={`${zone.name}-notes.md`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="w-3.5 h-3.5 mr-1" />
+                        .md
+                      </a>
+                    </Button>
                     {zone.notebooklm && (
                       <Button
                         variant="outline"
