@@ -6,7 +6,7 @@
 
 > Створено: 2026-02-14
 > Автор: Архітектор системи
-> Базується на: КОНТРАКТ_АГЕНТА_V1.md, RUNTIME_ARCHITECTURE_CANONICAL.md, АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md, MANIFESTO.md
+> Базується на: КОНТРАКТ_АГЕНТА_V1.md, КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ.md, АРХІТЕКТУРНА_БАЗА_СИСТЕМИ.md, МАНІФЕСТ.md
 > Статус: Специфікація
 
 ---
@@ -254,7 +254,7 @@ stateDiagram-v2
 | Стан | Значення | Хто переводить | Наступні стани |
 |------|---------|----------------|----------------|
 | **pending** | Proposal створено, очікує уваги | Inbox | `reviewing`, `auto_approved`, `expired` |
-| **reviewing** | Owner переглядає proposal (UI-only стан, не серверний — див. PROPOSAL_SYSTEM_V1.md §1.3) | Owner (відкриття в UI) | `approved`, `rejected`, `pending` |
+| **reviewing** | Owner переглядає proposal (UI-only стан, не серверний — див. СИСТЕМА_PROPOSAL_V1.md §1.3) | Owner (відкриття в UI) | `approved`, `rejected`, `pending` |
 | **auto_approved** | Автоматично схвалено правилом | Система (rule engine) | `applying` |
 | **approved** | Owner явно схвалив | Owner | `applying` |
 | **applying** | Зміна записується в canonical storage | Система | `applied`, `failed` |
@@ -682,9 +682,9 @@ sequenceDiagram
 
 ## Див. також
 
-- **INBOX_AND_RUN_LIFECYCLE_V1.md** — витяг: state machines Inbox та Run для Lovable UI
-- **PROPOSAL_SYSTEM_V1.md** — витяг: state machine Proposal, семантика `reviewing`, concurrent proposals
-- **API_CONTRACTS_V1.md** — повні JSON schemas для всіх endpoints
+- **INBOX_ТА_ЦИКЛ_ЗАПУСКУ_V1.md** — витяг: state machines Inbox та Run для Lovable UI
+- **СИСТЕМА_PROPOSAL_V1.md** — витяг: state machine Proposal, семантика `reviewing`, concurrent proposals
+- **КОНТРАКТИ_API_V1.md** — повні JSON schemas для всіх endpoints
 
 ---
 
@@ -695,15 +695,15 @@ sequenceDiagram
 ## Семантичні зв'язки
 
 **Цей документ деталізує:**
-- [[exodus.pp.ua/architecture/ARCHITECTURE_ROOT\|ARCHITECTURE_ROOT]] — аксіома A2 (mutation requires consent): цей документ є її повним розкриттям
+- [[exodus.pp.ua/architecture/АРХІТЕКТУРНИЙ_КОРІНЬ\|АРХІТЕКТУРНИЙ_КОРІНЬ]] — аксіома A2 (mutation requires consent): цей документ є її повним розкриттям
 
 **Цей документ залежить від:**
-- [[exodus.pp.ua/architecture/STORAGE_AUTHORITY_MODEL_CANONICAL\|STORAGE_AUTHORITY_MODEL_CANONICAL]] — proposals зберігаються у MinIO; transitions authority
-- [[exodus.pp.ua/architecture/RUN_LIFECYCLE_CANONICAL\|RUN_LIFECYCLE_CANONICAL]] — run → completed породжує proposals
-- [[exodus.pp.ua/architecture/AGENT_MEMORY_GIT_DIFFMEM_V1\|AGENT_MEMORY_GIT_DIFFMEM_V1]] — memory-update Proposal: окремий тип з auto-approve для normal priority
-- [[exodus.pp.ua/architecture/AGENT_LOGIC_VERSIONING_V1\|AGENT_LOGIC_VERSIONING_V1]] — logic-update Proposal: окремий тип, завжди human review
+- [[exodus.pp.ua/architecture/КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА\|КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — proposals зберігаються у MinIO; transitions authority
+- [[exodus.pp.ua/architecture/КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ\|КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ]] — run → completed породжує proposals
+- [[exodus.pp.ua/architecture/ПАМ_ЯТЬ_АГЕНТА_GIT_DIFFMEM_V1\|ПАМ_ЯТЬ_АГЕНТА_GIT_DIFFMEM_V1]] — memory-update Proposal: окремий тип з auto-approve для normal priority
+- [[exodus.pp.ua/architecture/ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1\|ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1]] — logic-update Proposal: окремий тип, завжди human review
 
 **Від цього документа залежать:**
-- [[exodus.pp.ua/architecture/EXECUTION_PIPELINE_CANONICAL\|EXECUTION_PIPELINE_CANONICAL]] — Phase 5 (Persist Results): proposals creation
+- [[exodus.pp.ua/architecture/КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ\|КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — Phase 5 (Persist Results): proposals creation
 - [[exodus.pp.ua/architecture/КОНТРАКТ_АГЕНТА_V1\|КОНТРАКТ_АГЕНТА_V1]] — агент генерує proposals як єдиний safe output
-- [[exodus.pp.ua/architecture/PROPOSAL_SYSTEM_V1\|PROPOSAL_SYSTEM_V1]] — frontend-орієнтований витяг (state machine, поля для UI)
+- [[exodus.pp.ua/architecture/СИСТЕМА_PROPOSAL_V1\|СИСТЕМА_PROPOSAL_V1]] — frontend-орієнтований витяг (state machine, поля для UI)

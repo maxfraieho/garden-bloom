@@ -6,7 +6,7 @@
 
 > Створено: 2026-02-14
 > Автор: Головний архітектор системи
-> Базується на: MANIFESTO.md §6, КОНТРАКТ_АГЕНТА_V1.md, RUNTIME_ARCHITECTURE_CANONICAL.md, INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md
+> Базується на: МАНІФЕСТ.md §6, КОНТРАКТ_АГЕНТА_V1.md, КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ.md, INBOX_ТА_PROPOSAL_АРХІТЕКТУРА.md
 > Статус: Архітектурна специфікація
 
 ---
@@ -491,13 +491,13 @@ Runtime завантажує `_agent.md` з MinIO при кожному запу
 ## Семантичні зв'язки
 
 **Цей документ деталізує:**
-- [[exodus.pp.ua/architecture/ARCHITECTURE_ROOT\|ARCHITECTURE_ROOT]] — аксіома A3 (stateless): DRAKON → pseudocode → _agent.md є declarative definition
+- [[exodus.pp.ua/architecture/АРХІТЕКТУРНИЙ_КОРІНЬ\|АРХІТЕКТУРНИЙ_КОРІНЬ]] — аксіома A3 (stateless): DRAKON → pseudocode → _agent.md є declarative definition
 - [[exodus.pp.ua/architecture/КОНТРАКТ_АГЕНТА_V1\|КОНТРАКТ_АГЕНТА_V1]] — §3 behavioral logic: DRAKON як джерело pseudocode.md
 
 **Цей документ залежить від:**
 - [[exodus.pp.ua/architecture/КОНТРАКТ_АГЕНТА_V1\|КОНТРАКТ_АГЕНТА_V1]] — _agent.md є кінцевою формою, яку інтерпретує Mastra
-- [[exodus.pp.ua/architecture/RUNTIME_ARCHITECTURE_CANONICAL\|RUNTIME_ARCHITECTURE_CANONICAL]] — Runtime інтерпретує pseudocode, не DRAKON напряму
+- [[exodus.pp.ua/architecture/КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ\|КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — Runtime інтерпретує pseudocode, не DRAKON напряму
 
 **Від цього документа залежать:**
-- [[exodus.pp.ua/architecture/AGENT_LOGIC_VERSIONING_V1\|AGENT_LOGIC_VERSIONING_V1]] — current.drakon.json є canonical logic format у logic/ tier
-- [[exodus.pp.ua/architecture/EXECUTION_PIPELINE_CANONICAL\|EXECUTION_PIPELINE_CANONICAL]] — Phase 4 (Execute Agent): Mastra виконує logic з _agent.md
+- [[exodus.pp.ua/architecture/ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1\|ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1]] — current.drakon.json є canonical logic format у logic/ tier
+- [[exodus.pp.ua/architecture/КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ\|КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — Phase 4 (Execute Agent): Mastra виконує logic з _agent.md
