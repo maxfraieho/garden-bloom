@@ -140,10 +140,11 @@ export function ZoneCreationDialog({
   const noteCount = useMemo(() => {
     if (selectedFolders.size === 0) return 0;
     
+    const folderArr = Array.from(selectedFolders);
     return allNotes.filter(note => {
       const decodedSlug = decodeURIComponent(note.slug);
-      return Array.from(selectedFolders).some(folder => 
-        decodedSlug.startsWith(folder + '/') || decodedSlug.startsWith(folder)
+      return folderArr.some(folder => 
+        decodedSlug.startsWith(folder + '/') || decodedSlug === folder
       );
     }).length;
   }, [selectedFolders, allNotes]);
@@ -152,14 +153,25 @@ export function ZoneCreationDialog({
   const getNotesForExport = () => {
     if (selectedFolders.size === 0) return [];
     
-    return allNotes
+    const folderArr = Array.from(selectedFolders);
+    console.log('[ZoneCreation] selectedFolders:', folderArr);
+    console.log('[ZoneCreation] total allNotes:', allNotes.length);
+    
+    const filtered = allNotes
       .filter(note => {
         const decodedSlug = decodeURIComponent(note.slug);
-        return Array.from(selectedFolders).some(folder => 
-          decodedSlug.startsWith(folder + '/') || decodedSlug.startsWith(folder)
+        return folderArr.some(folder => 
+          decodedSlug.startsWith(folder + '/') || decodedSlug === folder
         );
-      })
-      .map(note => ({
+      });
+    
+    console.log('[ZoneCreation] filtered notes for export:', filtered.length);
+    if (filtered.length < allNotes.length) {
+      const excluded = allNotes.filter(n => !filtered.includes(n));
+      console.log('[ZoneCreation] excluded notes (first 5):', excluded.slice(0, 5).map(n => decodeURIComponent(n.slug)));
+    }
+    
+    return filtered.map(note => ({
         slug: note.slug,
         title: note.title,
         content: note.content,

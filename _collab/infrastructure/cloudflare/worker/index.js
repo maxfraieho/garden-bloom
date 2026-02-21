@@ -955,6 +955,7 @@ async function handleZonesCreate(request, env, host) {
     notebookSourceMode = 'minio',
   } = body;
 
+  console.log(`[Zones] Creating zone: name="${name}", notes=${Array.isArray(notes) ? notes.length : 0}, folders=${JSON.stringify(allowedPaths)}, createNotebookLM=${createNotebookLM}`);
   const zoneId = crypto.randomUUID().slice(0, 8);
   const accessCode = `ACCESS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
   const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString();
