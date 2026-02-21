@@ -2,7 +2,7 @@
 // Computes outbound links, inbound links (backlinks), and local graph structure
 
 import type { Note, NoteLink } from './types';
-import { getAllNotes, noteExists } from './noteLoader';
+import { getAllNotes, noteExists, getNoteBySlug } from './noteLoader';
 import { parseWikilinks, slugify } from './wikilinkParser';
 
 /**
@@ -80,8 +80,15 @@ function buildLinkGraph(): LinkCache {
   for (const note of visibleNotes) {
     const links = parseWikilinks(note.content);
     
-    // Extract unique target slugs
-    const targetSlugs = [...new Set(links.map(l => l.target))];
+    // Resolve wikilink targets to actual note slugs
+    // e.g. [[ARCHITECTURE_ROOT]] → "exodus.pp.ua%2Farchitecture%2FARCHITECTURE_ROOT"
+    const resolvedSlugs = links
+      .map(l => {
+        const resolved = getNoteBySlug(l.target);
+        return resolved ? resolved.slug : null;
+      })
+      .filter((s): s is string => s !== null);
+    const targetSlugs = [...new Set(resolvedSlugs)];
     outboundMap.set(note.slug, targetSlugs);
     
     // Build inbound map (reverse lookup)

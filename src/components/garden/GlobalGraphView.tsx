@@ -1,10 +1,11 @@
 // Global graph visualization — interactive force-directed layout
 // Nodes are draggable, the graph uses physics simulation (repulsion + attraction)
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { useLocale } from '@/hooks/useLocale';
 import type { GraphNode, GraphEdge } from '@/lib/notes/linkGraph';
 
@@ -135,6 +136,51 @@ function nodeRadius(connections: number): number {
   return Math.max(4, Math.min(16, 4 + connections * 1.5));
 }
 
+/**
+ * Filter graph to show only nodes within `depth` hops from the most connected nodes
+ */
+function filterByDepth(nodes: GraphNode[], edges: GraphEdge[], depth: number): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  if (depth >= 10) return { nodes, edges }; // show all
+
+  // Build adjacency
+  const adj = new Map<string, Set<string>>();
+  for (const n of nodes) adj.set(n.slug, new Set());
+  for (const e of edges) {
+    adj.get(e.source)?.add(e.target);
+    adj.get(e.target)?.add(e.source);
+  }
+
+  // Find roots: nodes with most connections
+  const connCount = new Map<string, number>();
+  for (const e of edges) {
+    connCount.set(e.source, (connCount.get(e.source) || 0) + 1);
+    connCount.set(e.target, (connCount.get(e.target) || 0) + 1);
+  }
+  const sorted = [...connCount.entries()].sort((a, b) => b[1] - a[1]);
+  const roots = sorted.slice(0, Math.max(1, Math.ceil(sorted.length * 0.1))).map(e => e[0]);
+
+  // BFS from roots up to `depth` hops
+  const visible = new Set<string>(roots);
+  let frontier = new Set(roots);
+  for (let d = 0; d < depth; d++) {
+    const next = new Set<string>();
+    for (const slug of frontier) {
+      for (const neighbor of adj.get(slug) || []) {
+        if (!visible.has(neighbor)) {
+          visible.add(neighbor);
+          next.add(neighbor);
+        }
+      }
+    }
+    frontier = next;
+    if (next.size === 0) break;
+  }
+
+  const filteredNodes = nodes.filter(n => visible.has(n.slug));
+  const filteredEdges = edges.filter(e => visible.has(e.source) && visible.has(e.target));
+  return { nodes: filteredNodes, edges: filteredEdges };
+}
+
 export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   const navigate = useNavigate();
   const { t } = useLocale();
@@ -147,25 +193,30 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   const [viewState, setViewState] = useState({ zoom: 1, panX: 0, panY: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef({ x: 0, y: 0 });
+  const [depth, setDepth] = useState(10); // max = show all
+
+  const { nodes: filteredNodes, edges: filteredEdges } = useMemo(
+    () => filterByDepth(nodes, edges, depth),
+    [nodes, edges, depth]
+  );
 
   // Init simulation
   useEffect(() => {
-    simRef.current = initSimulation(nodes, edges);
+    simRef.current = initSimulation(filteredNodes, filteredEdges);
     let running = true;
     let tick = 0;
 
     const loop = () => {
       if (!running) return;
-      stepSimulation(simRef.current, edges);
+      stepSimulation(simRef.current, filteredEdges);
       tick++;
-      // Render every 2nd frame for perf
       if (tick % 2 === 0) forceRender(v => v + 1);
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
 
     return () => { running = false; cancelAnimationFrame(rafRef.current); };
-  }, [nodes, edges]);
+  }, [filteredNodes, filteredEdges]);
 
   // Drag handlers
   const svgPoint = useCallback((clientX: number, clientY: number) => {
@@ -271,7 +322,18 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
             <Maximize2 className="h-4 w-4" />
           </Button>
         </div>
-        <span className="text-xs text-muted-foreground">{t.graph.dragToPan}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Depth</span>
+          <Slider
+            value={[depth]}
+            onValueChange={([v]) => setDepth(v)}
+            min={1}
+            max={10}
+            step={1}
+            className="w-24"
+          />
+          <span className="text-xs font-medium text-primary w-5 text-center">{depth >= 10 ? '∞' : depth}</span>
+        </div>
       </div>
 
       {/* Graph */}
@@ -287,7 +349,7 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
       >
         {/* Edges */}
         <g>
-          {edges.map((edge, i) => {
+          {filteredEdges.map((edge, i) => {
             const s = slugMap.get(edge.source);
             const tg = slugMap.get(edge.target);
             if (!s || !tg) return null;
@@ -344,8 +406,8 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
 
       {/* Stats */}
       <div className="flex justify-center gap-6 px-4 py-3 border-t border-border text-xs text-muted-foreground">
-        <span>{t.graph.notesCount.replace('{count}', String(nodes.length))}</span>
-        <span>{t.graph.connectionsCount.replace('{count}', String(edges.length))}</span>
+        <span>{t.graph.notesCount.replace('{count}', String(filteredNodes.length))}</span>
+        <span>{t.graph.connectionsCount.replace('{count}', String(filteredEdges.length))}</span>
       </div>
     </div>
   );
