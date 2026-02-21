@@ -131,12 +131,21 @@ async function hashPassword(password, secret) {
 // ============================================
 
 // Encode an S3 object key for use in the request path and CanonicalURI.
-// SigV4 requires the CanonicalURI to be URI-encoded consistently with the actual request.
-// We encode each path segment (preserving '/') to avoid SignatureDoesNotMatch for spaces/utf-8/%2F, etc.
+// AWS SigV4 spec: encode everything except A-Z a-z 0-9 - _ . ~
+// encodeURIComponent leaves ( ) ! ' * unencoded, but S3/MinIO requires them encoded.
+function s3UriEncode(str) {
+  return encodeURIComponent(str)
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A');
+}
+
 function encodeS3KeyForPath(key) {
   return String(key || '')
     .split('/')
-    .map((seg) => encodeURIComponent(seg))
+    .map((seg) => s3UriEncode(seg))
     .join('/');
 }
 
