@@ -197,7 +197,7 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
     const stageText = getStageText({ job, isLoading: jobQuery.isLoading, timedOut });
 
     const rawError = (jobQuery.error as any) || null;
-    const messageFromJobOrMapping = job?.error || mapping?.lastError || null;
+    const messageFromJobOrMapping = job?.error || mapping?.lastError || (mapping as any)?.error || null;
     const errorText = rawError ? getErrorMessage(rawError) : messageFromJobOrMapping;
 
     const configError = isConfigError(rawError) || (typeof messageFromJobOrMapping === 'string' && messageFromJobOrMapping.includes('FileNotFoundError'));

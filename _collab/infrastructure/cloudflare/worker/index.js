@@ -1147,6 +1147,7 @@ async function handleZonesCreate(request, env, host) {
         importJobId: notebooklmMapping.importJobId,
         status: 'failed',
         error: notebooklmMapping.lastError,
+        lastError: notebooklmMapping.lastError,
       };
     }
 
@@ -1161,6 +1162,7 @@ async function handleZonesCreate(request, env, host) {
       importJobId: null,
       status: 'failed',
       error: `MinIO sync failed: ${minioSyncError}. Zone created, NotebookLM skipped. Use retry import.`,
+      lastError: `MinIO sync failed: ${minioSyncError}. Zone created, NotebookLM skipped. Use retry import.`,
     };
   }
 
