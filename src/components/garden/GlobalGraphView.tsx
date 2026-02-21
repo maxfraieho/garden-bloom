@@ -29,10 +29,11 @@ const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
 
 /**
- * Simple force-directed layout algorithm
- * Positions nodes using basic physics simulation
+ * Hierarchical tree layout algorithm
+ * Uses BFS from root nodes to assign levels, then spaces nodes within each level
+ * Falls back to force-nudging for disconnected components
  */
-function computeForceLayout(
+function computeTreeLayout(
   nodes: GraphNode[],
   edges: GraphEdge[],
   width: number,
@@ -40,87 +41,152 @@ function computeForceLayout(
 ): PositionedNode[] {
   if (nodes.length === 0) return [];
 
-  // Initialize positions in a circle
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const initialRadius = Math.min(width, height) * 0.35;
+  const slugSet = new Set(nodes.map(n => n.slug));
 
-  let positions = nodes.map((node, i) => {
-    const angle = (2 * Math.PI * i) / nodes.length;
-    return {
-      ...node,
-      x: centerX + initialRadius * Math.cos(angle),
-      y: centerY + initialRadius * Math.sin(angle),
-    };
+  // Build directed adjacency (source -> targets) and inbound count
+  const children = new Map<string, string[]>();
+  const inboundCount = new Map<string, number>();
+  nodes.forEach(n => {
+    children.set(n.slug, []);
+    inboundCount.set(n.slug, 0);
   });
 
-  // Build adjacency for quick lookup
-  const adjacency = new Map<string, Set<string>>();
-  nodes.forEach(n => adjacency.set(n.slug, new Set()));
-  edges.forEach(e => {
-    adjacency.get(e.source)?.add(e.target);
-    adjacency.get(e.target)?.add(e.source);
-  });
+  // Only count edges where both endpoints exist in the node set
+  const validEdges = edges.filter(e => slugSet.has(e.source) && slugSet.has(e.target));
+  for (const e of validEdges) {
+    children.get(e.source)!.push(e.target);
+    inboundCount.set(e.target, (inboundCount.get(e.target) || 0) + 1);
+  }
 
-  // Simple force simulation (reduced iterations for performance)
-  const iterations = 50;
-  const repulsion = 2000;
-  const attraction = 0.05;
-  const damping = 0.9;
+  // Find root nodes (no inbound edges). If none, pick the most-connected node.
+  let roots = nodes.filter(n => (inboundCount.get(n.slug) || 0) === 0).map(n => n.slug);
+  if (roots.length === 0) {
+    // Pick node with most outbound connections as root
+    const sorted = [...nodes].sort((a, b) => 
+      (children.get(b.slug)?.length || 0) - (children.get(a.slug)?.length || 0)
+    );
+    roots = [sorted[0].slug];
+  }
+
+  // BFS to assign levels
+  const level = new Map<string, number>();
+  const queue: string[] = [];
+  for (const r of roots) {
+    if (!level.has(r)) {
+      level.set(r, 0);
+      queue.push(r);
+    }
+  }
+
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head++];
+    const currentLevel = level.get(current)!;
+    for (const child of children.get(current) || []) {
+      if (!level.has(child)) {
+        level.set(child, currentLevel + 1);
+        queue.push(child);
+      }
+    }
+  }
+
+  // Handle disconnected nodes — assign them to level 0 and BFS from them
+  for (const n of nodes) {
+    if (!level.has(n.slug)) {
+      level.set(n.slug, 0);
+      queue.push(n.slug);
+      // BFS for this component
+      let compHead = queue.length - 1;
+      while (compHead < queue.length) {
+        const current = queue[compHead++];
+        const currentLevel = level.get(current)!;
+        for (const child of children.get(current) || []) {
+          if (!level.has(child)) {
+            level.set(child, currentLevel + 1);
+            queue.push(child);
+          }
+        }
+      }
+    }
+  }
+
+  // Group nodes by level
+  const levels = new Map<number, GraphNode[]>();
+  for (const n of nodes) {
+    const l = level.get(n.slug) || 0;
+    if (!levels.has(l)) levels.set(l, []);
+    levels.get(l)!.push(n);
+  }
+
+  const maxLevel = Math.max(...levels.keys());
+  const levelCount = maxLevel + 1;
+  const padding = 60;
+
+  // Position nodes: Y by level (top-to-bottom), X spread within level
+  const positions: PositionedNode[] = [];
+  for (const [l, levelNodes] of levels.entries()) {
+    const y = levelCount <= 1 
+      ? height / 2 
+      : padding + (l / (levelCount - 1)) * (height - padding * 2);
+
+    const count = levelNodes.length;
+    const spacing = Math.min(
+      (width - padding * 2) / Math.max(count, 1),
+      80
+    );
+    const totalWidth = spacing * (count - 1);
+    const startX = (width - totalWidth) / 2;
+
+    for (let i = 0; i < count; i++) {
+      positions.push({
+        ...levelNodes[i],
+        x: count === 1 ? width / 2 : startX + i * spacing,
+        y,
+      });
+    }
+  }
+
+  // Light force simulation to reduce overlaps while preserving hierarchy
+  const iterations = 30;
+  let posArr = [...positions];
+  const slugToIdx = new Map(posArr.map((n, i) => [n.slug, i]));
 
   for (let iter = 0; iter < iterations; iter++) {
-    const forces = positions.map(() => ({ fx: 0, fy: 0 }));
+    const forces = posArr.map(() => ({ fx: 0, fy: 0 }));
 
-    // Repulsion between all nodes
-    for (let i = 0; i < positions.length; i++) {
-      for (let j = i + 1; j < positions.length; j++) {
-        const dx = positions[j].x - positions[i].x;
-        const dy = positions[j].y - positions[i].y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const force = repulsion / (dist * dist);
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-
-        forces[i].fx -= fx;
-        forces[i].fy -= fy;
-        forces[j].fx += fx;
-        forces[j].fy += fy;
+    // Horizontal repulsion between same-level nodes
+    for (let i = 0; i < posArr.length; i++) {
+      for (let j = i + 1; j < posArr.length; j++) {
+        if (level.get(posArr[i].slug) !== level.get(posArr[j].slug)) continue;
+        const dx = posArr[j].x - posArr[i].x;
+        const dist = Math.abs(dx) || 1;
+        if (dist < 60) {
+          const force = (60 - dist) * 0.3;
+          const dir = dx > 0 ? 1 : -1;
+          forces[i].fx -= dir * force;
+          forces[j].fx += dir * force;
+        }
       }
     }
 
-    // Attraction along edges
-    const slugToIndex = new Map(positions.map((n, i) => [n.slug, i]));
-    edges.forEach(edge => {
-      const i = slugToIndex.get(edge.source);
-      const j = slugToIndex.get(edge.target);
-      if (i === undefined || j === undefined) return;
+    // Gentle attraction along edges (X only, to align parent-child)
+    for (const edge of validEdges) {
+      const i = slugToIdx.get(edge.source);
+      const j = slugToIdx.get(edge.target);
+      if (i === undefined || j === undefined) continue;
+      const dx = posArr[j].x - posArr[i].x;
+      forces[i].fx += dx * 0.02;
+      forces[j].fx -= dx * 0.02;
+    }
 
-      const dx = positions[j].x - positions[i].x;
-      const dy = positions[j].y - positions[i].y;
-      const fx = dx * attraction;
-      const fy = dy * attraction;
-
-      forces[i].fx += fx;
-      forces[i].fy += fy;
-      forces[j].fx -= fx;
-      forces[j].fy -= fy;
-    });
-
-    // Center gravity
-    positions.forEach((pos, i) => {
-      forces[i].fx += (centerX - pos.x) * 0.01;
-      forces[i].fy += (centerY - pos.y) * 0.01;
-    });
-
-    // Apply forces with damping
-    positions = positions.map((pos, i) => ({
+    posArr = posArr.map((pos, i) => ({
       ...pos,
-      x: Math.max(40, Math.min(width - 40, pos.x + forces[i].fx * damping)),
-      y: Math.max(40, Math.min(height - 40, pos.y + forces[i].fy * damping)),
+      x: Math.max(padding, Math.min(width - padding, pos.x + forces[i].fx * 0.5)),
+      // Keep Y fixed to preserve tree structure
     }));
   }
 
-  return positions;
+  return posArr;
 }
 
 /**
@@ -140,11 +206,11 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const width = 800;
-  const height = 600;
+  const width = 1200;
+  const height = Math.max(800, nodes.length * 12);
 
   const positionedNodes = useMemo(
-    () => computeForceLayout(nodes, edges, width, height),
+    () => computeTreeLayout(nodes, edges, width, height),
     [nodes, edges]
   );
 
