@@ -3289,8 +3289,9 @@ export default {
           if (!resp.ok) {
             return errorResponse(`Download failed: ${resp.status}`, resp.status);
           }
-          const body = resp.body;
-          return new Response(body, {
+          // resp.data is the text content (fetchNotebookLM consumes the body)
+          const content = resp.data || '';
+          return new Response(content, {
             status: 200,
             headers: {
               'Content-Type': 'text/markdown; charset=utf-8',
