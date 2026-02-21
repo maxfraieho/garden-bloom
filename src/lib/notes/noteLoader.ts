@@ -199,6 +199,17 @@ export function getNoteBySlug(slug: string): Note | null {
     });
   }
 
+  // Fallback: match by filename (last path segment) for short wikilinks
+  // e.g. [[ARCHITECTURE_ROOT]] should match exodus.pp.ua/architecture/ARCHITECTURE_ROOT
+  if (!note) {
+    const searchName = decodedNormalized.toLowerCase();
+    note = notes.find((n) => {
+      const decoded = decodeURIComponent(n.slug);
+      const filename = decoded.split('/').pop() || decoded;
+      return filename.toLowerCase() === searchName;
+    });
+  }
+
   return note || null;
 }
 
