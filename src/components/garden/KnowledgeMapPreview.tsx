@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getFullGraph } from '@/lib/notes/linkGraph';
@@ -26,8 +26,10 @@ interface MiniNode {
 export function KnowledgeMapPreview() {
   const { t } = useLocale();
   const graph = useMemo(() => getFullGraph(), []);
+  const navigate = useNavigate();
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [dragNode, setDragNode] = useState<string | null>(null);
+  const dragMovedRef = useRef(false);
 
   const nodeCount = graph.nodes.length;
   const edgeCount = graph.edges.length;
@@ -145,6 +147,7 @@ export function KnowledgeMapPreview() {
     e.preventDefault();
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
+    dragMovedRef.current = false;
     setDragNode(slug);
     const nd = simRef.current.find(n => n.slug === slug);
     if (nd) nd.dragging = true;
@@ -152,6 +155,7 @@ export function KnowledgeMapPreview() {
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragNode) return;
+    dragMovedRef.current = true;
     const pt = getSVGPoint(e);
     const nd = simRef.current.find(n => n.slug === dragNode);
     if (nd) {
@@ -164,9 +168,12 @@ export function KnowledgeMapPreview() {
     if (dragNode) {
       const nd = simRef.current.find(n => n.slug === dragNode);
       if (nd) nd.dragging = false;
+      if (!dragMovedRef.current) {
+        navigate(`/note/${encodeURIComponent(dragNode)}`);
+      }
       setDragNode(null);
     }
-  }, [dragNode]);
+  }, [dragNode, navigate]);
 
   const simNodes = simRef.current;
   const slugMap = new Map(simNodes.map(n => [n.slug, n]));
@@ -232,7 +239,7 @@ export function KnowledgeMapPreview() {
                   onPointerDown={(e) => handlePointerDown(e, node.slug)}
                   onMouseEnter={() => setHoveredNode(node.slug)}
                   onMouseLeave={() => setHoveredNode(null)}
-                  className="cursor-grab active:cursor-grabbing"
+                  className="cursor-pointer active:cursor-grabbing"
                 />
                 <text
                   x={node.x}
