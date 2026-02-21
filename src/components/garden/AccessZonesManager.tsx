@@ -42,6 +42,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { downloadZoneNotes } from '@/lib/api/mcpGatewayClient';
 
 export function AccessZonesManager() {
   const { t } = useLocale();
@@ -241,17 +242,18 @@ export function AccessZonesManager() {
                     <Button
                       variant="outline"
                       size="sm"
-                      asChild
+                      onClick={async () => {
+                        try {
+                          await downloadZoneNotes(zone.id, zone.name);
+                          toast.success('Download started');
+                        } catch (err) {
+                          toast.error('Download failed');
+                          console.error(err);
+                        }
+                      }}
                     >
-                      <a
-                        href={`https://apiminio.exodus.pp.ua/mcpstorage/zones/${zone.id}/notes-all.md`}
-                        download={`${zone.name}-notes.md`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Download className="w-3.5 h-3.5 mr-1" />
-                        .md
-                      </a>
+                      <Download className="w-3.5 h-3.5 mr-1" />
+                      .md
                     </Button>
                     {zone.notebooklm && (
                       <Button
