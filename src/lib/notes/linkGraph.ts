@@ -1,256 +1,197 @@
-// Link relationship resolver and local graph data model
-// Computes outbound links, inbound links (backlinks), and local graph structure
+// Link relationship resolver and graph data model
+// Uses graphContract.ts as single source-of-truth for parsing/resolution
 
-import type { Note, NoteLink } from './types';
+import type { Note } from './types';
 import { getAllNotes, noteExists, getNoteBySlug } from './noteLoader';
-import { parseWikilinks, slugify } from './wikilinkParser';
+import {
+  buildGraphFromNotes,
+  GRAPH_CONTRACT_VERSION,
+  type GraphSnapshot,
+  type SnapshotNode,
+  type SnapshotEdge,
+  type GraphDiagnostics,
+} from './graphContract';
 
-/**
- * Represents a node in the local graph
- */
+// ── Re-export types for consumers ──
+
 export interface GraphNode {
   slug: string;
   title: string;
   exists: boolean;
 }
 
-/**
- * Represents an edge in the local graph
- */
 export interface GraphEdge {
   source: string;
   target: string;
 }
 
-/**
- * Local graph data structure for a single note
- * Contains the current note and its immediate neighbors (1-hop)
- */
 export interface LocalGraph {
   center: GraphNode;
-  outbound: GraphNode[];  // Notes this note links to
-  inbound: GraphNode[];   // Notes that link to this note (backlinks)
+  outbound: GraphNode[];
+  inbound: GraphNode[];
   edges: GraphEdge[];
 }
 
-/**
- * Backlink information with context
- */
 export interface Backlink {
   slug: string;
   title: string;
-  // Could extend with excerpt/context in future iterations
 }
 
-/**
- * Cache for link relationships to avoid recomputation
- */
-interface LinkCache {
-  outboundMap: Map<string, string[]>;  // slug -> array of target slugs
-  inboundMap: Map<string, string[]>;   // slug -> array of source slugs
-  lastComputed: number;
-}
+// ── Snapshot loading ──
 
-let linkCache: LinkCache | null = null;
+let cachedSnapshot: GraphSnapshot | null = null;
 
 /**
- * Check if a note should be visible (published)
- * Hidden or unpublished notes are excluded from backlinks
+ * Try to load graph.snapshot.json from public/
+ * Falls back to client-parse if not available
  */
-function isNoteVisible(note: Note): boolean {
-  // dg_publish must be explicitly true, or undefined (defaults to visible)
-  // If explicitly false, the note is hidden
-  const dgPublish = note.frontmatter.dg_publish;
-  return dgPublish !== false;
-}
-
-/**
- * Build the complete link graph from all notes
- * This scans all notes and extracts their wikilinks
- */
-function buildLinkGraph(): LinkCache {
-  const outboundMap = new Map<string, string[]>();
-  const inboundMap = new Map<string, string[]>();
-  
-  const allNotes = getAllNotes();
-  const visibleNotes = allNotes.filter(isNoteVisible);
-  const visibleSlugs = new Set(visibleNotes.map(n => n.slug));
-  
-  // Process each visible note
-  for (const note of visibleNotes) {
-    const links = parseWikilinks(note.content);
-    
-    // Resolve wikilink targets to actual note slugs
-    // e.g. [[ARCHITECTURE_ROOT]] → "exodus.pp.ua%2Farchitecture%2FARCHITECTURE_ROOT"
-    const resolvedSlugs = links
-      .map(l => {
-        const resolved = getNoteBySlug(l.target);
-        return resolved ? resolved.slug : null;
-      })
-      .filter((s): s is string => s !== null);
-    const targetSlugs = [...new Set(resolvedSlugs)];
-    outboundMap.set(note.slug, targetSlugs);
-    
-    // Build inbound map (reverse lookup)
-    for (const targetSlug of targetSlugs) {
-      // Only include links to visible notes
-      if (!inboundMap.has(targetSlug)) {
-        inboundMap.set(targetSlug, []);
-      }
-      inboundMap.get(targetSlug)!.push(note.slug);
+async function tryLoadSnapshot(): Promise<GraphSnapshot | null> {
+  try {
+    const resp = await fetch('/graph.snapshot.json');
+    if (!resp.ok) return null;
+    const data = await resp.json() as GraphSnapshot;
+    // Validate contract version
+    if (data.contractVersion !== GRAPH_CONTRACT_VERSION) {
+      console.warn(`[graph] Snapshot version mismatch: ${data.contractVersion} vs ${GRAPH_CONTRACT_VERSION}, falling back to client-parse`);
+      return null;
     }
+    return data;
+  } catch {
+    return null;
   }
-  
-  return {
-    outboundMap,
-    inboundMap,
-    lastComputed: Date.now(),
-  };
 }
 
 /**
- * Get or refresh the link cache
+ * Get the graph snapshot — snapshot if available, otherwise client-parse
  */
-function getLinkCache(): LinkCache {
-  // For now, always rebuild - in production this could be optimized
-  // with cache invalidation when notes change
-  if (!linkCache) {
-    linkCache = buildLinkGraph();
+function getSnapshot(): GraphSnapshot {
+  if (!cachedSnapshot) {
+    cachedSnapshot = buildGraphFromNotes();
   }
-  return linkCache;
+  return cachedSnapshot;
 }
 
 /**
- * Invalidate the link cache (call when notes change)
+ * Initialize snapshot (try loading from file, fallback to client-parse)
+ * Call this once on app startup
  */
+export async function initGraphSnapshot(): Promise<GraphSnapshot> {
+  const snapshot = await tryLoadSnapshot();
+  if (snapshot) {
+    cachedSnapshot = snapshot;
+    console.info(`[graph] Using snapshot (${snapshot.diagnostics.totalNodes} nodes, ${snapshot.diagnostics.totalEdges} edges)`);
+  } else {
+    cachedSnapshot = buildGraphFromNotes();
+    console.info(`[graph] Client-parse (${cachedSnapshot.diagnostics.totalNodes} nodes, ${cachedSnapshot.diagnostics.totalEdges} edges)`);
+  }
+  return cachedSnapshot;
+}
+
+// ── Cache invalidation ──
+
 export function invalidateLinkCache(): void {
-  linkCache = null;
+  cachedSnapshot = null;
 }
 
-/**
- * Get outbound links for a note
- * Returns slugs of notes that this note links to
- */
+// ── Public API ──
+
 export function getOutboundLinks(noteSlug: string): string[] {
-  const cache = getLinkCache();
-  return cache.outboundMap.get(noteSlug) || [];
+  const snapshot = getSnapshot();
+  return snapshot.edges
+    .filter(e => e.source === noteSlug)
+    .map(e => e.target);
 }
 
-/**
- * Get backlinks (inbound links) for a note
- * Returns notes that link TO this note, excluding hidden/unpublished notes
- */
 export function getBacklinks(noteSlug: string): Backlink[] {
-  const cache = getLinkCache();
-  const inboundSlugs = cache.inboundMap.get(noteSlug) || [];
+  const snapshot = getSnapshot();
+  const inboundSlugs = snapshot.edges
+    .filter(e => e.target === noteSlug)
+    .map(e => e.source);
   
-  const allNotes = getAllNotes();
-  const noteMap = new Map(allNotes.map(n => [n.slug, n]));
+  const nodeMap = new Map(snapshot.nodes.map(n => [n.slug, n]));
   
   return inboundSlugs
     .map(slug => {
-      const note = noteMap.get(slug);
-      if (!note || !isNoteVisible(note)) return null;
-      
-      return {
-        slug: note.slug,
-        title: note.title,
-      };
+      const node = nodeMap.get(slug);
+      if (!node) return null;
+      return { slug: node.slug, title: node.title };
     })
     .filter((b): b is Backlink => b !== null);
 }
 
-/**
- * Get the local graph data for a note
- * Includes the center node, outbound links, and inbound links (backlinks)
- */
 export function getLocalGraph(noteSlug: string): LocalGraph | null {
-  const allNotes = getAllNotes();
-  const noteMap = new Map(allNotes.map(n => [n.slug, n]));
-  const centerNote = noteMap.get(noteSlug);
+  const snapshot = getSnapshot();
+  const nodeMap = new Map(snapshot.nodes.map(n => [n.slug, n]));
+  const centerNode = nodeMap.get(noteSlug);
   
-  if (!centerNote) return null;
+  if (!centerNode) return null;
   
-  const cache = getLinkCache();
-  
-  // Build center node
   const center: GraphNode = {
-    slug: centerNote.slug,
-    title: centerNote.title,
+    slug: centerNode.slug,
+    title: centerNode.title,
     exists: true,
   };
   
-  // Build outbound nodes
-  const outboundSlugs = cache.outboundMap.get(noteSlug) || [];
+  // Outbound
+  const outboundSlugs = snapshot.edges
+    .filter(e => e.source === noteSlug)
+    .map(e => e.target);
+  
   const outbound: GraphNode[] = outboundSlugs.map(slug => {
-    const note = noteMap.get(slug);
+    const node = nodeMap.get(slug);
     return {
       slug,
-      title: note?.title || slug,
-      exists: noteExists(slug),
+      title: node?.title || slug,
+      exists: !!node,
     };
   });
   
-  // Build inbound nodes (backlinks)
-  const inboundSlugs = cache.inboundMap.get(noteSlug) || [];
+  // Inbound
+  const inboundSlugs = snapshot.edges
+    .filter(e => e.target === noteSlug)
+    .map(e => e.source);
+  
   const inbound: GraphNode[] = inboundSlugs
     .map(slug => {
-      const note = noteMap.get(slug);
-      if (!note || !isNoteVisible(note)) return null;
-      return {
-        slug,
-        title: note.title,
-        exists: true,
-      };
+      const node = nodeMap.get(slug);
+      if (!node) return null;
+      return { slug, title: node.title, exists: true };
     })
     .filter((n): n is GraphNode => n !== null);
   
-  // Build edges
   const edges: GraphEdge[] = [
-    // Outbound edges (from center to targets)
-    ...outboundSlugs.map(target => ({
-      source: noteSlug,
-      target,
-    })),
-    // Inbound edges (from sources to center)
-    ...inbound.map(node => ({
-      source: node.slug,
-      target: noteSlug,
-    })),
+    ...outboundSlugs.map(target => ({ source: noteSlug, target })),
+    ...inbound.map(node => ({ source: node.slug, target: noteSlug })),
   ];
   
-  return {
-    center,
-    outbound,
-    inbound,
-    edges,
-  };
+  return { center, outbound, inbound, edges };
+}
+
+export function getFullGraph(): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  const snapshot = getSnapshot();
+  
+  const nodes: GraphNode[] = snapshot.nodes.map(n => ({
+    slug: n.slug,
+    title: n.title,
+    exists: n.exists,
+  }));
+  
+  const edges: GraphEdge[] = snapshot.edges.map(e => ({
+    source: e.source,
+    target: e.target,
+  }));
+  
+  return { nodes, edges };
 }
 
 /**
- * Get all notes that form the complete graph
- * Useful for building a full knowledge graph view
+ * Get diagnostics for the debug panel
  */
-export function getFullGraph(): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const allNotes = getAllNotes().filter(isNoteVisible);
-  const cache = getLinkCache();
-  
-  const nodes: GraphNode[] = allNotes.map(note => ({
-    slug: note.slug,
-    title: note.title,
-    exists: true,
-  }));
-  
-  const edges: GraphEdge[] = [];
-  for (const note of allNotes) {
-    const outbound = cache.outboundMap.get(note.slug) || [];
-    for (const target of outbound) {
-      edges.push({
-        source: note.slug,
-        target,
-      });
-    }
-  }
-  
-  return { nodes, edges };
+export function getGraphDiagnostics(): GraphDiagnostics & { source: string; contractVersion: string } {
+  const snapshot = getSnapshot();
+  return {
+    ...snapshot.diagnostics,
+    source: snapshot.source,
+    contractVersion: snapshot.contractVersion,
+  };
 }

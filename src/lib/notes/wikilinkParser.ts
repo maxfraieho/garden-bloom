@@ -4,7 +4,8 @@ import type { NoteLink } from './types';
 import { noteExists } from './noteLoader';
 
 // Regex to match [[target]] or [[target|alias]]
-const WIKILINK_REGEX = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+// Regex matching check-graph.py contract: excludes \, #, | from targets
+const WIKILINK_REGEX = /\[\[([^\]|#\\]+?)(?:\|([^\]]+))?\]\]/g;
 
 export interface ParsedWikilink {
   fullMatch: string;
