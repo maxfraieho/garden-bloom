@@ -2261,6 +2261,12 @@ async function handleProposalAccept(proposalId, env) {
     const pending = JSON.parse(pendingData).filter(id => id !== proposalId);
     await env.KV.put('proposals:pending', JSON.stringify(pending));
   }
+
+  // Add to global history index
+  const historyData = await env.KV.get('proposals:history');
+  const historyIds = historyData ? JSON.parse(historyData) : [];
+  historyIds.unshift(proposalId);
+  await env.KV.put('proposals:history', JSON.stringify(historyIds.slice(0, 200)));
   
   // ============================================
   // GitHub Commit via Replit Backend
@@ -2739,7 +2745,74 @@ async function handleProposalReject(proposalId, env) {
     await env.KV.put('proposals:pending', JSON.stringify(pending));
   }
   
+  // Add to global history index
+  const historyData = await env.KV.get('proposals:history');
+  const historyIds = historyData ? JSON.parse(historyData) : [];
+  historyIds.unshift(proposalId);
+  await env.KV.put('proposals:history', JSON.stringify(historyIds.slice(0, 200)));
+
   return jsonResponse({ success: true, proposal });
+}
+
+/**
+ * GET /proposals/history — Owner lists accepted/rejected/expired proposals.
+ * Query params: status (comma-separated), limit, offset
+ */
+async function handleProposalsHistory(env, request) {
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get('status') || '';
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100);
+  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+  const allowedStatuses = statusFilter ? statusFilter.split(',').map(s => s.trim()) : [];
+
+  const historyData = await env.KV.get('proposals:history');
+  const historyIds = historyData ? JSON.parse(historyData) : [];
+
+  const proposals = [];
+  let skipped = 0;
+  for (const id of historyIds) {
+    const data = await env.KV.get(`proposal:${id}`);
+    if (!data) continue;
+    const p = JSON.parse(data);
+    // Filter by status if specified
+    if (allowedStatuses.length > 0 && !allowedStatuses.includes(p.status)) continue;
+    // Skip pending (shouldn't be in history, but defensive)
+    if (p.status === 'pending') continue;
+    if (skipped < offset) { skipped++; continue; }
+    proposals.push(p);
+    if (proposals.length >= limit) break;
+  }
+
+  return jsonResponse({
+    success: true,
+    proposals,
+    total: proposals.length,
+    limit,
+    offset,
+  });
+}
+
+/**
+ * PATCH /proposals/:proposalId — Accept or reject proposal.
+ * Body: { status: 'approved' | 'rejected', decision_note?: string }
+ * Delegates to handleProposalAccept/handleProposalReject.
+ */
+async function handleProposalPatch(proposalId, request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse('Invalid JSON', 400, undefined, 'INVALID_JSON');
+  }
+
+  const status = body?.status;
+  if (status === 'approved') {
+    return await handleProposalAccept(proposalId, env);
+  } else if (status === 'rejected') {
+    return await handleProposalReject(proposalId, env);
+  } else {
+    return errorResponse('Invalid status. Expected "approved" or "rejected".', 400, { status }, 'BAD_REQUEST');
+  }
 }
 
 // ============================================
@@ -3336,10 +3409,28 @@ export default {
         return await handleProposalsPending(env, request);
       }
 
+      // GET /proposals/history - Owner lists accepted/rejected proposals
+      if (method === 'GET' && path === '/proposals/history') {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleProposalsHistory(env, request);
+      }
+
       // GET /proposals/:proposalId - Get single proposal
       const proposalGetMatch = path.match(/^\/proposals\/([^\/]+)$/);
       if (method === 'GET' && proposalGetMatch) {
         return await handleProposalGet(proposalGetMatch[1], request, env);
+      }
+
+      // PATCH /proposals/:proposalId - Accept/reject via status field
+      if (method === 'PATCH' && proposalGetMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleProposalPatch(proposalGetMatch[1], request, env);
       }
 
       // POST /proposals/:proposalId/accept - Owner accepts proposal
