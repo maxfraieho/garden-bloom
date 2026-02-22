@@ -53,17 +53,17 @@ const { search, getContext, processText, status, isLoading, error, refreshStatus
 - Auto-refreshes status on mount and after processText
 - Error isolation per operation
 
-### Layer 4 — UI (✅ Complete, MVP)
+### Layer 4 — UI (✅ Complete, v2)
 `src/components/garden/MemoryPanel.tsx`
 
 Sheet sidebar with 3 tabs:
-- **Search** — LLM answer + sources with scores + clickable sub-queries
-- **Context** — depth selector → entity list + raw context preview
+- **Search** — LLM answer (ReactMarkdown) + sources with EntityViewer (expand → full content) + clickable sub-queries + auto-execute on open
+- **Context** — depth selector → entity list + ReactMarkdown context preview
 - **Add Memory** — textarea → entities affected + commit SHA
 
 `src/components/garden/NoteLayout.tsx`
 
-Memory button added to note header (owner only), opens panel with note title as initialQuery.
+Memory button in note header (owner-only via `useOwnerAuth`), opens panel with note title as `initialQuery` — triggers auto-search.
 
 ### Layer 5 — Backend (✅ Phase 2 Complete — Mastra Agents Live)
 `~/projects/notebooklm` on Replit
@@ -85,19 +85,32 @@ Cloudflare Worker routes `/v1/memory/*` → Replit backend
 
 ---
 
-## Known Gaps (Phase 2 Remaining Debt)
+## Frontend v2 (✅ Complete — 2026-02-22)
+
+5 tasks completed by Lovable:
+
+| Task | File | Status |
+|------|------|--------|
+| Auth guard on MemoryPanel | `MemoryPanel.tsx:23` — `useOwnerAuth()` | ✅ Done |
+| Auto-execute `initialQuery` on open | `SearchTab` — `useEffect` + `autoSearchedRef` | ✅ Done |
+| Markdown rendering in answers | `ReactMarkdown` in SearchTab + ContextTab | ✅ Done |
+| Entity content viewer | `EntityViewer` component, `ChevronDown` expand | ✅ Done |
+| `crypto.randomUUID()` session IDs | `useAgentMemory.ts:115` | ✅ Done |
+
+**Note on user ID:** `useOwnerAuth` is single-owner (JWT has no userId field, only role).
+`'garden-owner'` stays hardcoded but is now gated by `isAuthenticated`. Correct for MVP.
+Multi-user userId from JWT is Phase 3.
+
+---
+
+## Known Gaps (Remaining)
 
 | Gap | Location | Impact | Priority |
 |-----|---------|--------|----------|
-| Hardcoded `'garden-owner'` user ID | `MemoryPanel.tsx:12` | Blocks multi-user | High (Lovable task) |
-| Entity storage path mismatch | Replit `.git-store/src/site/notes/` | Entities mixed with garden notes | Medium — verify isolation |
-| Session ID collision risk (`Date.now()`) | `useAgentMemory.ts:117` | Rare race condition | Low, replace with `crypto.randomUUID()` |
+| Entity storage path on Replit | `.git-store/src/site/notes/` mixed with garden notes | Medium — verify isolation from public notes | Verify on new backend |
 | No retry on transient failures | `useAgentMemory.ts` | Timeout = permanent error for user | Medium |
-| Generic error messages | `useAgentMemory.ts` | "Search failed" doesn't help | Low |
-| No entity viewer component | — | User sees names, not content | Low |
-| No Timeline UI | — | `getMemoryTimeline()` defined but unused | Low |
-| Initial query not auto-executed | `MemoryPanel.tsx` | UX friction on open | Low |
-| No markdown rendering in answer | `SearchTab` | Plain text LLM answer | Low |
+| Generic error messages | `useAgentMemory.ts` | "Search failed" gives no context | Low |
+| No Timeline UI | — | `getMemoryTimeline()` defined but unused | Low (Phase 3) |
 | No TanStack Query cache | — | Duplicate API calls on re-render | Low |
 
 ---
