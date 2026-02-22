@@ -94,7 +94,7 @@ Technical but accessible. Imagine explaining this architecture to a senior engin
 `isolated: intentional` — цей документ є standalone операційним промптом для NotebookLM audio overview. Не включається до навігаційного графу навмисно.
 
 **Контекст використання:**
-- Завантажити до NotebookLM разом з Tier 1 документами з [[ІНДЕКС]]
+- Завантажити до NotebookLM разом з Tier 1 документами з [[exodus.pp.ua/ІНДЕКС\|ІНДЕКС]]
 - Використовується для генерації audio overview системи Garden Bloom
 
 ---

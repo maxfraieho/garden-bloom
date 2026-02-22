@@ -492,16 +492,16 @@ Runtime завантажує `_agent.md` з MinIO при кожному запу
 ## Семантичні зв'язки
 
 **Цей документ деталізує:**
-- [[АРХІТЕКТУРНИЙ_КОРІНЬ]] — аксіома A3 (stateless): DRAKON → pseudocode → _agent.md є declarative definition
-- [[КОНТРАКТ_АГЕНТА_V1]] — §3 behavioral logic: DRAKON як джерело pseudocode.md
+- [[exodus.pp.ua/architecture/foundation/АРХІТЕКТУРНИЙ_КОРІНЬ\|АРХІТЕКТУРНИЙ_КОРІНЬ]] — аксіома A3 (stateless): DRAKON → pseudocode → _agent.md є declarative definition
+- [[exodus.pp.ua/architecture/core/КОНТРАКТ_АГЕНТА_V1\|КОНТРАКТ_АГЕНТА_V1]] — §3 behavioral logic: DRAKON як джерело pseudocode.md
 
 **Цей документ залежить від:**
-- [[КОНТРАКТ_АГЕНТА_V1]] — _agent.md є кінцевою формою, яку інтерпретує Mastra
-- [[КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — Runtime інтерпретує pseudocode, не DRAKON напряму
+- [[exodus.pp.ua/architecture/core/КОНТРАКТ_АГЕНТА_V1\|КОНТРАКТ_АГЕНТА_V1]] — _agent.md є кінцевою формою, яку інтерпретує Mastra
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ\|КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — Runtime інтерпретує pseudocode, не DRAKON напряму
 
 **Від цього документа залежать:**
-- [[ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1]] — current.drakon.json є canonical logic format у logic/ tier
-- [[КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — Phase 4 (Execute Agent): Mastra виконує logic з _agent.md
-- [[АНАЛІЗ_ПРОЕКТУ]] — аналіз контексту Garden Bloom для DRAKON інтеграції
-- [[ДОСЛІДЖЕННЯ_DRAKONWIDGET]] — технічне дослідження DrakonWidget компонента
-- [[ВИБІР_НАВИЧОК_CLAUDE]] — вибір Claude skills для реалізації
+- [[exodus.pp.ua/architecture/features/ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1\|ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1]] — current.drakon.json є canonical logic format у logic/ tier
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ\|КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — Phase 4 (Execute Agent): Mastra виконує logic з _agent.md
+- [[exodus.pp.ua/drakon/АНАЛІЗ_ПРОЕКТУ\|АНАЛІЗ_ПРОЕКТУ]] — аналіз контексту Garden Bloom для DRAKON інтеграції
+- [[exodus.pp.ua/drakon/ДОСЛІДЖЕННЯ_DRAKONWIDGET\|ДОСЛІДЖЕННЯ_DRAKONWIDGET]] — технічне дослідження DrakonWidget компонента
+- [[exodus.pp.ua/drakon/ВИБІР_НАВИЧОК_CLAUDE\|ВИБІР_НАВИЧОК_CLAUDE]] — вибір Claude skills для реалізації

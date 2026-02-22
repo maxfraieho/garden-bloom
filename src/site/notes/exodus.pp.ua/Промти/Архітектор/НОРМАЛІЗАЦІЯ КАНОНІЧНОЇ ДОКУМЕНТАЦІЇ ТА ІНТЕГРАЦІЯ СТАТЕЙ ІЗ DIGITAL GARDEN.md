@@ -13,7 +13,7 @@
 
 ## Контекст
 
-Система Garden Bloom використовує канонічну архітектурну документацію, розташовану у директорії `docs/`, яка є єдиним джерелом архітектурної істини. Ця директорія контролюється виключно вами, як [[Claude Opus]], і жоден інший агент або людина не змінює її напряму.
+Система Garden Bloom використовує канонічну архітектурну документацію, розташовану у директорії `docs/`, яка є єдиним джерелом архітектурної істини. Ця директорія контролюється виключно вами, як [[Claude Opus\|Claude Opus]], і жоден інший агент або людина не змінює її напряму.
 
 Паралельно існує шар знань, сформований через редактор Obsidian і механізм Digital Garden, розташований у директорії:
 
@@ -37,7 +37,7 @@
 
 Назви документів повинні залишатися у форматі ВЕЛИКИХ ЛІТЕР ІЗ СИМВОЛАМИ ПІДКРЕСЛЕННЯ замість пробілів, але самі слова повинні бути перекладені українською мовою. Ви маєте право вибрати найбільш точний, архітектурно коректний і семантично відповідний переклад.
 
-Після нормалізації назв перепишіть зміст кожного канонічного документа українською мовою. Збережіть архітектурний зміст, структуру, логіку, інваріанти, формат Markdown і вікі-посилання у форматі [[НАЗВА_ДОКУМЕНТА]]. Всі вікі-посилання повинні використовувати українські назви документів.
+Після нормалізації назв перепишіть зміст кожного канонічного документа українською мовою. Збережіть архітектурний зміст, структуру, логіку, інваріанти, формат Markdown і вікі-посилання у форматі [[НАЗВА_ДОКУМЕНТА\|НАЗВА_ДОКУМЕНТА]]. Всі вікі-посилання повинні використовувати українські назви документів.
 
 Далі виконайте повний аналіз директорії:
 
@@ -57,7 +57,7 @@
 
 Приклад:
 
-[[ARCHITECTURE_ROOT]]
+[[ARCHITECTURE_ROOT\|ARCHITECTURE_ROOT]]
 
 повинен бути замінений на відповідну українську назву документа у форматі ВЕЛИКИХ ЛІТЕР ІЗ СИМВОЛАМИ ПІДКРЕСЛЕННЯ.
 
@@ -82,7 +82,7 @@
 
 ## Архітектурні обмеження
 
-Під час виконання цього завдання дотримуйтесь інваріантів, визначених у [[ARCHITECTURE_ROOT]], [[MULTI_AGENT_DEVELOPMENT_METHOD_CANONICAL]], [[STORAGE_AUTHORITY_MODEL_CANONICAL]], [[KNOWLEDGE_GRAPH_INVARIANTS]] та [[GRAPH_MAP]].
+Під час виконання цього завдання дотримуйтесь інваріантів, визначених у [[ARCHITECTURE_ROOT\|ARCHITECTURE_ROOT]], [[MULTI_AGENT_DEVELOPMENT_METHOD_CANONICAL\|MULTI_AGENT_DEVELOPMENT_METHOD_CANONICAL]], [[STORAGE_AUTHORITY_MODEL_CANONICAL\|STORAGE_AUTHORITY_MODEL_CANONICAL]], [[KNOWLEDGE_GRAPH_INVARIANTS\|KNOWLEDGE_GRAPH_INVARIANTS]] та [[GRAPH_MAP\|GRAPH_MAP]].
 
 Забезпечте:
 
@@ -123,4 +123,4 @@
 
 ## Семантичні зв’язки
 
-Пов’язані документи: [[ARCHITECTURE_ROOT]], [[MULTI_AGENT_DEVELOPMENT_METHOD_CANONICAL]], [[STORAGE_AUTHORITY_MODEL_CANONICAL]], [[KNOWLEDGE_GRAPH_INVARIANTS]], [[GRAPH_MAP]], [[Claude Opus]], [[Оркестратор]]
+Пов’язані документи: [[ARCHITECTURE_ROOT\|ARCHITECTURE_ROOT]], [[MULTI_AGENT_DEVELOPMENT_METHOD_CANONICAL\|MULTI_AGENT_DEVELOPMENT_METHOD_CANONICAL]], [[STORAGE_AUTHORITY_MODEL_CANONICAL\|STORAGE_AUTHORITY_MODEL_CANONICAL]], [[KNOWLEDGE_GRAPH_INVARIANTS\|KNOWLEDGE_GRAPH_INVARIANTS]], [[GRAPH_MAP\|GRAPH_MAP]], [[Claude Opus\|Claude Opus]], [[Оркестратор\|Оркестратор]]

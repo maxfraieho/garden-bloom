@@ -351,11 +351,11 @@ interface ConflictWarning {
 ## Семантичні зв'язки
 
 **Цей документ є частиною:**
-- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — операційний витяг для Frontend розробника
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — операційний витяг для Frontend розробника
 
 **Цей документ залежить від:**
-- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Proposal system
-- [[КОНТРАКТИ_API_V1]] — API endpoints для Proposal lifecycle
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Proposal system
+- [[exodus.pp.ua/backend/КОНТРАКТИ_API_V1\|КОНТРАКТИ_API_V1]] — API endpoints для Proposal lifecycle
 
 **Від цього документа залежають:**
 - Lovable Frontend — UI реалізація Proposal state machine на основі цього витягу

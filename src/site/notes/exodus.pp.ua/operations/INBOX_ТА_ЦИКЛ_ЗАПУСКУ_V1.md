@@ -244,11 +244,11 @@ SSE замінить polling для real-time updates. Frontend має підт�
 ## Семантичні зв'язки
 
 **Цей документ є частиною:**
-- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — операційний витяг lifecycle для Frontend UI
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — операційний витяг lifecycle для Frontend UI
 
 **Цей документ залежить від:**
-- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Inbox architecture
-- [[КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ]] — run state machine (requested → queued → running → terminal)
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Inbox architecture
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ\|КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ]] — run state machine (requested → queued → running → terminal)
 
 **Від цього документа залежають:**
 - Lovable Frontend — UI реалізація Inbox та run lifecycle
