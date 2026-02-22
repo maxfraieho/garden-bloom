@@ -18,7 +18,7 @@ import FilesPage from "./pages/FilesPage";
 import ZoneViewPage from "./pages/ZoneViewPage";
 import ZoneEditPage from "./pages/ZoneEditPage";
 import ChatPage from "./pages/ChatPage";
-import AdminDiagnosticsPage from "./pages/AdminDiagnosticsPage";
+// AdminDiagnosticsPage removed — consolidated into Settings tab
 import AdminZonesPage from "./pages/AdminZonesPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import PolicyPage from "./pages/PolicyPage";
@@ -66,7 +66,7 @@ function AppContent() {
             <Route path="/zone/:zoneId" element={<ZoneViewPage />} />
             <Route path="/zone/:zoneId/edit/:noteSlug" element={<ZoneEditPage />} />
             <Route path="/chat" element={<ChatPage />} />
-            <Route path="/admin/diagnostics" element={<AdminDiagnosticsPage />} />
+            {/* /admin/diagnostics removed — use Settings > Diagnostics tab */}
             <Route path="/admin/zones" element={<AdminZonesPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
             <Route path="/policy/delegated-zone-confidentiality" element={<PolicyPage />} />

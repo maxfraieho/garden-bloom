@@ -539,7 +539,7 @@ export function ZoneCreationDialog({
                     <AlertDescription>
                       <p className="whitespace-pre-line">{notebookHealthError}</p>
                       <p className="mt-2">
-                        <a href="/admin/diagnostics" className="underline">
+                        <a href="/admin/settings" className="underline">
                           Перейти до діагностики
                         </a>
                       </p>

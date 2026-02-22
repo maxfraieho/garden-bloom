@@ -272,7 +272,7 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
                     Це проблема конфігурації бекенду (повинен бути доступний реальний MinIO endpoint, не localhost).
                   </p>
                   <Button asChild variant="outline" size="sm">
-                    <a href="/admin/diagnostics">Перейти до діагностики</a>
+                    <a href="/admin/settings">Перейти до діагностики</a>
                   </Button>
                 </div>
               )}
@@ -307,7 +307,7 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
                     Сервіс NotebookLM потребує налаштування адміністратором.
                   </p>
                   <Button asChild variant="outline" size="sm">
-                    <a href="/admin/diagnostics">Перейти до діагностики</a>
+                    <a href="/admin/settings">Перейти до діагностики</a>
                   </Button>
                 </div>
               )}
