@@ -20,7 +20,7 @@ import type { Note } from './types';
 import { getAllNotes } from './noteLoader';
 
 // ── Contract version ──
-export const GRAPH_CONTRACT_VERSION = 'v1';
+export const GRAPH_CONTRACT_VERSION = '1.1';
 
 // ── Types ──
 
@@ -40,9 +40,33 @@ export interface SnapshotNode {
   exists: boolean;
 }
 
+export type EdgeType = 'structural' | 'semantic' | 'navigational';
+
 export interface SnapshotEdge {
   source: string; // slug
   target: string; // slug
+  type?: EdgeType;        // Phase 1: heuristic classification
+  weight?: number;        // 0–1, default 1
+  importance?: number;    // derived score for UX filtering
+  defaultVisible?: boolean; // false → hidden until user expands
+}
+
+export interface GraphStats {
+  avgDegree: number;
+  maxDegree: number;
+  density: number;           // edges / (nodes*(nodes-1))
+  clusteringCoefficient: number;
+  hubs: Array<{ slug: string; degree: number; zScore: number }>;
+  leaves: string[];          // degree ≤ 1
+  components: number;
+  largestComponentRatio: number;
+  edgeTypeCounts: Record<EdgeType, number>;
+}
+
+export interface ResolutionResult {
+  resolved: boolean;
+  slug?: string;
+  step: 'exact-encoded' | 'exact-decoded' | 'case-insensitive-encoded' | 'case-insensitive-decoded' | 'stem-fallback' | 'unresolved';
 }
 
 export interface GraphDiagnostics {
@@ -50,6 +74,7 @@ export interface GraphDiagnostics {
   totalEdges: number;
   unresolvedLinks: UnresolvedLink[];
   malformedLinks: MalformedLink[];
+  stats?: GraphStats;
 }
 
 export interface UnresolvedLink {

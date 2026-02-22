@@ -4,8 +4,17 @@ import type { NoteLink } from './types';
 import { noteExists } from './noteLoader';
 
 // Regex to match [[target]] or [[target|alias]]
-// Combined regex: handles [[target]], [[target|alias]], and [[path\|alias]]
 const WIKILINK_REGEX = /\[\[([^\]]+)\]\]/g;
+
+/**
+ * Strip fenced and inline code blocks before wikilink extraction.
+ * Matches graphContract.ts / check-graph.py contract §2.1.
+ */
+function stripCodeBlocks(text: string): string {
+  let result = text.replace(/```[\s\S]*?```/g, '');
+  result = result.replace(/`[^`\n]+`/g, '');
+  return result;
+}
 
 export interface ParsedWikilink {
   fullMatch: string;
@@ -40,12 +49,13 @@ function parseInner(inner: string): { target: string; alias: string | null } {
  * Parse all wikilinks from a markdown string
  */
 export function parseWikilinks(content: string): ParsedWikilink[] {
+  const body = stripCodeBlocks(content);
   const links: ParsedWikilink[] = [];
   let match: RegExpExecArray | null;
 
   WIKILINK_REGEX.lastIndex = 0;
 
-  while ((match = WIKILINK_REGEX.exec(content)) !== null) {
+  while ((match = WIKILINK_REGEX.exec(body)) !== null) {
     const { target, alias } = parseInner(match[1]);
     const slug = slugify(target);
 
@@ -83,7 +93,8 @@ export function slugify(text: string): string {
  * that will be handled by the React component
  */
 export function transformWikilinks(content: string): string {
-  return content.replace(WIKILINK_REGEX, (fullMatch, inner) => {
+  const body = stripCodeBlocks(content);
+  return body.replace(WIKILINK_REGEX, (fullMatch, inner) => {
     const { target, alias } = parseInner(inner);
     const slug = slugify(target);
     const displayText = alias || target;
