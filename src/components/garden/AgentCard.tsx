@@ -3,6 +3,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronUp, ChevronDown, Pencil, Trash2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+const ZONE_DESCRIPTIONS: Record<string, string> = {
+  mcp: 'MCP Gateway — handles external API calls and tool integrations',
+  planning: 'Planning — analyzes tasks and creates execution plans',
+  memory: 'Memory — manages agent knowledge and context retrieval',
+  execution: 'Execution — runs tasks and produces artifacts',
+  governance: 'Governance — enforces rules, validates outputs, audits',
+};
 
 interface AgentCardProps {
   agent: AgentDefinition;
@@ -35,7 +48,14 @@ export function AgentCard({
             <span className="text-sm font-mono text-muted-foreground w-8">#{agent.order}</span>
             <div className="flex-1 min-w-0">
               <span className="font-semibold text-foreground">{agent.name}</span>
-              <span className="ml-3 text-sm text-muted-foreground truncate">{agent.zone}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-3 text-sm text-muted-foreground truncate cursor-help border-b border-dotted border-muted-foreground/40">{agent.zone}</span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  {ZONE_DESCRIPTIONS[agent.zone] || `Zone: ${agent.zone}`}
+                </TooltipContent>
+              </Tooltip>
             </div>
             <Badge variant="outline" className={`text-xs ${statusColor[agent.status]}`}>
               {agent.status}

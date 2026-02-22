@@ -3,9 +3,10 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ZoomIn, ZoomOut, Maximize2, Focus, X, Eye, EyeOff } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Focus, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { useLocale } from '@/hooks/useLocale';
 import type { GraphNode, GraphEdge } from '@/lib/notes/linkGraph';
 
@@ -223,6 +224,24 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
     () => filterByDepth(nodes, edges, depth),
     [nodes, edges, depth]
   );
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return filteredNodes.filter(n => n.title.toLowerCase().includes(q)).slice(0, 8);
+  }, [searchQuery, filteredNodes]);
+
+  const handleSearchSelect = useCallback((slug: string) => {
+    setFocusedNode(slug);
+    setExpandLevel(1);
+    setIsolated(false);
+    setSearchQuery('');
+    setSearchOpen(false);
+  }, []);
 
   // Neighborhood for focus mode
   const focusNeighbors = useMemo(() => {
@@ -524,6 +543,45 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
           </Button>
         </div>
 
+        {/* Search */}
+        <div className="relative">
+          {searchOpen ? (
+            <div className="relative">
+              <Input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Find node…"
+                className="h-8 w-48 text-xs pr-8"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); }
+                  if (e.key === 'Enter' && searchResults.length > 0) handleSearchSelect(searchResults[0].slug);
+                }}
+              />
+              <Button variant="ghost" size="icon" className="h-6 w-6 absolute right-1 top-1" onClick={() => { setSearchOpen(false); setSearchQuery(''); }}>
+                <X className="h-3 w-3" />
+              </Button>
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
+                  {searchResults.map(n => (
+                    <button
+                      key={n.slug}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-accent/50 transition-colors truncate"
+                      onClick={() => handleSearchSelect(n.slug)}
+                    >
+                      {n.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSearchOpen(true)} title="Search nodes">
+              <Search className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Depth</span>
           <Slider value={[depth]} onValueChange={([v]) => setDepth(v)} min={1} max={10} step={1} className="w-24" />
@@ -715,14 +773,29 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
         </g>
       </svg>
 
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2.5 border-t border-border bg-muted/20">
+        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Legend</span>
+        {Object.entries(EDGE_TYPE_CONFIG).map(([type, cfg]) => (
+          <span key={type} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="w-5 h-[2px] rounded-full" style={{ background: cfg.color, height: `${cfg.width}px` }} />
+            {cfg.label}
+          </span>
+        ))}
+        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground ml-2">
+          <span className="w-2 h-2 rounded-full bg-primary" />
+          <span className="w-3 h-3 rounded-full bg-primary" />
+          Node size = connections
+        </span>
+      </div>
+
       {/* Stats + Focus info */}
-      <div className="flex justify-between items-center px-4 py-3 border-t border-border text-xs text-muted-foreground">
+      <div className="flex justify-between items-center px-4 py-2.5 border-t border-border text-xs text-muted-foreground">
         <div className="flex gap-6">
           <span>{t.graph.notesCount.replace('{count}', String(filteredNodes.length))}</span>
           <span>{t.graph.connectionsCount.replace('{count}', String(filteredEdges.length))}</span>
         </div>
 
-        {/* Focus debug info */}
         {focusedNode && focusStats && (
           <div className="flex gap-4 text-xs">
             <span className="text-foreground font-medium">
@@ -731,7 +804,6 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
             <span>in: {focusStats.inbound}</span>
             <span>out: {focusStats.outbound}</span>
             <span>deg: {focusStats.degree}</span>
-            <span>visible: {focusStats.neighbors}</span>
             <span className="text-muted-foreground/60">
               click again to open · bg to unfocus
             </span>

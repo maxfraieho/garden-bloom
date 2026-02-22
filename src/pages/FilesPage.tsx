@@ -1,7 +1,8 @@
 // Full-screen file/folder structure view
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus, FilePlus, Pencil, GitBranch } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus, FilePlus, Pencil, GitBranch, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { getFolderStructure, getHomeNote } from '@/lib/notes/noteLoader';
 import { GardenHeader } from '@/components/garden/GardenHeader';
 import { GardenFooter } from '@/components/garden/GardenFooter';
@@ -151,11 +152,12 @@ export default function FilesPage() {
   const [searchParams] = useSearchParams();
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const { isAuthenticated } = useOwnerAuth();
+  const [fileSearch, setFileSearch] = useState('');
 
   // Compute paths to auto-expand from ?folder= param
   const expandedPaths = useMemo(() => {
     const folderParam = searchParams.get('folder');
-    if (!folderParam) return undefined; // undefined = expand all (default)
+    if (!folderParam) return undefined;
     const decoded = decodeURIComponent(folderParam);
     const parts = decoded.split('/');
     const paths = new Set<string>();
@@ -166,6 +168,25 @@ export default function FilesPage() {
     }
     return paths;
   }, [searchParams]);
+
+  // Filter folders/notes by search query
+  const filterFolder = useCallback((folder: FolderInfo, query: string): FolderInfo | null => {
+    if (!query) return folder;
+    const q = query.toLowerCase();
+    const matchingNotes = folder.notes.filter(n => n.title.toLowerCase().includes(q));
+    const matchingSubfolders = folder.subfolders
+      .map(sf => filterFolder(sf, query))
+      .filter((sf): sf is FolderInfo => sf !== null);
+    if (matchingNotes.length === 0 && matchingSubfolders.length === 0 && !folder.name.toLowerCase().includes(q)) {
+      return null;
+    }
+    return { ...folder, notes: matchingNotes, subfolders: matchingSubfolders };
+  }, []);
+
+  const filteredFolders = useMemo(() => {
+    if (!fileSearch.trim()) return folders;
+    return folders.map(f => filterFolder(f, fileSearch.trim())).filter((f): f is FolderInfo => f !== null);
+  }, [folders, fileSearch, filterFolder]);
   
   // Count total notes and folders
   const countItems = (folders: FolderInfo[]): { notes: number; folders: number } => {
@@ -225,6 +246,22 @@ export default function FilesPage() {
         </div>
         
         <ExportModal open={exportModalOpen} onOpenChange={setExportModalOpen} />
+
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={fileSearch}
+            onChange={e => setFileSearch(e.target.value)}
+            placeholder="Filter files and folders…"
+            className="pl-9 pr-9 h-10"
+          />
+          {fileSearch && (
+            <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setFileSearch('')}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
         
         {/* Tree structure */}
         <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
@@ -245,19 +282,21 @@ export default function FilesPage() {
           )}
           
           {/* Folder structure */}
-          {folders.map((folder) => (
+          {filteredFolders.map((folder) => (
           <FolderItem 
             key={folder.path} 
             folder={folder}
             isAuthenticated={isAuthenticated}
-            expandedPaths={expandedPaths}
+            expandedPaths={fileSearch ? undefined : expandedPaths}
           />
           ))}
           
-          {folders.length === 0 && (
+          {filteredFolders.length === 0 && (
             <div className="text-center py-12">
               <FolderTree className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <p className="text-muted-foreground">No files found</p>
+              <p className="text-muted-foreground">
+                {fileSearch ? `No results for "${fileSearch}"` : 'No files found'}
+              </p>
             </div>
           )}
         </div>
