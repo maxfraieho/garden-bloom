@@ -265,13 +265,13 @@ garden-data/
 ## Семантичні зв'язки
 
 **Цей документ спирається на:**
-- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА\|КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — MinIO як canonical storage для коментарів
-- [[exodus.pp.ua/architecture/foundation/АРХІТЕКТУРНИЙ_КОРІНЬ\|АРХІТЕКТУРНИЙ_КОРІНЬ]] — A5 Gateway як єдина точка входу
-- [[exodus.pp.ua/architecture/governance/ІНВАРІАНТИ_ГРАФУ_ЗНАНЬ\|ІНВАРІАНТИ_ГРАФУ_ЗНАНЬ]] — integrity правила для нових компонентів
+- [[КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — MinIO як canonical storage для коментарів
+- [[АРХІТЕКТУРНИЙ_КОРІНЬ]] — A5 Gateway як єдина точка входу
+- [[ІНВАРІАНТИ_ГРАФУ_ЗНАНЬ]] — integrity правила для нових компонентів
 
 **Суміжні документи:**
-- [[exodus.pp.ua/backend/КОНТРАКТИ_API_V1\|КОНТРАКТИ_API_V1]] — API schemas для endpoints коментарів
-- [[exodus.pp.ua/architecture/non-functional/БЕЗПЕКА_СИСТЕМИ\|БЕЗПЕКА_СИСТЕМИ]] — access control для коментування
+- [[КОНТРАКТИ_API_V1]] — API schemas для endpoints коментарів
+- [[БЕЗПЕКА_СИСТЕМИ]] — access control для коментування
 
 ---
 

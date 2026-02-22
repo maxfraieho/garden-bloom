@@ -925,18 +925,18 @@ Canonical Gateway Endpoints — stable, vendor-agnostic.
 ## Семантичні зв'язки
 
 **Цей документ деталізує:**
-- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ\|КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — HTTP interface до Runtime Architecture компонентів
-- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — REST endpoints для Proposal lifecycle (§1–§3.3)
+- [[КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — HTTP interface до Runtime Architecture компонентів
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — REST endpoints для Proposal lifecycle (§1–§3.3)
 
 **Цей документ залежить від:**
-- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Proposal lifecycle
-- [[exodus.pp.ua/operations/INBOX_ТА_ЦИКЛ_ЗАПУСКУ_V1\|INBOX_ТА_ЦИКЛ_ЗАПУСКУ_V1]] — state machines для UI-орієнтованого lifecycle
-- [[exodus.pp.ua/architecture/non-functional/БЕЗПЕКА_СИСТЕМИ\|БЕЗПЕКА_СИСТЕМИ]] — auth headers, rate limiting policies (§0.2, §7.3)
-- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА\|КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — authority model (хто має право на write endpoints)
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Proposal lifecycle
+- [[INBOX_ТА_ЦИКЛ_ЗАПУСКУ_V1]] — state machines для UI-орієнтованого lifecycle
+- [[БЕЗПЕКА_СИСТЕМИ]] — auth headers, rate limiting policies (§0.2, §7.3)
+- [[КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — authority model (хто має право на write endpoints)
 
 **Від цього документа залежать:**
-- [[exodus.pp.ua/frontend/LOVABLE_УЗГОДЖЕННЯ_З_АРХІТЕКТУРОЮ_ВИКОНАННЯ\|LOVABLE_УЗГОДЖЕННЯ_З_АРХІТЕКТУРОЮ_ВИКОНАННЯ]] — frontend invariants на основі цих API contracts
-- [[exodus.pp.ua/frontend/ДИРЕКТИВА_УЗГОДЖЕННЯ_FRONTEND_V1\|ДИРЕКТИВА_УЗГОДЖЕННЯ_FRONTEND_V1]] — критичні невідповідності UI з цими contracts
+- [[LOVABLE_УЗГОДЖЕННЯ_З_АРХІТЕКТУРОЮ_ВИКОНАННЯ]] — frontend invariants на основі цих API contracts
+- [[ДИРЕКТИВА_УЗГОДЖЕННЯ_FRONTEND_V1]] — критичні невідповідності UI з цими contracts
 
 ---
 

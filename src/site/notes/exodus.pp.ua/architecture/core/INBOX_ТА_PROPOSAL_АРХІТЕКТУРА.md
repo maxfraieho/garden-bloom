@@ -696,15 +696,15 @@ sequenceDiagram
 ## Семантичні зв'язки
 
 **Цей документ деталізує:**
-- [[exodus.pp.ua/architecture/foundation/АРХІТЕКТУРНИЙ_КОРІНЬ\|АРХІТЕКТУРНИЙ_КОРІНЬ]] — аксіома A2 (mutation requires consent): цей документ є її повним розкриттям
+- [[АРХІТЕКТУРНИЙ_КОРІНЬ]] — аксіома A2 (mutation requires consent): цей документ є її повним розкриттям
 
 **Цей документ залежить від:**
-- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА\|КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — proposals зберігаються у MinIO; transitions authority
-- [[exodus.pp.ua/architecture/core/КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ\|КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ]] — run → completed породжує proposals
-- [[exodus.pp.ua/architecture/features/ПАМ_ЯТЬ_АГЕНТА_GIT_DIFFMEM_V1\|ПАМ_ЯТЬ_АГЕНТА_GIT_DIFFMEM_V1]] — memory-update Proposal: окремий тип з auto-approve для normal priority
-- [[exodus.pp.ua/architecture/features/ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1\|ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1]] — logic-update Proposal: окремий тип, завжди human review
+- [[КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — proposals зберігаються у MinIO; transitions authority
+- [[КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ]] — run → completed породжує proposals
+- [[ПАМ_ЯТЬ_АГЕНТА_GIT_DIFFMEM_V1]] — memory-update Proposal: окремий тип з auto-approve для normal priority
+- [[ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1]] — logic-update Proposal: окремий тип, завжди human review
 
 **Від цього документа залежать:**
-- [[exodus.pp.ua/architecture/core/КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ\|КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — Phase 5 (Persist Results): proposals creation
-- [[exodus.pp.ua/architecture/core/КОНТРАКТ_АГЕНТА_V1\|КОНТРАКТ_АГЕНТА_V1]] — агент генерує proposals як єдиний safe output
-- [[exodus.pp.ua/operations/СИСТЕМА_PROPOSAL_V1\|СИСТЕМА_PROPOSAL_V1]] — frontend-орієнтований витяг (state machine, поля для UI)
+- [[КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — Phase 5 (Persist Results): proposals creation
+- [[КОНТРАКТ_АГЕНТА_V1]] — агент генерує proposals як єдиний safe output
+- [[СИСТЕМА_PROPOSAL_V1]] — frontend-орієнтований витяг (state machine, поля для UI)

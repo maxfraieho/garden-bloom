@@ -7,9 +7,11 @@ Enforces:
   - I-S3/I-S6: every doc has ≥1 inbound wiki-link (or isolated:intentional)
   - I-S5: every doc has ≥2 outbound wiki-links (or isolated:intentional)
   - I-S2: no dangling wiki-links (links to non-existent files)
+  - I-S8: no backslash-pipe [[target\|alias]] format (parser-breaking)
+  - SMOKE: site graph has ≥50 resolved edges (graph-render smoke test)
 
 Usage:
-  python3 scripts/check-graph.py [--verbose] [--ci]
+  python3 scripts/check-graph.py [--verbose] [--ci] [--no-smoke]
 
 Exit codes:
   0 — clean graph
@@ -22,7 +24,12 @@ import re
 import sys
 from pathlib import Path
 
-DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
+ROOT = Path(__file__).resolve().parent.parent
+DOCS_DIR = ROOT / "docs"
+SITE_NOTES_DIR = ROOT / "src" / "site" / "notes"
+
+# Minimum resolved edges required for graph smoke test (I-SMOKE-1)
+SMOKE_MIN_EDGES = 50
 
 SKIP_DIR_NAMES: set[str] = {"_quarantine", ".git"}
 SKIP_FILE_NAMES: set[str] = {"CLAUDE.md"}
@@ -54,6 +61,14 @@ def strip_code_blocks(text: str) -> str:
     return text
 
 
+def find_backslash_pipe_links(text: str) -> list[str]:
+    """Return all [[target\|alias]] links in text (excluding code blocks)."""
+    searchable = strip_code_blocks(text)
+    # Match any [[...]] where the content contains \|
+    raw = re.findall(r"\[\[([^\]]+)\]\]", searchable)
+    return [lk for lk in raw if "\\|" in lk]
+
+
 def parse_metadata(text: str) -> dict:
     searchable = strip_code_blocks(text)
     meta = {
@@ -66,14 +81,56 @@ def parse_metadata(text: str) -> dict:
             lk for lk in re.findall(r"\[\[([^\]|#]+?)(?:\|[^\]]+)?\]\]", searchable)
             if "\\" not in lk and "/" not in lk
         ],
+        # I-S8: detect backslash-pipe links (Obsidian plugin format, breaks JS parser)
+        "backslash_pipe_links": find_backslash_pipe_links(searchable),
     }
     return meta
+
+
+def run_smoke_test() -> tuple[int, str]:
+    """
+    Smoke test: count resolved edges in src/site/notes/ using JS parser logic.
+    Returns (edge_count, status_message).
+    """
+    if not SITE_NOTES_DIR.is_dir():
+        return -1, f"SKIP — {SITE_NOTES_DIR} not found"
+
+    files = list(SITE_NOTES_DIR.rglob("*.md"))
+    # Build stem map (JS filename-fallback resolution)
+    stem_map: dict[str, str] = {}
+    for p in files:
+        stem = p.stem.lower()
+        if stem not in stem_map:
+            stem_map[stem] = str(p.relative_to(SITE_NOTES_DIR))
+
+    FRONTMATTER_RE = re.compile(r"^---\s*\n[\s\S]*?\n---\s*\n")
+    # Canonical link pattern (no backslash, no #): JS parser handles these
+    LINK_RE = re.compile(r"\[\[([^\]|#\\]+?)(?:\|[^\]]+)?\]\]")
+
+    resolved = 0
+    for p in files:
+        text = p.read_text(encoding="utf-8", errors="replace")
+        m = FRONTMATTER_RE.match(text)
+        body = text[m.end():] if m else text
+        body = strip_code_blocks(body)
+
+        for lm in LINK_RE.finditer(body):
+            target = lm.group(1).strip().lower()
+            # JS fallback: if path, take last segment
+            if "/" in target:
+                target = target.split("/")[-1]
+            if target in stem_map:
+                resolved += 1
+
+    status = "OK" if resolved >= SMOKE_MIN_EDGES else "FAIL"
+    return resolved, f"{status} — {resolved} resolved edges (min {SMOKE_MIN_EDGES})"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Knowledge graph integrity check for docs/")
     parser.add_argument("-v", "--verbose", action="store_true", help="Show passing checks too")
     parser.add_argument("--ci", action="store_true", help="CI mode: no color, structured output")
+    parser.add_argument("--no-smoke", action="store_true", help="Skip graph-render smoke test")
     args = parser.parse_args()
 
     if not DOCS_DIR.is_dir():
@@ -129,6 +186,10 @@ def main() -> int:
             if link.lower() not in file_data and link.lower() not in EXTERNAL_REFS:
                 violations.append((rel, "I-S2", f"dangling link [[{link}]] — target not found"))
 
+        # I-S8: no backslash-pipe links (Obsidian plugin format breaks JS parser)
+        for bp in fd["backslash_pipe_links"]:
+            violations.append((rel, "I-S8", f"backslash-pipe link [[{bp[:60]}]] — run normalize-wikilinks.py"))
+
         if args.verbose and not any(v[0] == rel for v in violations):
             print(f"  OK  {rel}")
 
@@ -141,15 +202,20 @@ def main() -> int:
     n_orphan = sum(1 for fd in file_data.values() if fd["inlinks"] == 0 and not fd["is_isolated"])
     n_iso = sum(1 for fd in file_data.values() if fd["is_isolated"])
 
+    # Smoke test
+    smoke_edges, smoke_msg = (-1, "SKIP") if args.no_smoke else run_smoke_test()
+    smoke_fail = smoke_edges >= 0 and smoke_edges < SMOKE_MIN_EDGES
+
     print(f"\n{'─'*50}")
     print(f"check-graph")
     print(f"  Scanned  : {total}")
     print(f"  Isolated : {n_iso}")
     print(f"  Orphans  : {n_orphan}")
     print(f"  Violations: {n_viol}")
+    print(f"  Smoke    : {smoke_msg}")
     print()
 
-    return 1 if n_viol > 0 else 0
+    return 1 if (n_viol > 0 or smoke_fail) else 0
 
 
 if __name__ == "__main__":
