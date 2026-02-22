@@ -878,6 +878,175 @@ export async function downloadZoneNotes(zoneId: string, zoneName: string): Promi
 // Auth API (used by useOwnerAuth hook)
 // ============================================
 
+// ============================================
+// Agent Memory API (DiffMem-like)
+// ============================================
+
+import type {
+  ContextRequest,
+  ContextResponse,
+  MemorySearchRequest,
+  MemorySearchResponse,
+  MemoryProcessRequest,
+  MemoryProcessResponse,
+  MemoryCommitRequest,
+  MemoryCommitResponse,
+  MemoryDiffRequest,
+  MemoryDiffResponse,
+  MemoryTimelineRequest,
+  MemoryTimelineResponse,
+  MemoryUserStatus,
+  MemoryOnboardRequest,
+  MemoryOnboardResponse,
+  MemoryEntity,
+  OrchestratedSearchRequest,
+  OrchestratedSearchResponse,
+  MemorySyncResponse,
+} from '@/types/agentMemory';
+
+export async function getMemoryContext(
+  userId: string,
+  payload: ContextRequest
+): Promise<ContextResponse> {
+  return requestJson<ContextResponse>(`/v1/memory/${encodeURIComponent(userId)}/context`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    timeoutMs: 60000,
+  });
+}
+
+export async function searchMemory(
+  userId: string,
+  payload: MemorySearchRequest
+): Promise<MemorySearchResponse> {
+  return requestJson<MemorySearchResponse>(`/v1/memory/${encodeURIComponent(userId)}/search`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+  });
+}
+
+export async function orchestratedSearchMemory(
+  userId: string,
+  payload: OrchestratedSearchRequest
+): Promise<OrchestratedSearchResponse> {
+  return requestJson<OrchestratedSearchResponse>(`/v1/memory/${encodeURIComponent(userId)}/orchestrated-search`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    timeoutMs: 90000,
+  });
+}
+
+export async function processAndCommitMemory(
+  userId: string,
+  payload: MemoryProcessRequest
+): Promise<MemoryProcessResponse> {
+  return requestJson<MemoryProcessResponse>(`/v1/memory/${encodeURIComponent(userId)}/process-and-commit`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    timeoutMs: 120000,
+  });
+}
+
+export async function processMemorySession(
+  userId: string,
+  payload: MemoryProcessRequest
+): Promise<MemoryProcessResponse> {
+  return requestJson<MemoryProcessResponse>(`/v1/memory/${encodeURIComponent(userId)}/process-session`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    timeoutMs: 120000,
+  });
+}
+
+export async function commitMemorySession(
+  userId: string,
+  payload: MemoryCommitRequest
+): Promise<MemoryCommitResponse> {
+  return requestJson<MemoryCommitResponse>(`/v1/memory/${encodeURIComponent(userId)}/commit-session`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+  });
+}
+
+export async function getMemoryEntity(
+  userId: string,
+  entityId: string
+): Promise<{ success: true; entity: MemoryEntity }> {
+  return requestJson<{ success: true; entity: MemoryEntity }>(
+    `/v1/memory/${encodeURIComponent(userId)}/entity/${encodeURIComponent(entityId)}`,
+    { method: 'GET', requireAuth: true }
+  );
+}
+
+export async function getMemoryDiff(
+  userId: string,
+  payload: MemoryDiffRequest
+): Promise<MemoryDiffResponse> {
+  return requestJson<MemoryDiffResponse>(`/v1/memory/${encodeURIComponent(userId)}/diff`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+  });
+}
+
+export async function getMemoryStatus(
+  userId: string
+): Promise<{ success: true } & MemoryUserStatus> {
+  return requestJson<{ success: true } & MemoryUserStatus>(
+    `/v1/memory/${encodeURIComponent(userId)}/status`,
+    { method: 'GET', requireAuth: true }
+  );
+}
+
+export async function getMemoryTimeline(
+  userId: string,
+  options?: { daysBack?: number; limit?: number }
+): Promise<MemoryTimelineResponse> {
+  const params = new URLSearchParams();
+  if (options?.daysBack) params.set('daysBack', String(options.daysBack));
+  if (options?.limit) params.set('limit', String(options.limit));
+  const query = params.toString();
+  return requestJson<MemoryTimelineResponse>(
+    `/v1/memory/${encodeURIComponent(userId)}/recent-timeline${query ? `?${query}` : ''}`,
+    { method: 'GET', requireAuth: true }
+  );
+}
+
+export async function onboardMemoryUser(
+  userId: string,
+  payload: MemoryOnboardRequest
+): Promise<MemoryOnboardResponse> {
+  return requestJson<MemoryOnboardResponse>(`/v1/memory/${encodeURIComponent(userId)}/onboard`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    timeoutMs: 60000,
+  });
+}
+
+export async function syncMemory(): Promise<MemorySyncResponse> {
+  return requestJson<MemorySyncResponse>('/v1/memory/sync', {
+    method: 'POST',
+    requireAuth: true,
+  });
+}
+
+export async function getMemoryHealth(): Promise<{
+  ok: boolean;
+  gitReady: boolean;
+  indexReady: boolean;
+  entityCount: number;
+  uptime: number;
+}> {
+  return requestJson<any>('/v1/memory/health', { method: 'GET' });
+}
+
 export async function authRequest(
   path: string,
   payload: unknown,
