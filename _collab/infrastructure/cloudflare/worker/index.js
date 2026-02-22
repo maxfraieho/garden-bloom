@@ -3079,6 +3079,146 @@ async function verifyOwnerAuth(request, env) {
 // Main Router
 // ============================================
 
+// ============================================
+// Runs Management Handlers (KV-based MVP)
+// ============================================
+
+/**
+ * KV Schema:
+ * - runs:recent → [runId, ...] (max 200, newest first)
+ * - run:{runId} → { runId, agentSlug, status, startedAt, updatedAt, completedAt?, durationMs?, initiator?, summary? }
+ * - run:{runId}:steps → [{ idx, name, status, startedAt, endedAt?, outputPreview? }]
+ * - run:{runId}:artifacts → [{ name, type, url?, inline? }]
+ *
+ * Statuses: requested, queued, running, completed, failed, cancelled
+ */
+
+async function handleRunCreate(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse('Invalid JSON', 400, undefined, 'INVALID_JSON');
+  }
+
+  const agentSlug = typeof body?.agentSlug === 'string' ? body.agentSlug.trim() : '';
+  if (!agentSlug) {
+    return errorResponse('agentSlug is required', 400, undefined, 'BAD_REQUEST');
+  }
+
+  const now = Date.now();
+  const runId = `run_${now}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const run = {
+    runId,
+    agentSlug,
+    status: 'requested',
+    startedAt: now,
+    updatedAt: now,
+    completedAt: null,
+    durationMs: null,
+    initiator: body?.initiator || 'owner',
+    summary: body?.summary || null,
+    params: body?.params || null,
+  };
+
+  // Save run object
+  await env.KV.put(`run:${runId}`, JSON.stringify(run));
+
+  // Initialize empty steps & artifacts
+  await env.KV.put(`run:${runId}:steps`, JSON.stringify([]));
+  await env.KV.put(`run:${runId}:artifacts`, JSON.stringify([]));
+
+  // Update recent index
+  const recentRaw = await env.KV.get('runs:recent');
+  const recent = recentRaw ? JSON.parse(recentRaw) : [];
+  recent.unshift(runId);
+  await env.KV.put('runs:recent', JSON.stringify(recent.slice(0, 200)));
+
+  return jsonResponse({ success: true, run }, 201);
+}
+
+async function handleRunsList(env, request) {
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
+  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+  const statusFilter = url.searchParams.get('status') || null;
+  const agentFilter = url.searchParams.get('agent') || null;
+
+  const recentRaw = await env.KV.get('runs:recent');
+  const recentIds = recentRaw ? JSON.parse(recentRaw) : [];
+
+  const runs = [];
+  for (const runId of recentIds) {
+    const runData = await env.KV.get(`run:${runId}`);
+    if (!runData) continue;
+    const run = JSON.parse(runData);
+    if (statusFilter && run.status !== statusFilter) continue;
+    if (agentFilter && run.agentSlug !== agentFilter) continue;
+    runs.push(run);
+  }
+
+  const total = runs.length;
+  const paginated = runs.slice(offset, offset + limit);
+
+  return jsonResponse({
+    success: true,
+    runs: paginated,
+    total,
+    limit,
+    offset,
+  });
+}
+
+async function handleRunStatus(runId, env) {
+  const runData = await env.KV.get(`run:${runId}`);
+  if (!runData) {
+    return errorResponse('Run not found', 404, { runId }, 'NOT_FOUND');
+  }
+  const run = JSON.parse(runData);
+  return jsonResponse({
+    success: true,
+    runId: run.runId,
+    status: run.status,
+    startedAt: run.startedAt,
+    updatedAt: run.updatedAt,
+    completedAt: run.completedAt,
+    durationMs: run.durationMs,
+  });
+}
+
+async function handleRunSteps(runId, env) {
+  const runData = await env.KV.get(`run:${runId}`);
+  if (!runData) {
+    return errorResponse('Run not found', 404, { runId }, 'NOT_FOUND');
+  }
+
+  const stepsRaw = await env.KV.get(`run:${runId}:steps`);
+  const steps = stepsRaw ? JSON.parse(stepsRaw) : [];
+
+  return jsonResponse({
+    success: true,
+    runId,
+    steps,
+  });
+}
+
+async function handleRunArtifacts(runId, env) {
+  const runData = await env.KV.get(`run:${runId}`);
+  if (!runData) {
+    return errorResponse('Run not found', 404, { runId }, 'NOT_FOUND');
+  }
+
+  const artifactsRaw = await env.KV.get(`run:${runId}:artifacts`);
+  const artifacts = artifactsRaw ? JSON.parse(artifactsRaw) : [];
+
+  return jsonResponse({
+    success: true,
+    runId,
+    artifacts,
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -3504,6 +3644,58 @@ export default {
         const folderSlug = decodeURIComponent(drakonDeleteMatch[1]);
         const diagramId = decodeURIComponent(drakonDeleteMatch[2]);
         return await handleDrakonDelete(folderSlug, diagramId, env);
+      }
+
+      // ============================================
+      // RUNS MANAGEMENT ENDPOINTS (Owner only)
+      // ============================================
+
+      // POST /agents/run - Create a new run
+      if (method === 'POST' && path === '/agents/run') {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleRunCreate(request, env);
+      }
+
+      // GET /runs - List runs
+      if (method === 'GET' && path === '/runs') {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleRunsList(env, request);
+      }
+
+      // GET /runs/:runId/status
+      const runStatusMatch = path.match(/^\/runs\/([^\/]+)\/status$/);
+      if (method === 'GET' && runStatusMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleRunStatus(runStatusMatch[1], env);
+      }
+
+      // GET /runs/:runId/steps
+      const runStepsMatch = path.match(/^\/runs\/([^\/]+)\/steps$/);
+      if (method === 'GET' && runStepsMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleRunSteps(runStepsMatch[1], env);
+      }
+
+      // GET /runs/:runId/artifacts
+      const runArtifactsMatch = path.match(/^\/runs\/([^\/]+)\/artifacts$/);
+      if (method === 'GET' && runArtifactsMatch) {
+        const ownerPayload = await verifyOwnerAuth(request, env);
+        if (!ownerPayload) {
+          return errorResponse('Unauthorized: Owner access required', 401, undefined, 'UNAUTHORIZED');
+        }
+        return await handleRunArtifacts(runArtifactsMatch[1], env);
       }
 
       return errorResponse('Not found', 404);

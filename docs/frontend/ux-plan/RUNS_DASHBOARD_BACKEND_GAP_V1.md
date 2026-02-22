@@ -12,49 +12,98 @@ dg-publish: true
 # Runs Dashboard Backend Gap V1
 
 > Created: 2026-02-22
+> Updated: 2026-02-22
 > Author: UX Engineer (Lovable)
-> Status: Blocked — no backend endpoints
+> Status: **MVP Unblocked** — core endpoints implemented in Worker KV
 
 ---
 
-## Decision: Do NOT build Runs Dashboard UI
+## Decision: Runs API MVP implemented, UI can proceed
 
-**Reason:** No endpoints exist in the Cloudflare Worker for runs management. Building an empty UI with placeholder states adds no user value and creates maintenance burden.
+**Previous status:** Blocked — no endpoints existed.
+**Current status:** 5 endpoints implemented in Cloudflare Worker with KV storage. Ready for frontend UI development.
 
-## Required Endpoints (from API Contract §6)
+## Implemented Endpoints (Worker KV)
 
-| Endpoint | Method | Purpose | Worker status | Upstream status |
-|----------|--------|---------|---------------|-----------------|
-| `GET /runs` | GET | List all agent runs with filters | ❌ Missing | ❌ Unknown |
-| `GET /runs/{runId}/status` | GET | Run status polling | ❌ Missing (specified) | ❌ Unknown |
-| `GET /runs/{runId}/steps` | GET | Step-by-step results | ❌ Missing (specified) | ❌ Unknown |
-| `GET /runs/{runId}/artifacts` | GET | Run artifacts | ❌ Missing | ❌ Unknown |
-| `POST /agents/run` | POST | Initiate run | ❌ Missing (specified) | ❌ Unknown |
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `POST /agents/run` | POST | Create a new run (status: `requested`) | ✅ Implemented |
+| `GET /runs` | GET | List runs with filters (status, agent, limit, offset) | ✅ Implemented |
+| `GET /runs/{runId}/status` | GET | Run status polling (lightweight) | ✅ Implemented |
+| `GET /runs/{runId}/steps` | GET | Step-by-step results | ✅ Implemented |
+| `GET /runs/{runId}/artifacts` | GET | Run artifacts | ✅ Implemented |
 
-## Required KV Schema
+All endpoints are **owner-only** (JWT required).
 
-If implementing in Worker KV (same pattern as proposals):
+## KV Schema
 
 ```
-runs:recent → [runId, ...] (global index, max 200)
-run:{runId} → { runId, agentSlug, status, startedAt, completedAt, steps, artifacts, initiator }
+runs:recent → [runId, ...] (max 200, newest first)
+run:{runId} → { runId, agentSlug, status, startedAt, updatedAt, completedAt, durationMs, initiator, summary, params }
+run:{runId}:steps → [{ idx, name, status, startedAt, endedAt, outputPreview }]
+run:{runId}:artifacts → [{ name, type, url, inline }]
 ```
 
-## Required Worker Handlers
+### Run Statuses
 
-```javascript
-async function handleRunsList(env, request) { /* KV list + filter */ }
-async function handleRunGet(runId, env) { /* KV get single run */ }
-async function handleRunSteps(runId, env) { /* KV get run steps */ }
-async function handleRunCreate(request, env) { /* KV create + trigger upstream */ }
+`requested` → `queued` → `running` → `completed` | `failed` | `cancelled`
+
+## Response Examples
+
+### POST /agents/run
+```json
+{
+  "success": true,
+  "run": {
+    "runId": "run_1708635600000_abc123",
+    "agentSlug": "comet",
+    "status": "requested",
+    "startedAt": 1708635600000,
+    "updatedAt": 1708635600000,
+    "initiator": "owner"
+  }
+}
 ```
+
+### GET /runs
+```json
+{
+  "success": true,
+  "runs": [...],
+  "total": 5,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+### GET /runs/{runId}/status
+```json
+{
+  "success": true,
+  "runId": "run_...",
+  "status": "completed",
+  "startedAt": 1708635600000,
+  "updatedAt": 1708635700000,
+  "completedAt": 1708635700000,
+  "durationMs": 100000
+}
+```
+
+## Still Missing (post-MVP)
+
+| Endpoint | Method | Purpose | Priority |
+|----------|--------|---------|----------|
+| `PATCH /runs/{runId}` | PATCH | Update run status/steps (for agent callbacks) | Medium |
+| `GET /events/stream` | GET (SSE) | Real-time run updates | Low (post-MVP) |
+| Advanced filters | — | Date range, duration, full-text search | Low |
 
 ## Next Steps
 
-1. Determine if runs are stored in Worker KV or require upstream (Replit) proxy
-2. Implement KV schema + handlers in Worker
-3. Add routes to Worker routing table
-4. Then implement frontend Runs Dashboard UI
+1. ✅ ~~Implement KV schema + handlers in Worker~~ Done
+2. ✅ ~~Add routes to Worker routing table~~ Done
+3. **Deploy Worker** (manual via Cloudflare Dashboard or `wrangler deploy`)
+4. **Verify endpoints** via curl
+5. Build frontend Runs Dashboard UI (Package 3.1)
 
 ---
 
