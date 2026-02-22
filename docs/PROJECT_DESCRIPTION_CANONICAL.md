@@ -1,3 +1,17 @@
+---
+tags:
+  - domain:arch
+  - status:canonical
+  - format:spec
+created: 2026-02-21
+updated: 2026-02-21
+tier: 1
+title: "PROJECT DESCRIPTION CANONICAL"
+dg-publish: true
+dg-metatags:
+dg-home:
+---
+
 # Garden Bloom — Canonical Project Description
 
 > Створено: 2026-02-15
@@ -385,3 +399,21 @@ Garden Bloom є execution platform, де:
 - architecture є vendor-agnostic на всіх replaceable layers
 
 Це забезпечує safety, auditability, deterministic system state і safe autonomy для AI-агентів.
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ деталізує:**
+- [[АРХІТЕКТУРНИЙ_КОРІНЬ]] — executive overview для всіх 7 аксіом і 5 архітектурних ролей
+- [[МАНІФЕСТ]] — реалізація ідеологічних принципів у технічній архітектурі
+
+**Цей документ залежить від:**
+- [[АРХІТЕКТУРНИЙ_КОРІНЬ]] — аксіоми A1–A7 як основа архітектурних рішень
+- [[КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — деталізація execution layer (§6–§7)
+- [[КОНТРАКТ_АГЕНТА_V1]] — визначення агентної моделі (§9)
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — Proposal system як safety mechanism (§11)
+- [[КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — storage-centric authority model (§8, §12)
+
+**Від цього документа залежать:**
+- [[КАРТА_ГРАФУ]] — використовує цей документ як Tier 1 overview вузол
