@@ -1,6 +1,7 @@
 ---
-{"tags":["domain:drakon","status:draft","format:research","feature:logic"],"created":"2026-02-21","updated":"2026-02-21","tier":2,"title":"ДОСЛІДЖЕННЯ_DRAKONWIDGET","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/drakon/ДОСЛІДЖЕННЯ_DRAKONWIDGET/","dgPassFrontmatter":true,"noteIcon":""}
+{"tags":["domain:drakon","status:draft","format:research","feature:logic"],"created":"2026-02-21","updated":"2026-02-21","tier":2,"title":"ДОСЛІДЖЕННЯ DRAKONWIDGET","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/drakon/ДОСЛІДЖЕННЯ_DRAKONWIDGET/","dgPassFrontmatter":true,"noteIcon":""}
 ---
+
 
 # DRAKONWIDGET_RESEARCH_UA — Повний технічний аналіз DrakonWidget
 

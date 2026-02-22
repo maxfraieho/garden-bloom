@@ -1,6 +1,7 @@
 ---
-{"tags":["domain:api","status:canonical","format:contract"],"created":"2026-02-15","updated":"2026-02-21","tier":1,"title":"КОНТРАКТИ_API_V1","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/backend/КОНТРАКТИ_API_V1/","dgPassFrontmatter":true,"noteIcon":""}
+{"tags":["domain:api","status:canonical","format:contract"],"created":"2026-02-15","updated":"2026-02-21","tier":1,"title":"КОНТРАКТИ API V1","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/backend/КОНТРАКТИ_API_V1/","dgPassFrontmatter":true,"noteIcon":""}
 ---
+
 
 # API Contracts V1
 
@@ -924,14 +925,14 @@ Canonical Gateway Endpoints — stable, vendor-agnostic.
 ## Семантичні зв'язки
 
 **Цей документ деталізує:**
-- [[exodus.pp.ua/architecture/КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ\|КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — HTTP interface до Runtime Architecture компонентів
-- [[exodus.pp.ua/architecture/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — REST endpoints для Proposal lifecycle (§1–§3.3)
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ\|КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — HTTP interface до Runtime Architecture компонентів
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — REST endpoints для Proposal lifecycle (§1–§3.3)
 
 **Цей документ залежить від:**
-- [[exodus.pp.ua/architecture/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Proposal lifecycle
-- [[exodus.pp.ua/architecture/INBOX_ТА_ЦИКЛ_ЗАПУСКУ_V1\|INBOX_ТА_ЦИКЛ_ЗАПУСКУ_V1]] — state machines для UI-орієнтованого lifecycle
-- [[exodus.pp.ua/architecture/БЕЗПЕКА_СИСТЕМИ\|БЕЗПЕКА_СИСТЕМИ]] — auth headers, rate limiting policies (§0.2, §7.3)
-- [[exodus.pp.ua/architecture/КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА\|КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — authority model (хто має право на write endpoints)
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Proposal lifecycle
+- [[exodus.pp.ua/operations/INBOX_ТА_ЦИКЛ_ЗАПУСКУ_V1\|INBOX_ТА_ЦИКЛ_ЗАПУСКУ_V1]] — state machines для UI-орієнтованого lifecycle
+- [[exodus.pp.ua/architecture/non-functional/БЕЗПЕКА_СИСТЕМИ\|БЕЗПЕКА_СИСТЕМИ]] — auth headers, rate limiting policies (§0.2, §7.3)
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА\|КАНОНІЧНА_МОДЕЛЬ_АВТОРИТЕТУ_СХОВИЩА]] — authority model (хто має право на write endpoints)
 
 **Від цього документа залежать:**
 - [[exodus.pp.ua/frontend/LOVABLE_УЗГОДЖЕННЯ_З_АРХІТЕКТУРОЮ_ВИКОНАННЯ\|LOVABLE_УЗГОДЖЕННЯ_З_АРХІТЕКТУРОЮ_ВИКОНАННЯ]] — frontend invariants на основі цих API contracts

@@ -1,6 +1,7 @@
 ---
-{"tags":["domain:drakon","status:draft","format:guide"],"created":"2026-02-21","updated":"2026-02-21","tier":2,"title":"ВИБІР_НАВИЧОК_CLAUDE","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/drakon/ВИБІР_НАВИЧОК_CLAUDE/","dgPassFrontmatter":true,"noteIcon":""}
+{"tags":["domain:drakon","status:draft","format:guide"],"created":"2026-02-21","updated":"2026-02-21","tier":2,"title":"ВИБІР НАВИЧОК CLAUDE","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/drakon/ВИБІР_НАВИЧОК_CLAUDE/","dgPassFrontmatter":true,"noteIcon":""}
 ---
+
 
 # CLAUDE_SKILLS_SELECTION_UA — Аналіз Claude Skills та їх вибір для інтеграції
 

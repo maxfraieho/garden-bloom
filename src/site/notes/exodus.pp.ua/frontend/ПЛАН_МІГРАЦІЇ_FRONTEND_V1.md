@@ -1,6 +1,7 @@
 ---
-{"tags":["domain:frontend","status:historical","format:guide"],"created":"2026-02-21","updated":"2026-02-21","tier":2,"title":"ПЛАН_МІГРАЦІЇ_FRONTEND_V1","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/frontend/ПЛАН_МІГРАЦІЇ_FRONTEND_V1/","dgPassFrontmatter":true,"noteIcon":""}
+{"tags":["domain:frontend","status:historical","format:guide"],"created":"2026-02-21","updated":"2026-02-21","tier":2,"title":"ПЛАН МІГРАЦІЇ FRONTEND V1","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/frontend/ПЛАН_МІГРАЦІЇ_FRONTEND_V1/","dgPassFrontmatter":true,"noteIcon":""}
 ---
+
 
 # Frontend V1 Migration Plan
 

@@ -1,6 +1,7 @@
 ---
-{"tags":["domain:frontend","status:canonical","format:contract"],"created":"2026-02-21","updated":"2026-02-21","tier":2,"title":"LOVABLE_УЗГОДЖЕННЯ_З_АРХІТЕКТУРОЮ_ВИКОНАННЯ","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/frontend/LOVABLE_УЗГОДЖЕННЯ_З_АРХІТЕКТУРОЮ_ВИКОНАННЯ/","dgPassFrontmatter":true,"noteIcon":""}
+{"tags":["domain:frontend","status:canonical","format:contract"],"created":"2026-02-21","updated":"2026-02-21","tier":2,"title":"LOVABLE УЗГОДЖЕННЯ З АРХІТЕКТУРОЮ ВИКОНАННЯ","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/frontend/LOVABLE_УЗГОДЖЕННЯ_З_АРХІТЕКТУРОЮ_ВИКОНАННЯ/","dgPassFrontmatter":true,"noteIcon":""}
 ---
+
 
 # Lovable Frontend: узгодження з Runtime-архітектурою
 

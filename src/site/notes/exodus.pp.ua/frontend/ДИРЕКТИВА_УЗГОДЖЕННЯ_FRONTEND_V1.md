@@ -1,6 +1,7 @@
 ---
-{"tags":["domain:frontend","status:canonical","format:guide"],"created":"2026-02-15","updated":"2026-02-21","tier":2,"title":"ДИРЕКТИВА_УЗГОДЖЕННЯ_FRONTEND_V1","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/frontend/ДИРЕКТИВА_УЗГОДЖЕННЯ_FRONTEND_V1/","dgPassFrontmatter":true,"noteIcon":""}
+{"tags":["domain:frontend","status:canonical","format:guide"],"created":"2026-02-15","updated":"2026-02-21","tier":2,"title":"ДИРЕКТИВА УЗГОДЖЕННЯ FRONTEND V1","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/frontend/ДИРЕКТИВА_УЗГОДЖЕННЯ_FRONTEND_V1/","dgPassFrontmatter":true,"noteIcon":""}
 ---
+
 
 # Frontend Alignment Directive V1
 
