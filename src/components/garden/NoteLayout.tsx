@@ -29,7 +29,7 @@ export function NoteLayout({ note }: NoteLayoutProps) {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 md:py-12">
       {/* Breadcrumb navigation */}
-      <nav className="mb-6 flex items-center justify-between">
+      <nav className="mb-6 flex flex-col gap-2">
         <div className="flex items-center gap-1 text-sm text-muted-foreground font-sans flex-wrap min-w-0">
           {(() => {
             const decodedSlug = decodeURIComponent(note.slug);
@@ -65,7 +65,7 @@ export function NoteLayout({ note }: NoteLayoutProps) {
         </div>
         
         {isAuthenticated && (
-          <div className="flex items-center gap-2 shrink-0 ml-2">
+          <div className="flex items-center gap-2">
             <MemoryPanel initialQuery={note.title} />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to={`/notes/${note.slug}/edit`}>
