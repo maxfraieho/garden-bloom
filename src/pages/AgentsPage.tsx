@@ -3,7 +3,7 @@ import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { useAgentRegistry } from '@/hooks/useAgentRegistry';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Bot, Info } from 'lucide-react';
 import { AgentCard } from '@/components/garden/AgentCard';
 import { AgentForm } from '@/components/garden/AgentForm';
 import type { AgentDefinition } from '@/types/agentRegistry';
@@ -68,7 +68,9 @@ export default function AgentsPage() {
               <span className="text-foreground">Agents</span>
             </nav>
             <h1 className="text-3xl font-bold text-foreground">Agent Registry</h1>
-            <p className="text-muted-foreground mt-1">Declare and manage execution agents</p>
+            <p className="text-muted-foreground mt-1">
+              Declare and manage AI agents — each with a zone, behavior, and execution order
+            </p>
           </div>
           <Button onClick={handleNew} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -78,12 +80,22 @@ export default function AgentsPage() {
 
         {/* Agent List */}
         {agents.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-muted-foreground/30 p-12 text-center">
-            <p className="text-muted-foreground">No agents declared yet.</p>
-            <Button variant="outline" onClick={handleNew} className="mt-4 gap-2">
+          <div className="rounded-lg border border-dashed border-muted-foreground/30 p-12 text-center space-y-4">
+            <Bot className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-1">No agents yet</h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                An <strong>agent</strong> is an AI worker that reads knowledge, executes tasks, and proposes changes.
+                Each agent belongs to a <strong>zone</strong> (planning, execution, memory, governance, mcp) that defines its authority scope.
+              </p>
+            </div>
+            <Button onClick={handleNew} className="gap-2">
               <Plus className="h-4 w-4" />
               Create your first agent
             </Button>
+            <p className="text-xs text-muted-foreground/60">
+              Example: a "summarizer" agent in the execution zone that generates note summaries
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
