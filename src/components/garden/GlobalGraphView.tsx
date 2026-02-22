@@ -531,14 +531,14 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
       {/* Controls */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 flex-wrap gap-2">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewState(p => ({ ...p, zoom: Math.max(MIN_ZOOM, p.zoom - ZOOM_STEP) }))} disabled={viewState.zoom <= MIN_ZOOM} title={t.graph.zoomOut}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewState(p => ({ ...p, zoom: Math.max(MIN_ZOOM, p.zoom - ZOOM_STEP) }))} disabled={viewState.zoom <= MIN_ZOOM} title={t.graph.zoomOut} aria-label="Zoom out">
             <ZoomOut className="h-4 w-4" />
           </Button>
-          <span className="text-xs text-muted-foreground w-12 text-center">{Math.round(viewState.zoom * 100)}%</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewState(p => ({ ...p, zoom: Math.min(MAX_ZOOM, p.zoom + ZOOM_STEP) }))} disabled={viewState.zoom >= MAX_ZOOM} title={t.graph.zoomIn}>
+          <span className="text-xs text-muted-foreground w-12 text-center" aria-live="polite">{Math.round(viewState.zoom * 100)}%</span>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewState(p => ({ ...p, zoom: Math.min(MAX_ZOOM, p.zoom + ZOOM_STEP) }))} disabled={viewState.zoom >= MAX_ZOOM} title={t.graph.zoomIn} aria-label="Zoom in">
             <ZoomIn className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 ml-1" onClick={() => setViewState({ zoom: 1, panX: 0, panY: 0 })} title={t.graph.reset}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 ml-1" onClick={() => setViewState({ zoom: 1, panX: 0, panY: 0 })} title={t.graph.reset} aria-label="Reset view">
             <Maximize2 className="h-4 w-4" />
           </Button>
         </div>
@@ -561,22 +561,25 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
               <Button variant="ghost" size="icon" className="h-6 w-6 absolute right-1 top-1" onClick={() => { setSearchOpen(false); setSearchQuery(''); }}>
                 <X className="h-3 w-3" />
               </Button>
-              {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
-                  {searchResults.map(n => (
+              {searchQuery.trim() && (
+                <div className="absolute top-full right-0 mt-1 w-64 bg-popover border border-border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto" role="listbox" aria-label="Search results">
+                  {searchResults.length > 0 ? searchResults.map(n => (
                     <button
                       key={n.slug}
+                      role="option"
                       className="w-full text-left px-3 py-2 text-xs hover:bg-accent/50 transition-colors truncate"
                       onClick={() => handleSearchSelect(n.slug)}
                     >
                       {n.title}
                     </button>
-                  ))}
+                  )) : (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">No nodes found</div>
+                  )}
                 </div>
               )}
             </div>
           ) : (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSearchOpen(true)} title="Search nodes">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSearchOpen(true)} title="Search nodes" aria-label="Search nodes">
               <Search className="h-4 w-4" />
             </Button>
           )}
@@ -632,7 +635,7 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
               <Focus className="h-3 w-3" />
               Isolate
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearFocus} title="Clear focus">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearFocus} title="Clear focus" aria-label="Clear focus">
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
