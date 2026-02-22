@@ -89,6 +89,27 @@ dg-publish: true
 
 ---
 
+## ChatPage Mobile Smoke Tests (Package 2.1)
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Tabs visible on mobile (<lg) | ✅ Pass (code review) | `useMediaQuery('(min-width: 1024px)')` gates layout; tabs render Chat/Zones/Proposals |
+| State preserved on tab switch | ✅ Pass (code review) | `forceMount` + conditional `display:none` preserves DOM and input state |
+| No horizontal scroll | ✅ Pass (code review) | `grid-cols-1` via tabs, no fixed-width columns on mobile |
+| Desktop 3-column preserved | ✅ Pass (code review) | `isDesktop ? <DesktopChatLayout /> : <MobileChatLayout />` |
+
+## Graph UX Regression Checks (Mobile)
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Search dropdown within bounds | ✅ Pass | `right-0` anchoring prevents overflow on 390px viewport |
+| "No nodes found" visible | ✅ Pass | Renders in dropdown with `text-muted-foreground` |
+| aria-labels present | ✅ Pass | Zoom in/out, reset, search, clear focus all have `aria-label` |
+| Legend readable | ✅ Pass | `flex-wrap` handles narrow viewport |
+| Controls wrapping | ✅ Pass | `flex-wrap gap-2` in control bar |
+
+---
+
 ## Semantic Links
 
 - Input: [[frontend/ux-plan/ПЛАН_ПОКРАЩЕННЯ_UX_V1]]

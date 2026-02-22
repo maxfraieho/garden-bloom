@@ -23,6 +23,7 @@ interface SimNode extends GraphNode {
   fx: number | null;
   fy: number | null;
   connections: number;
+  folder: string;
 }
 
 type EdgeFilter = 'all' | 'structural-semantic' | 'structural';
@@ -40,6 +41,26 @@ const CENTER_GRAVITY = 0.01;
 const MIN_DIST = 30;
 
 const IS_DEV = import.meta.env.DEV;
+
+// ── Folder color palette (stable, semantic-token-based) ──
+const FOLDER_COLORS: string[] = [
+  'hsl(var(--primary))',
+  'hsl(var(--accent-foreground))',
+  'hsl(210 70% 55%)',   // blue
+  'hsl(150 60% 45%)',   // green
+  'hsl(30 80% 55%)',    // orange
+  'hsl(280 60% 55%)',   // purple
+  'hsl(350 65% 55%)',   // red
+  'hsl(180 50% 45%)',   // teal
+];
+
+/** Extract root folder from slug (first path segment, or '_root' for top-level) */
+function getFolderFromSlug(slug: string): string {
+  const decoded = decodeURIComponent(slug);
+  const parts = decoded.split('/');
+  if (parts.length <= 1) return '_root';
+  return parts[0];
+}
 
 // ── Edge type visual config ──
 const EDGE_TYPE_CONFIG: Record<string, { color: string; width: number; label: string }> = {
@@ -67,6 +88,7 @@ function initSimulation(nodes: GraphNode[], edges: GraphEdge[]): SimNode[] {
       y: cy + radius * Math.sin(angle) + (Math.random() - 0.5) * 20,
       vx: 0, vy: 0, fx: null, fy: null,
       connections: connCount.get(n.slug) || 0,
+      folder: getFolderFromSlug(n.slug),
     };
   });
 }
@@ -224,6 +246,21 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
     () => filterByDepth(nodes, edges, depth),
     [nodes, edges, depth]
   );
+
+  // Folder color mapping (stable assignment)
+  const folderColorMap = useMemo(() => {
+    const folders = new Set<string>();
+    for (const n of filteredNodes) folders.add(getFolderFromSlug(n.slug));
+    const sorted = [...folders].sort();
+    const map = new Map<string, string>();
+    sorted.forEach((f, i) => map.set(f, FOLDER_COLORS[i % FOLDER_COLORS.length]));
+    return map;
+  }, [filteredNodes]);
+
+  /** Get the folder-based color for a node */
+  const getNodeColor = (node: SimNode): string => {
+    return folderColorMap.get(node.folder) || FOLDER_COLORS[0];
+  };
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -748,7 +785,7 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
                 )}
                 <circle
                   r={r * scale}
-                  fill="hsl(var(--primary))"
+                  fill={getNodeColor(node)}
                   fillOpacity={isFocused ? 1 : highlighted ? 0.9 : 0.85}
                   stroke={isFocused ? 'hsl(var(--accent))' : isHovered ? 'hsl(var(--primary-foreground))' : 'none'}
                   strokeWidth={isFocused ? 3 : isHovered ? 2 : 0}
@@ -778,7 +815,7 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2.5 border-t border-border bg-muted/20">
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Legend</span>
+        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Edges</span>
         {Object.entries(EDGE_TYPE_CONFIG).map(([type, cfg]) => (
           <span key={type} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <span className="w-5 h-[2px] rounded-full" style={{ background: cfg.color, height: `${cfg.width}px` }} />
@@ -788,8 +825,19 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
         <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground ml-2">
           <span className="w-2 h-2 rounded-full bg-primary" />
           <span className="w-3 h-3 rounded-full bg-primary" />
-          Node size = connections
+          Size = connections
         </span>
+        {/* Folder legend */}
+        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider ml-3">Folders</span>
+        {[...folderColorMap.entries()].slice(0, 8).map(([folder, color]) => (
+          <span key={folder} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+            {folder === '_root' ? '(root)' : folder}
+          </span>
+        ))}
+        {folderColorMap.size > 8 && (
+          <span className="text-[10px] text-muted-foreground">+{folderColorMap.size - 8} more</span>
+        )}
       </div>
 
       {/* Stats + Focus info */}
