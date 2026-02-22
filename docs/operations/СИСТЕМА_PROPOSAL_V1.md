@@ -354,3 +354,22 @@ interface ConflictWarning {
 ---
 
 *Цей документ є канонічною специфікацією Proposal System для frontend імплементації.*
+
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ є частиною:**
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — операційний витяг для Frontend розробника
+
+**Цей документ залежить від:**
+- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Proposal system
+- [[КОНТРАКТИ_API_V1]] — API endpoints для Proposal lifecycle
+
+**Від цього документа залежають:**
+- Lovable Frontend — UI реалізація Proposal state machine на основі цього витягу
+
+---
+
+*Цей документ є операційним витягом Proposal system для Frontend розробника (Lovable).*

@@ -512,3 +512,6 @@ Runtime завантажує `_agent.md` з MinIO при кожному запу
 **Від цього документа залежать:**
 - [[ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1]] — current.drakon.json є canonical logic format у logic/ tier
 - [[КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — Phase 4 (Execute Agent): Mastra виконує logic з _agent.md
+- [[АНАЛІЗ_ПРОЕКТУ]] — аналіз контексту Garden Bloom для DRAKON інтеграції
+- [[ДОСЛІДЖЕННЯ_DRAKONWIDGET]] — технічне дослідження DrakonWidget компонента
+- [[ВИБІР_НАВИЧОК_CLAUDE]] — вибір Claude skills для реалізації
