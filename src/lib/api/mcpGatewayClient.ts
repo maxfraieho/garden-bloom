@@ -548,6 +548,23 @@ export async function getPendingProposals(limit?: number): Promise<ProposalsList
   });
 }
 
+export async function getProposalHistory(options?: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<ProposalsListResponse> {
+  const params = new URLSearchParams();
+  if (options?.status) params.set('status', options.status);
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.offset) params.set('offset', String(options.offset));
+
+  const query = params.toString();
+  return requestJson<ProposalsListResponse>(`/proposals/history${query ? `?${query}` : ''}`, {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
 export async function getProposal(
   proposalId: string,
   zoneCode?: string

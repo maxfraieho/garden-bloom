@@ -21,4 +21,6 @@
 | Файл | Опис | Статус |
 |------|------|--------|
 | [[frontend/ux-plan/ПЛАН_ПОКРАЩЕННЯ_UX_V1]] | План покращення UX (3 пакети) | canonical |
-| [[frontend/ux-plan/QA_ПАКЕТ_1_V1]] | QA-звіт Пакету 1 | canonical |
+| [[frontend/ux-plan/QA_ПАКЕТ_1_V1]] | QA-звіт Пакету 1 + mobile smoke tests | canonical |
+| [[frontend/ux-plan/BACKEND_READINESS_NOTE_V1]] | Backend readiness: endpoints, gaps, projections | canonical |
+| [[frontend/ux-plan/GRAPH_FOLDER_CLUSTERING_V1]] | Folder-based graph clustering approach | canonical |

@@ -1,13 +1,14 @@
 // Proposals Inbox Component
-// Owner view for pending edit proposals in Chat page
+// Owner view for pending edit proposals + audit history in Chat page
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -21,9 +22,12 @@ import {
   Loader2,
   Copy,
   CheckCircle2,
+  History,
+  Filter,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getPendingProposals, acceptProposal, rejectProposal } from '@/lib/api/mcpGatewayClient';
+import { getPendingProposals, acceptProposal, rejectProposal, getProposalHistory } from '@/lib/api/mcpGatewayClient';
 import { ProposalDiffView } from './ProposalDiffView';
 import type { EditProposal, AcceptProposalResponse } from '@/types/mcpGateway';
 import { toast } from 'sonner';
@@ -35,6 +39,17 @@ interface ProposalsInboxProps {
 
 const MIN_DECISION_NOTE_LENGTH = 10;
 
+type HistoryFilter = 'all' | 'approved' | 'rejected';
+
+const STATUS_BADGE_MAP: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
+  approved: { variant: 'default', label: 'Approved' },
+  applied: { variant: 'default', label: 'Applied' },
+  auto_approved: { variant: 'default', label: 'Auto-approved' },
+  rejected: { variant: 'destructive', label: 'Rejected' },
+  expired: { variant: 'secondary', label: 'Expired' },
+  failed: { variant: 'destructive', label: 'Failed' },
+};
+
 export function ProposalsInbox({ className }: ProposalsInboxProps) {
   const { t } = useLocale();
   const [proposals, setProposals] = useState<EditProposal[]>([]);
@@ -45,6 +60,13 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
   const [copied, setCopied] = useState(false);
   const [decisionNote, setDecisionNote] = useState('');
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+
+  // History state
+  const [historyItems, setHistoryItems] = useState<EditProposal[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   const isDecisionNoteValid = decisionNote.trim().length >= MIN_DECISION_NOTE_LENGTH;
 
@@ -59,9 +81,48 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
     }
   };
 
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const statusParam = historyFilter === 'all' ? 'applied,rejected,auto_approved,expired' 
+        : historyFilter === 'approved' ? 'applied,approved,auto_approved'
+        : 'rejected';
+      const res = await getProposalHistory({ status: statusParam, limit: 50 });
+      setHistoryItems(res.proposals);
+      setHistoryLoaded(true);
+    } catch (err: any) {
+      const code = err?.code || '';
+      const status = err?.httpStatus;
+      if (status === 404 || status === 502 || code === 'NOT_FOUND' || code === 'SERVER_ERROR') {
+        setHistoryError('endpoint_unavailable');
+      } else if (code === 'NETWORK_OFFLINE' || code === 'TIMEOUT') {
+        setHistoryError('network');
+      } else {
+        setHistoryError('unknown');
+      }
+      console.error('[ProposalsInbox] History fetch error:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyFilter]);
+
   useEffect(() => {
     fetchProposals();
   }, []);
+
+  const handleTabChange = (tab: string) => {
+    if (tab === 'history' && !historyLoaded) {
+      fetchHistory();
+    }
+  };
+
+  // Re-fetch when filter changes (only if already loaded)
+  useEffect(() => {
+    if (historyLoaded) {
+      fetchHistory();
+    }
+  }, [historyFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAccept = async () => {
     if (!selectedProposal) return;
@@ -162,50 +223,166 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {proposals.length === 0 ? (
-            <div className="py-8 px-4 text-center">
-              <Inbox className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {t.proposals?.empty || 'No pending proposals'}
-              </p>
-            </div>
-          ) : (
-            <ScrollArea className="h-[300px]">
-              <div className="px-4 pb-4 space-y-2">
-                {proposals.map((proposal) => (
-                  <button
-                    key={proposal.proposalId}
-                    onClick={() => setSelectedProposal(proposal)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg border transition-colors",
-                      "hover:bg-muted/50"
-                    )}
+          <Tabs defaultValue="inbox" onValueChange={handleTabChange}>
+            <TabsList className="w-full grid grid-cols-2 mx-4 mb-2" style={{ width: 'calc(100% - 2rem)' }}>
+              <TabsTrigger value="inbox" className="text-xs gap-1.5">
+                <Inbox className="h-3.5 w-3.5" />
+                Inbox
+              </TabsTrigger>
+              <TabsTrigger value="history" className="text-xs gap-1.5">
+                <History className="h-3.5 w-3.5" />
+                History
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Inbox Tab */}
+            <TabsContent value="inbox" className="mt-0">
+              {proposals.length === 0 ? (
+                <div className="py-8 px-4 text-center">
+                  <Inbox className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {t.proposals?.empty || 'No pending proposals'}
+                  </p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[300px]">
+                  <div className="px-4 pb-4 space-y-2">
+                    {proposals.map((proposal) => (
+                      <button
+                        key={proposal.proposalId}
+                        onClick={() => setSelectedProposal(proposal)}
+                        className={cn(
+                          "w-full text-left p-3 rounded-lg border transition-colors",
+                          "hover:bg-muted/50"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium text-sm truncate">
+                                {proposal.noteTitle}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                              <User className="h-3 w-3" />
+                              <span>{proposal.guestName}</span>
+                              <span>•</span>
+                              <span>{proposal.zoneName}</span>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                            <Clock className="h-2.5 w-2.5 mr-1" />
+                            {formatDistanceToNow(proposal.createdAt, { addSuffix: true })}
+                          </Badge>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+
+            {/* History Tab */}
+            <TabsContent value="history" className="mt-0">
+              {/* Filter bar */}
+              <div className="flex items-center gap-1 px-4 pb-2">
+                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                {(['all', 'approved', 'rejected'] as HistoryFilter[]).map(f => (
+                  <Button
+                    key={f}
+                    variant={historyFilter === f ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-6 px-2 text-[11px] capitalize"
+                    onClick={() => setHistoryFilter(f)}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="font-medium text-sm truncate">
-                            {proposal.noteTitle}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <User className="h-3 w-3" />
-                          <span>{proposal.guestName}</span>
-                          <span>•</span>
-                          <span>{proposal.zoneName}</span>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] flex-shrink-0">
-                        <Clock className="h-2.5 w-2.5 mr-1" />
-                        {formatDistanceToNow(proposal.createdAt, { addSuffix: true })}
-                      </Badge>
-                    </div>
-                  </button>
+                    {f}
+                  </Button>
                 ))}
               </div>
-            </ScrollArea>
-          )}
+
+              {historyLoading ? (
+                <div className="px-4 pb-4 space-y-2">
+                  <Skeleton className="h-14 w-full" />
+                  <Skeleton className="h-14 w-full" />
+                  <Skeleton className="h-14 w-full" />
+                </div>
+              ) : historyError ? (
+                <div className="py-8 px-4 text-center">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  {historyError === 'endpoint_unavailable' ? (
+                    <>
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        Audit history not available
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        The <code className="bg-muted px-1 rounded">GET /proposals/history</code> endpoint 
+                        is not yet deployed. See API contract §3.4.
+                      </p>
+                      <Button variant="outline" size="sm" onClick={fetchHistory} className="text-xs">
+                        Retry
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {historyError === 'network' 
+                          ? 'Network error. Check your connection.'
+                          : 'Failed to load history.'}
+                      </p>
+                      <Button variant="outline" size="sm" onClick={fetchHistory} className="text-xs">
+                        Retry
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ) : historyItems.length === 0 ? (
+                <div className="py-8 px-4 text-center">
+                  <History className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    No {historyFilter !== 'all' ? historyFilter : ''} proposals in history
+                  </p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[300px]">
+                  <div className="px-4 pb-4 space-y-2">
+                    {historyItems.map((item) => {
+                      const badgeInfo = STATUS_BADGE_MAP[item.status] || { variant: 'outline' as const, label: item.status };
+                      return (
+                        <div
+                          key={item.proposalId}
+                          className="w-full text-left p-3 rounded-lg border bg-card"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <span className="font-medium text-sm truncate">
+                                  {item.noteTitle}
+                                </span>
+                                <Badge variant={badgeInfo.variant} className="text-[10px]">
+                                  {badgeInfo.label}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                <User className="h-3 w-3" />
+                                <span>{item.guestName}</span>
+                                <span>•</span>
+                                <span>{item.zoneName}</span>
+                                <span>•</span>
+                                <Clock className="h-3 w-3" />
+                                <span>{formatDistanceToNow(item.updatedAt || item.createdAt, { addSuffix: true })}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
