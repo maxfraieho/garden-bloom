@@ -10,7 +10,11 @@ import { GardenFooter } from '@/components/garden/GardenFooter';
 import { GraphDebugPanel } from '@/components/garden/GraphDebugPanel';
 
 export default function GraphPage() {
-  const { nodes, edges } = useMemo(() => getFullGraph(), []);
+  const { nodes, edges } = useMemo(() => {
+    const graph = getFullGraph();
+    console.info(`[graph] Rendering: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
+    return graph;
+  }, []);
   const { t } = useLocale();
 
   return (

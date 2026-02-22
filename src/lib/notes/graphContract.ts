@@ -75,37 +75,62 @@ function stripCodeBlocks(text: string): string {
   return result;
 }
 
-// ── Wikilink extraction (matches check-graph.py: LINK_RE) ──
+// ── Wikilink extraction ──
 
 /**
- * Canonical link regex — matches [[target]] or [[target|alias]]
- * Key: [^\]|#\\] excludes ], |, #, and \ from targets.
- * This is identical to check-graph.py's LINK_RE pattern.
+ * Combined regex that handles BOTH formats:
+ * 1. Clean: [[target]] or [[target|alias]]  
+ * 2. Backslash-pipe (Obsidian DG plugin): [[path\|alias]]
+ * 
+ * Pattern: [[anything-except-]]] — we parse the inner content manually
+ * to correctly handle both | and \| separators.
  */
-const CANONICAL_LINK_RE = /\[\[([^\]|#\\]+?)(?:\|[^\]]+)?\]\]/g;
-
-/**
- * Detect malformed backslash-pipe links [[target\|alias]]
- */
-const BACKSLASH_PIPE_RE = /\[\[([^\]]+\\[|][^\]]*)\]\]/g;
+const ALL_WIKILINKS_RE = /\[\[([^\]]+)\]\]/g;
 
 export interface ExtractedLink {
-  target: string; // raw target text, trimmed
+  target: string; // resolved target text (stem-ready)
 }
 
 /**
  * Extract wikilinks from markdown content, stripping code blocks first.
- * Matches check-graph.py's extraction logic exactly.
+ * Handles both clean [[target|alias]] and backslash-pipe [[path\|alias]] formats.
+ * 
+ * Resolution strategy (matching check-graph.py smoke test):
+ * - [[target]] → target as-is
+ * - [[target|alias]] → target (before |)
+ * - [[path\|alias]] → last segment of path (stem extraction)
  */
 export function extractWikilinks(content: string): ExtractedLink[] {
   const body = stripCodeBlocks(content);
   const links: ExtractedLink[] = [];
   
-  CANONICAL_LINK_RE.lastIndex = 0;
+  ALL_WIKILINKS_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
   
-  while ((match = CANONICAL_LINK_RE.exec(body)) !== null) {
-    const target = match[1].trim();
+  while ((match = ALL_WIKILINKS_RE.exec(body)) !== null) {
+    const inner = match[1].trim();
+    if (inner.length === 0) continue;
+    
+    let target: string;
+    
+    if (inner.includes('\\|')) {
+      // Backslash-pipe format: [[exodus.pp.ua/path/FILE\|ALIAS]]
+      // Extract the path part (before \|), then take last segment as stem
+      const pathPart = inner.split('\\|')[0].trim();
+      target = pathPart.includes('/') 
+        ? pathPart.split('/').pop() || pathPart 
+        : pathPart;
+    } else if (inner.includes('|')) {
+      // Clean alias format: [[target|alias]]
+      target = inner.split('|')[0].trim();
+    } else {
+      // Simple: [[target]]
+      target = inner;
+    }
+    
+    // Skip targets with # (section links)
+    if (target.includes('#')) continue;
+    
     if (target.length > 0) {
       links.push({ target });
     }
@@ -115,16 +140,16 @@ export function extractWikilinks(content: string): ExtractedLink[] {
 }
 
 /**
- * Detect malformed links (backslash-pipe format) for diagnostics
+ * Detect malformed links (backslash-pipe format) for diagnostics.
+ * Now that we handle \| in extractWikilinks, these are "handled but noteworthy".
  */
 export function detectMalformedLinks(content: string): string[] {
   const body = stripCodeBlocks(content);
   const results: string[] = [];
+  const re = /\[\[([^\]]+\\[|][^\]]*)\]\]/g;
   
-  BACKSLASH_PIPE_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
-  
-  while ((match = BACKSLASH_PIPE_RE.exec(body)) !== null) {
+  while ((match = re.exec(body)) !== null) {
     results.push(match[1]);
   }
   

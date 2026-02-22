@@ -4,8 +4,8 @@ import type { NoteLink } from './types';
 import { noteExists } from './noteLoader';
 
 // Regex to match [[target]] or [[target|alias]]
-// Regex matching check-graph.py contract: excludes \, #, | from targets
-const WIKILINK_REGEX = /\[\[([^\]|#\\]+?)(?:\|([^\]]+))?\]\]/g;
+// Combined regex: handles [[target]], [[target|alias]], and [[path\|alias]]
+const WIKILINK_REGEX = /\[\[([^\]]+)\]\]/g;
 
 export interface ParsedWikilink {
   fullMatch: string;
@@ -15,18 +15,38 @@ export interface ParsedWikilink {
 }
 
 /**
+ * Parse inner wikilink content into target and alias.
+ * Handles: [[target]], [[target|alias]], [[path\|alias]]
+ */
+function parseInner(inner: string): { target: string; alias: string | null } {
+  if (inner.includes('\\|')) {
+    // Backslash-pipe: [[exodus.pp.ua/path/FILE\|ALIAS]]
+    const [pathPart, aliasPart] = inner.split('\\|', 2);
+    const stem = pathPart.includes('/')
+      ? pathPart.split('/').pop() || pathPart
+      : pathPart;
+    return { target: stem.trim(), alias: aliasPart?.trim() || null };
+  }
+  if (inner.includes('|')) {
+    // Clean alias: [[target|alias]]
+    const [targetPart, aliasPart] = inner.split('|', 2);
+    return { target: targetPart.trim(), alias: aliasPart?.trim() || null };
+  }
+  // Simple: [[target]]
+  return { target: inner.trim(), alias: null };
+}
+
+/**
  * Parse all wikilinks from a markdown string
  */
 export function parseWikilinks(content: string): ParsedWikilink[] {
   const links: ParsedWikilink[] = [];
   let match: RegExpExecArray | null;
 
-  // Reset regex state
   WIKILINK_REGEX.lastIndex = 0;
 
   while ((match = WIKILINK_REGEX.exec(content)) !== null) {
-    const target = match[1].trim();
-    const alias = match[2]?.trim() || null;
+    const { target, alias } = parseInner(match[1]);
     const slug = slugify(target);
 
     links.push({
@@ -63,12 +83,12 @@ export function slugify(text: string): string {
  * that will be handled by the React component
  */
 export function transformWikilinks(content: string): string {
-  return content.replace(WIKILINK_REGEX, (match, target, alias) => {
-    const slug = slugify(target.trim());
-    const displayText = alias?.trim() || target.trim();
+  return content.replace(WIKILINK_REGEX, (fullMatch, inner) => {
+    const { target, alias } = parseInner(inner);
+    const slug = slugify(target);
+    const displayText = alias || target;
     const exists = noteExists(slug);
     
-    // Use a special marker format that we can parse in React
     // Format: %%WIKILINK:slug:displayText:exists%%
     return `%%WIKILINK:${slug}:${displayText}:${exists}%%`;
   });
