@@ -1,3 +1,5 @@
+# GRAPH_CONTRACT
+
 # GRAPH CONTRACT
 
 **Version**: `GRAPH_CONTRACT_VERSION = "1.1"`
@@ -538,3 +540,5 @@ For each implementation (Python and TypeScript), verify:
 ---
 
 *This contract is enforced by `scripts/check-graph.py --verify-snapshot` in CI.*
+
+<!-- QA test edit by Lovable -->
