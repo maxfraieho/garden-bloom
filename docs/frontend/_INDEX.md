@@ -24,3 +24,5 @@
 | [[frontend/ux-plan/QA_ПАКЕТ_1_V1]] | QA-звіт Пакету 1 + mobile smoke tests | canonical |
 | [[frontend/ux-plan/BACKEND_READINESS_NOTE_V1]] | Backend readiness: endpoints, gaps, projections | canonical |
 | [[frontend/ux-plan/GRAPH_FOLDER_CLUSTERING_V1]] | Folder-based graph clustering approach | canonical |
+| [[frontend/ux-plan/API_INTEGRATION_VERIFICATION_V1]] | Worker routing & API base URL verification | canonical |
+| [[frontend/ux-plan/PROPOSAL_HISTORY_FLOW_VERIFICATION_V1]] | End-to-end proposal history flow verification | canonical |
