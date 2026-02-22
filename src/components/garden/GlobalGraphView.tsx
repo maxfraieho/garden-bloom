@@ -1,9 +1,9 @@
 // Global graph visualization — interactive force-directed layout
-// Focus mode, expand levels, isolation, smooth animations
+// Focus mode, expand levels, isolation, edge semantics, smooth animations
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ZoomIn, ZoomOut, Maximize2, Focus, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Focus, X, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useLocale } from '@/hooks/useLocale';
@@ -24,6 +24,8 @@ interface SimNode extends GraphNode {
   connections: number;
 }
 
+type EdgeFilter = 'all' | 'structural-semantic' | 'structural';
+
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 5;
 const ZOOM_STEP = 0.15;
@@ -35,6 +37,15 @@ const ATTRACTION = 0.008;
 const DAMPING = 0.85;
 const CENTER_GRAVITY = 0.01;
 const MIN_DIST = 30;
+
+const IS_DEV = import.meta.env.DEV;
+
+// ── Edge type visual config ──
+const EDGE_TYPE_CONFIG: Record<string, { color: string; width: number; label: string }> = {
+  structural:   { color: 'hsl(var(--primary))',   width: 2.0, label: 'Structural' },
+  semantic:     { color: 'hsl(var(--accent-foreground))', width: 1.2, label: 'Semantic' },
+  navigational: { color: 'hsl(var(--muted-foreground))', width: 0.6, label: 'Navigational' },
+};
 
 // ── Helpers ──
 
@@ -171,6 +182,20 @@ function getNeighborhood(centerSlug: string, edges: GraphEdge[], level: number):
   return visited;
 }
 
+/** Check if edge passes the type filter */
+function edgePassesFilter(edge: GraphEdge, filter: EdgeFilter): boolean {
+  if (filter === 'all') return true;
+  const t = edge.type ?? 'navigational';
+  if (filter === 'structural') return t === 'structural';
+  // structural-semantic
+  return t === 'structural' || t === 'semantic';
+}
+
+/** Get effective edge type */
+function getEdgeType(edge: GraphEdge): string {
+  return edge.type ?? 'navigational';
+}
+
 export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   const navigate = useNavigate();
   const { t } = useLocale();
@@ -191,6 +216,9 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   const [isolated, setIsolated] = useState(false);
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
 
+  // Edge filter state
+  const [edgeFilter, setEdgeFilter] = useState<EdgeFilter>('all');
+
   const { nodes: filteredNodes, edges: filteredEdges } = useMemo(
     () => filterByDepth(nodes, edges, depth),
     [nodes, edges, depth]
@@ -202,16 +230,56 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
     return getNeighborhood(focusedNode, filteredEdges, expandLevel);
   }, [focusedNode, expandLevel, filteredEdges]);
 
+  // Edge type counts (for debug)
+  const edgeTypeCounts = useMemo(() => {
+    const counts = { structural: 0, semantic: 0, navigational: 0 };
+    for (const e of filteredEdges) {
+      const t = (e.type ?? 'navigational') as keyof typeof counts;
+      if (counts[t] !== undefined) counts[t]++;
+    }
+    return counts;
+  }, [filteredEdges]);
+
   // Focus stats for debug
   const focusStats = useMemo(() => {
     if (!focusedNode) return null;
     let inbound = 0, outbound = 0;
+    const localTypeCounts = { structural: 0, semantic: 0, navigational: 0 };
     for (const e of filteredEdges) {
       if (e.target === focusedNode) inbound++;
       if (e.source === focusedNode) outbound++;
+      if (e.source === focusedNode || e.target === focusedNode) {
+        const t = (e.type ?? 'navigational') as keyof typeof localTypeCounts;
+        if (localTypeCounts[t] !== undefined) localTypeCounts[t]++;
+      }
     }
-    return { inbound, outbound, degree: inbound + outbound, neighbors: focusNeighbors ? focusNeighbors.size - 1 : 0 };
+    return {
+      inbound, outbound, degree: inbound + outbound,
+      neighbors: focusNeighbors ? focusNeighbors.size - 1 : 0,
+      localTypeCounts,
+    };
   }, [focusedNode, filteredEdges, focusNeighbors]);
+
+  // Visible counts for debug
+  const visibleCounts = useMemo(() => {
+    if (!focusedNode || !focusNeighbors) {
+      const visEdges = filteredEdges.filter(e => edgePassesFilter(e, edgeFilter)).length;
+      return { nodes: filteredNodes.length, edges: visEdges };
+    }
+    let visNodes = 0, visEdges = 0;
+    for (const n of filteredNodes) {
+      if (!isolated || focusNeighbors.has(n.slug)) visNodes++;
+    }
+    for (const e of filteredEdges) {
+      if (!edgePassesFilter(e, edgeFilter)) continue;
+      if (isolated) {
+        if (focusNeighbors.has(e.source) && focusNeighbors.has(e.target)) visEdges++;
+      } else {
+        visEdges++;
+      }
+    }
+    return { nodes: visNodes, edges: visEdges };
+  }, [focusedNode, focusNeighbors, filteredNodes, filteredEdges, isolated, edgeFilter]);
 
   // Init simulation
   useEffect(() => {
@@ -228,6 +296,40 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
     rafRef.current = requestAnimationFrame(loop);
     return () => { running = false; cancelAnimationFrame(rafRef.current); };
   }, [filteredNodes, filteredEdges]);
+
+  // Smooth pan-to-node when focus changes
+  useEffect(() => {
+    if (!focusedNode) return;
+    const node = simRef.current.find(n => n.slug === focusedNode);
+    if (!node) return;
+
+    // Calculate pan to center the node
+    const targetPanX = (CANVAS_W / 2 - node.x) * viewState.zoom;
+    const targetPanY = (CANVAS_H / 2 - node.y) * viewState.zoom;
+    const targetZoom = Math.max(viewState.zoom, 1.15); // gentle zoom-in
+
+    const startPanX = viewState.panX;
+    const startPanY = viewState.panY;
+    const startZoom = viewState.zoom;
+    const duration = 250; // ms
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const t = 1 - Math.pow(1 - progress, 3);
+      setViewState({
+        panX: startPanX + (targetPanX - startPanX) * t,
+        panY: startPanY + (targetPanY - startPanY) * t,
+        zoom: startZoom + (targetZoom - startZoom) * t,
+      });
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+    // Only run when focusedNode changes, not on viewState changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusedNode]);
 
   // SVG coordinate conversion
   const svgPoint = useCallback((clientX: number, clientY: number) => {
@@ -279,7 +381,6 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   }, [viewState.panX, viewState.panY]);
 
   const handleBgClick = useCallback(() => {
-    // Clear focus when clicking background
     if (focusedNode && !isolated) {
       setFocusedNode(null);
     }
@@ -302,19 +403,16 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
 
   const handleNodeClick = useCallback((node: SimNode, e: React.MouseEvent) => {
     e.stopPropagation();
-    // Distinguish click from drag
     const start = dragStartPos.current;
     if (start) {
       const dx = Math.abs(e.clientX - start.x);
       const dy = Math.abs(e.clientY - start.y);
-      if (dx > 5 || dy > 5) return; // was a drag
+      if (dx > 5 || dy > 5) return;
     }
 
     if (focusedNode === node.slug) {
-      // Double-click on focused node → navigate
       if (node.exists) navigate(`/notes/${node.slug}`);
     } else {
-      // First click → focus
       setFocusedNode(node.slug);
       setExpandLevel(1);
       setIsolated(false);
@@ -346,11 +444,11 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
   const simNodes = simRef.current;
   const slugMap = new Map(simNodes.map(n => [n.slug, n]));
 
-  // Determine visibility for each node/edge based on focus + isolation
+  // Visibility helpers
   const isNodeVisible = (slug: string): boolean => {
     if (!focusedNode || !focusNeighbors) return true;
     if (isolated) return focusNeighbors.has(slug);
-    return true; // all visible, just dimmed
+    return true;
   };
 
   const isNodeHighlighted = (slug: string): boolean => {
@@ -363,10 +461,50 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
     return focusNeighbors.has(source) && focusNeighbors.has(target);
   };
 
-  const isEdgeVisible = (source: string, target: string): boolean => {
-    if (!focusedNode) return true;
-    if (isolated) return focusNeighbors!.has(source) && focusNeighbors!.has(target);
+  const isEdgeVisible = (edge: GraphEdge): boolean => {
+    // Edge type filter (global)
+    if (!focusedNode && !edgePassesFilter(edge, edgeFilter)) return false;
+    // When focused, show all types in local subgraph but filter outside
+    if (focusedNode) {
+      const inNeighborhood = focusNeighbors!.has(edge.source) && focusNeighbors!.has(edge.target);
+      if (isolated) return inNeighborhood;
+      if (!inNeighborhood && !edgePassesFilter(edge, edgeFilter)) return false;
+    }
     return true;
+  };
+
+  // Edge style computation
+  const getEdgeStyle = (edge: GraphEdge, source: string, target: string) => {
+    const hasFocus = focusedNode !== null;
+    const highlighted = hasFocus && isEdgeHighlighted(source, target);
+    const directToFocus = hasFocus && (source === focusedNode || target === focusedNode);
+    const hovered = !hasFocus && (hoveredNode === source || hoveredNode === target);
+
+    const edgeType = getEdgeType(edge);
+    const typeConfig = EDGE_TYPE_CONFIG[edgeType] || EDGE_TYPE_CONFIG.navigational;
+
+    let strokeWidth = typeConfig.width * 0.5; // base: type-scaled
+    let strokeOpacity = 0.25;
+    let stroke = typeConfig.color;
+
+    if (hasFocus) {
+      if (directToFocus) {
+        strokeWidth = typeConfig.width * 1.8;
+        strokeOpacity = 0.95;
+      } else if (highlighted) {
+        strokeWidth = typeConfig.width * 1.2;
+        strokeOpacity = 0.55;
+      } else {
+        strokeWidth = 0.3;
+        strokeOpacity = 0.05;
+        stroke = 'hsl(var(--muted-foreground))';
+      }
+    } else if (hovered) {
+      strokeWidth = typeConfig.width * 1.5;
+      strokeOpacity = 0.8;
+    }
+
+    return { strokeWidth, strokeOpacity, stroke };
   };
 
   return (
@@ -390,6 +528,26 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
           <span className="text-xs text-muted-foreground">Depth</span>
           <Slider value={[depth]} onValueChange={([v]) => setDepth(v)} min={1} max={10} step={1} className="w-24" />
           <span className="text-xs font-medium text-primary w-5 text-center">{depth >= 10 ? '∞' : depth}</span>
+        </div>
+
+        {/* Edge type filter */}
+        <div className="flex items-center gap-1 border-l border-border pl-3">
+          <span className="text-xs text-muted-foreground mr-1">Edges</span>
+          {([
+            ['all', 'All'],
+            ['structural-semantic', 'S+S'],
+            ['structural', 'Str'],
+          ] as [EdgeFilter, string][]).map(([val, label]) => (
+            <Button
+              key={val}
+              variant={edgeFilter === val ? 'default' : 'ghost'}
+              size="sm"
+              className="h-6 px-2 text-[10px]"
+              onClick={() => setEdgeFilter(val)}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
 
         {/* Focus controls */}
@@ -452,43 +610,18 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
             const s = slugMap.get(edge.source);
             const tg = slugMap.get(edge.target);
             if (!s || !tg) return null;
-            if (!isEdgeVisible(edge.source, edge.target)) return null;
+            if (!isEdgeVisible(edge)) return null;
 
-            const focused = focusedNode !== null;
-            const highlighted = focused
-              ? isEdgeHighlighted(edge.source, edge.target)
-              : (hoveredNode === edge.source || hoveredNode === edge.target);
-
-            // Direct connection to focused node gets extra emphasis
-            const directToFocus = focused && (edge.source === focusedNode || edge.target === focusedNode);
-
-            let strokeWidth = 0.7;
-            let strokeOpacity = 0.25;
-
-            if (focused) {
-              if (directToFocus) {
-                strokeWidth = 2.5;
-                strokeOpacity = 0.9;
-              } else if (highlighted) {
-                strokeWidth = 1.5;
-                strokeOpacity = 0.5;
-              } else {
-                strokeWidth = 0.4;
-                strokeOpacity = 0.06;
-              }
-            } else if (highlighted) {
-              strokeWidth = 1.8;
-              strokeOpacity = 0.8;
-            }
+            const { strokeWidth, strokeOpacity, stroke } = getEdgeStyle(edge, edge.source, edge.target);
 
             return (
               <line
                 key={`e-${i}`}
                 x1={s.x} y1={s.y} x2={tg.x} y2={tg.y}
-                stroke="hsl(var(--primary))"
+                stroke={stroke}
                 strokeWidth={strokeWidth}
                 strokeOpacity={strokeOpacity}
-                style={{ transition: 'stroke-opacity 0.3s ease, stroke-width 0.3s ease' }}
+                style={{ transition: 'stroke-opacity 0.3s ease, stroke-width 0.3s ease, stroke 0.3s ease' }}
               />
             );
           })}
@@ -515,18 +648,18 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
             let opacity = 0.85;
             if (hasFocus) {
               if (isFocused) opacity = 1;
-              else if (highlighted) opacity = 0.9;
-              else opacity = 0.12;
+              else if (highlighted) opacity = 0.95;
+              else opacity = 0.1;
             } else if (isHovered) {
               opacity = 1;
             }
 
-            // Label visibility
+            // Label
             const showLabel = isHovered || isFocused || (hasFocus && highlighted) || viewState.zoom >= 0.8;
             let labelOpacity = 0.7;
             if (isFocused || isHovered) labelOpacity = 1;
             else if (hasFocus && highlighted) labelOpacity = 0.85;
-            else if (hasFocus && !highlighted) labelOpacity = 0.08;
+            else if (hasFocus && !highlighted) labelOpacity = 0.06;
 
             return (
               <g
@@ -597,7 +730,7 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
             </span>
             <span>in: {focusStats.inbound}</span>
             <span>out: {focusStats.outbound}</span>
-            <span>degree: {focusStats.degree}</span>
+            <span>deg: {focusStats.degree}</span>
             <span>visible: {focusStats.neighbors}</span>
             <span className="text-muted-foreground/60">
               click again to open · bg to unfocus
@@ -605,6 +738,24 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
           </div>
         )}
       </div>
+
+      {/* Dev-only extended debug */}
+      {IS_DEV && (
+        <div className="px-4 py-2 border-t border-border text-[10px] font-mono text-muted-foreground bg-muted/20 flex flex-wrap gap-4">
+          <span>vis: {visibleCounts.nodes}n / {visibleCounts.edges}e</span>
+          <span>types: str={edgeTypeCounts.structural} sem={edgeTypeCounts.semantic} nav={edgeTypeCounts.navigational}</span>
+          <span>filter: {edgeFilter}</span>
+          {focusedNode && (
+            <>
+              <span>focus: {focusedNode}</span>
+              <span>lvl: {expandLevel}</span>
+              {focusStats && (
+                <span>local: str={focusStats.localTypeCounts.structural} sem={focusStats.localTypeCounts.semantic} nav={focusStats.localTypeCounts.navigational}</span>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -23,6 +23,10 @@ export interface GraphNode {
 export interface GraphEdge {
   source: string;
   target: string;
+  type?: 'structural' | 'semantic' | 'navigational';
+  weight?: number;
+  importance?: number;
+  defaultVisible?: boolean;
 }
 
 export interface LocalGraph {
@@ -179,6 +183,10 @@ export function getFullGraph(): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const edges: GraphEdge[] = snapshot.edges.map(e => ({
     source: e.source,
     target: e.target,
+    type: e.type,
+    weight: e.weight,
+    importance: e.importance,
+    defaultVisible: e.defaultVisible,
   }));
   
   return { nodes, edges };
