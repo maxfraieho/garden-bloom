@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { Settings, LogOut, HelpCircle, Shield, Link2 } from 'lucide-react';
+import { Settings, LogOut, HelpCircle, Shield, Link2, Bot } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 
 interface OwnerMenuProps {
@@ -66,6 +66,14 @@ export function OwnerMenu({ isCompact = false }: OwnerMenuProps) {
             <Link to="/admin/zones" className="flex">
               <Link2 className="mr-2 h-4 w-4" />
               <span>{t.owner?.zones || 'Access Zones'}</span>
+            </Link>
+          </DropdownMenuItem>
+
+          {/* Agents */}
+          <DropdownMenuItem asChild>
+            <Link to="/agents" className="flex">
+              <Bot className="mr-2 h-4 w-4" />
+              <span>Agent Registry</span>
             </Link>
           </DropdownMenuItem>
 

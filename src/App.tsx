@@ -25,6 +25,7 @@ import PolicyPage from "./pages/PolicyPage";
 import NotFound from "./pages/NotFound";
 import EditorPage from "./pages/EditorPage";
 import DrakonPage from "./pages/DrakonPage";
+import AgentsPage from "./pages/AgentsPage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ function AppContent() {
             <Route path="/notes/:slug/edit" element={<EditorPage />} />
             <Route path="/notes/new" element={<EditorPage />} />
             <Route path="/drakon" element={<DrakonPage />} />
+            <Route path="/agents" element={<AgentsPage />} />
             <Route path="/tags" element={<TagsIndex />} />
             <Route path="/tags/:tag" element={<TagPage />} />
             <Route path="/graph" element={<GraphPage />} />
