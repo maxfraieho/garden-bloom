@@ -6,6 +6,7 @@ import { LocalGraphView } from './LocalGraphView';
 import { CommentSection } from './CommentSection';
 import { AnnotationLayer } from './AnnotationLayer';
 import { DeleteNoteDialog } from './DeleteNoteDialog';
+import { MemoryPanel } from './MemoryPanel';
 import { useLocalGraph } from '@/hooks/useBacklinks';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { format } from 'date-fns';
@@ -39,6 +40,7 @@ export function NoteLayout({ note }: NoteLayoutProps) {
         
         {isAuthenticated && (
           <div className="flex items-center gap-2">
+            <MemoryPanel initialQuery={note.title} />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to={`/notes/${note.slug}/edit`}>
                 <Pencil className="w-4 h-4" />
