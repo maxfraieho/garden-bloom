@@ -148,6 +148,9 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
         toast.success(t.proposals?.accepted || 'Proposal approved');
         setAcceptedProposal(selectedProposal);
       }
+
+      // Refresh history if already loaded
+      if (historyLoaded) fetchHistory();
     } catch (err) {
       toast.error(t.proposals?.acceptFailed || 'Failed to accept proposal');
     } finally {
@@ -171,6 +174,9 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
       setSelectedProposal(null);
       setShowRejectConfirm(false);
       setDecisionNote('');
+
+      // Refresh history if already loaded
+      if (historyLoaded) fetchHistory();
     } catch (err) {
       toast.error(t.proposals?.rejectFailed || 'Failed to reject proposal');
     } finally {

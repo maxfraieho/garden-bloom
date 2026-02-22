@@ -559,10 +559,18 @@ export async function getProposalHistory(options?: {
   if (options?.offset) params.set('offset', String(options.offset));
 
   const query = params.toString();
-  return requestJson<ProposalsListResponse>(`/proposals/history${query ? `?${query}` : ''}`, {
+  const res = await requestJson<ProposalsListResponse>(`/proposals/history${query ? `?${query}` : ''}`, {
     method: 'GET',
     requireAuth: true,
+    timeoutMs: 15000,
   });
+
+  // Runtime validation — guard against malformed responses
+  if (!res || typeof res !== 'object' || !Array.isArray(res.proposals)) {
+    throw createApiError('BAD_REQUEST', undefined, res, 'Invalid history response: expected proposals array');
+  }
+
+  return res;
 }
 
 export async function getProposal(

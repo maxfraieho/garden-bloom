@@ -9,6 +9,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { useLocale } from '@/hooks/useLocale';
 import type { GraphNode, GraphEdge } from '@/lib/notes/linkGraph';
+import { getRootFolder } from '@/lib/notes/linkGraph';
 
 interface GlobalGraphViewProps {
   nodes: GraphNode[];
@@ -54,12 +55,16 @@ const FOLDER_COLORS: string[] = [
   'hsl(180 50% 45%)',   // teal
 ];
 
-/** Extract root folder from slug (first path segment, or '_root' for top-level) */
-function getFolderFromSlug(slug: string): string {
-  const decoded = decodeURIComponent(slug);
-  const parts = decoded.split('/');
-  if (parts.length <= 1) return '_root';
-  return parts[0];
+/** Stable folder color mapping — max 8 distinct colors, deterministic order */
+const FOLDER_COLOR_MAP_CACHE = new Map<string, Map<string, string>>();
+
+function buildFolderColorMap(nodes: GraphNode[]): Map<string, string> {
+  const folders = new Set<string>();
+  for (const n of nodes) folders.add(getRootFolder(n.slug));
+  const sorted = [...folders].sort();
+  const map = new Map<string, string>();
+  sorted.forEach((f, i) => map.set(f, FOLDER_COLORS[i % FOLDER_COLORS.length]));
+  return map;
 }
 
 // ── Edge type visual config ──
@@ -88,7 +93,7 @@ function initSimulation(nodes: GraphNode[], edges: GraphEdge[]): SimNode[] {
       y: cy + radius * Math.sin(angle) + (Math.random() - 0.5) * 20,
       vx: 0, vy: 0, fx: null, fy: null,
       connections: connCount.get(n.slug) || 0,
-      folder: getFolderFromSlug(n.slug),
+      folder: getRootFolder(n.slug),
     };
   });
 }
@@ -249,12 +254,7 @@ export function GlobalGraphView({ nodes, edges }: GlobalGraphViewProps) {
 
   // Folder color mapping (stable assignment)
   const folderColorMap = useMemo(() => {
-    const folders = new Set<string>();
-    for (const n of filteredNodes) folders.add(getFolderFromSlug(n.slug));
-    const sorted = [...folders].sort();
-    const map = new Map<string, string>();
-    sorted.forEach((f, i) => map.set(f, FOLDER_COLORS[i % FOLDER_COLORS.length]));
-    return map;
+    return buildFolderColorMap(filteredNodes);
   }, [filteredNodes]);
 
   /** Get the folder-based color for a node */

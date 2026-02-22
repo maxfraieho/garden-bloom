@@ -41,6 +41,13 @@ export interface Backlink {
   title: string;
 }
 
+/** Extract root folder from a note slug (first path segment, or '_root' for top-level) */
+export function getRootFolder(slug: string): string {
+  const decoded = decodeURIComponent(slug);
+  const parts = decoded.split('/');
+  if (parts.length <= 1) return '_root';
+  return parts[0];
+}
 // ── Snapshot loading ──
 
 let cachedSnapshot: GraphSnapshot | null = null;
