@@ -7,6 +7,7 @@ import { getFullGraph } from '@/lib/notes/linkGraph';
 import { useLocale } from '@/hooks/useLocale';
 import { GardenHeader } from '@/components/garden/GardenHeader';
 import { GardenFooter } from '@/components/garden/GardenFooter';
+import { GraphDebugPanel } from '@/components/garden/GraphDebugPanel';
 
 export default function GraphPage() {
   const { nodes, edges } = useMemo(() => getFullGraph(), []);
@@ -32,6 +33,7 @@ export default function GraphPage() {
       </main>
 
       <GardenFooter />
+      <GraphDebugPanel />
     </div>
   );
 }
