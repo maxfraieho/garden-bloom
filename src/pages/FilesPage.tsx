@@ -1,6 +1,6 @@
 // Full-screen file/folder structure view
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronDown, FileText, Folder, Home, FolderTree, Download, Plus, FilePlus, Pencil, GitBranch } from 'lucide-react';
 import { getFolderStructure, getHomeNote } from '@/lib/notes/noteLoader';
 import { GardenHeader } from '@/components/garden/GardenHeader';
@@ -22,10 +22,12 @@ interface FolderItemProps {
   folder: FolderInfo;
   level?: number;
   isAuthenticated?: boolean;
+  expandedPaths?: Set<string>;
 }
 
-function FolderItem({ folder, level = 0, isAuthenticated = false }: FolderItemProps) {
-  const [isOpen, setIsOpen] = useState(true);
+function FolderItem({ folder, level = 0, isAuthenticated = false, expandedPaths }: FolderItemProps) {
+  const shouldExpand = expandedPaths ? expandedPaths.has(folder.path) : true;
+  const [isOpen, setIsOpen] = useState(shouldExpand);
   const location = useLocation();
   const { t } = useLocale();
   
@@ -85,6 +87,7 @@ function FolderItem({ folder, level = 0, isAuthenticated = false }: FolderItemPr
               folder={subfolder} 
               level={level + 1}
               isAuthenticated={isAuthenticated}
+              expandedPaths={expandedPaths}
             />
           ))}
           
@@ -145,8 +148,24 @@ export default function FilesPage() {
   const homeNote = getHomeNote();
   const { t } = useLocale();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const { isAuthenticated } = useOwnerAuth();
+
+  // Compute paths to auto-expand from ?folder= param
+  const expandedPaths = useMemo(() => {
+    const folderParam = searchParams.get('folder');
+    if (!folderParam) return undefined; // undefined = expand all (default)
+    const decoded = decodeURIComponent(folderParam);
+    const parts = decoded.split('/');
+    const paths = new Set<string>();
+    let acc = '';
+    for (const part of parts) {
+      acc = acc ? `${acc}/${part}` : part;
+      paths.add(acc);
+    }
+    return paths;
+  }, [searchParams]);
   
   // Count total notes and folders
   const countItems = (folders: FolderInfo[]): { notes: number; folders: number } => {
@@ -231,6 +250,7 @@ export default function FilesPage() {
             key={folder.path} 
             folder={folder}
             isAuthenticated={isAuthenticated}
+            expandedPaths={expandedPaths}
           />
           ))}
           

@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Loader2 } from 'lucide-react';
 import { WikiLink } from './WikiLink';
-import { noteExists } from '@/lib/notes/noteLoader';
+import { noteExists, getNoteBySlug } from '@/lib/notes/noteLoader';
 import { useScrollToMatch } from '@/hooks/useSearchHighlight';
 import { parseDrakonDirective } from '@/lib/drakon/types';
 import type { Note } from '@/lib/notes/types';
@@ -52,22 +52,48 @@ const DRAKON_MARKER_REGEX = /^%%DRAKON:(.+)%%$/;
  * Transform markdown content to replace wikilinks and drakon directives with markers,
  * then use custom rendering for those markers
  */
+function resolveWikilinkSlug(target: string): { slug: string; exists: boolean } {
+  const trimmed = target.trim();
+  // Try encodeURIComponent first (matches noteLoader's pathToSlug)
+  const encoded = encodeURIComponent(trimmed);
+  if (noteExists(encoded)) return { slug: encoded, exists: true };
+  // Try as-is
+  if (noteExists(trimmed)) return { slug: trimmed, exists: true };
+  // Try finding by getNoteBySlug (handles fallback by filename)
+  const found = getNoteBySlug(trimmed);
+  if (found) return { slug: found.slug, exists: true };
+  // Not found
+  return { slug: encoded, exists: false };
+}
+
 function transformContent(content: string): string {
-  // Replace [[target|alias]] or [[target]] with markers
-  const wikilinkRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+  // Replace [[target\|alias]], [[target|alias]], or [[target]] with markers
+  // Handle backslash-pipe format from Obsidian Digital Garden
+  const wikilinkRegex = /\[\[([^\]]+)\]\]/g;
   
-  let transformed = content.replace(wikilinkRegex, (match, target, alias) => {
-    const slug = target
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^\w\-]+/g, '')
-      .replace(/\-\-+/g, '-');
+  let transformed = content.replace(wikilinkRegex, (match, inner) => {
+    let target: string;
+    let alias: string | null = null;
+
+    if (inner.includes('\\|')) {
+      const [pathPart, aliasPart] = inner.split('\\|', 2);
+      // Extract stem (last path segment) as target
+      const stem = pathPart.includes('/')
+        ? pathPart.split('/').pop() || pathPart
+        : pathPart;
+      target = stem.trim();
+      alias = aliasPart?.trim() || null;
+    } else if (inner.includes('|')) {
+      const [targetPart, aliasPart] = inner.split('|', 2);
+      target = targetPart.trim();
+      alias = aliasPart?.trim() || null;
+    } else {
+      target = inner.trim();
+    }
+
+    const displayText = alias || target;
+    const { slug, exists } = resolveWikilinkSlug(target);
     
-    const displayText = alias?.trim() || target.trim();
-    const exists = noteExists(slug);
-    
-    // Return marker that we'll parse in the text renderer
     return `%%WIKILINK:${slug}:${encodeURIComponent(displayText)}:${exists}%%`;
   });
 

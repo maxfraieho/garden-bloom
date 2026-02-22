@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { getNoteBySlug } from '@/lib/notes/noteLoader';
 
 interface WikiLinkProps {
   slug: string;
@@ -10,9 +11,15 @@ interface WikiLinkProps {
 
 export function WikiLink({ slug, displayText, exists, className }: WikiLinkProps) {
   if (exists) {
+    // Resolve the actual note slug for navigation
+    const note = getNoteBySlug(slug);
+    const navSlug = note ? note.slug : slug;
+    // Decode slug for URL path (avoid double-encoding)
+    const decodedSlug = decodeURIComponent(navSlug);
+
     return (
       <Link
-        to={`/notes/${slug}`}
+        to={`/notes/${decodedSlug}`}
         className={cn('wiki-link', className)}
         title={`Navigate to: ${displayText}`}
       >
@@ -25,7 +32,7 @@ export function WikiLink({ slug, displayText, exists, className }: WikiLinkProps
   return (
     <span
       className={cn('wiki-link-broken', className)}
-      title={`Note not found: ${slug}`}
+      title={`Note not found: ${decodeURIComponent(slug)}`}
     >
       {displayText}
     </span>
