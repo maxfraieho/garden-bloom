@@ -76,9 +76,10 @@ The backend consists of:
 
 ### `/proposals/history` route status
 
-- **Proxy route present?** ✅ Yes — added as direct KV handler (same pattern as `/proposals/pending`)
+- **Proxy route present?** ✅ Yes — direct KV handler (same pattern as `/proposals/pending`)
 - **Upstream target:** None needed — proposals stored in Worker KV
-- **Next action:** Deploy updated Worker to Cloudflare (`wrangler deploy`)
+- **Deployed?** ✅ Yes (2026-02-22)
+- **E2E verified?** ✅ Yes — returns `200 OK` with `{"success":true,"proposals":[],"total":0,"limit":50,"offset":0}`
 
 ## 6. Diagnostics Consolidation Verification
 

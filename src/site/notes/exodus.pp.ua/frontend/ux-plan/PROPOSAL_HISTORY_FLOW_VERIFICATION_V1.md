@@ -34,7 +34,26 @@ dg-publish: true
 
 Same pattern — after `rejectProposal()` succeeds, `if (historyLoaded) fetchHistory()` triggers refresh. Worker adds proposal to `proposals:history` index on reject.
 
-## E2E Results
+## E2E Results (Live — 2026-02-22, post-deploy)
+
+### Scenario A: Endpoint available ✅
+
+- `GET /proposals/history?status=accepted,applied,rejected,auto_approved,expired&limit=50` → **200 OK** (165ms)
+- Response: `{"success":true,"proposals":[],"total":0,"limit":50,"offset":0}`
+- UI shows "No proposals in history" with All/Approved/Rejected filters
+- No console errors, no crash
+- Network tab: request goes through `garden-mcp-server.maxfraieho.workers.dev` (Worker gateway)
+
+### Scenario B: Endpoint unavailable (pre-deploy)
+
+- Previously returned 404 → UI showed "Audit history not available" + Retry button
+- No crash, no console error spam — graceful fallback confirmed
+
+### Scenario C: Auto-refresh after accept/reject
+
+- Cannot fully test (0 pending proposals currently) — code path verified by review:
+  - `if (historyLoaded) fetchHistory()` triggers after successful accept/reject
+  - Will verify with real proposal when available
 
 ### Worker Route Verification
 
