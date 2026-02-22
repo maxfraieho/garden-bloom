@@ -11,7 +11,7 @@ import { useLocalGraph } from '@/hooks/useBacklinks';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { Pencil, ChevronRight, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface NoteLayoutProps {
@@ -28,18 +28,44 @@ export function NoteLayout({ note }: NoteLayoutProps) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 md:py-12">
-      {/* Back navigation */}
+      {/* Breadcrumb navigation */}
       <nav className="mb-6 flex items-center justify-between">
-        <Link 
-          to="/" 
-          className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-sans"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to garden</span>
-        </Link>
+        <div className="flex items-center gap-1 text-sm text-muted-foreground font-sans flex-wrap min-w-0">
+          {(() => {
+            const decodedSlug = decodeURIComponent(note.slug);
+            const segments = decodedSlug.split('/');
+            const folderSegments = segments.slice(0, -1);
+            const crumbs: { label: string; path: string }[] = [];
+
+            // Root crumb always links to /files
+            crumbs.push({ label: '📁 Files', path: '/files' });
+
+            // Folder crumbs link to /files?folder=<encoded path>
+            let accumulated = '';
+            for (const seg of folderSegments) {
+              accumulated = accumulated ? `${accumulated}/${seg}` : seg;
+              crumbs.push({ label: seg, path: `/files?folder=${encodeURIComponent(accumulated)}` });
+            }
+
+            return crumbs.map((crumb, i) => (
+              <span key={crumb.path} className="inline-flex items-center gap-1">
+                {i > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground/50 shrink-0" />}
+                <Link
+                  to={crumb.path}
+                  className="hover:text-primary transition-colors truncate max-w-[120px] sm:max-w-none"
+                  title={crumb.label}
+                >
+                  {crumb.label}
+                </Link>
+              </span>
+            ));
+          })()}
+          <ChevronRight className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+          <span className="text-foreground font-medium truncate">{note.title}</span>
+        </div>
         
         {isAuthenticated && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 ml-2">
             <MemoryPanel initialQuery={note.title} />
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link to={`/notes/${note.slug}/edit`}>
