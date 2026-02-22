@@ -502,3 +502,6 @@ Runtime завантажує `_agent.md` з MinIO при кожному запу
 **Від цього документа залежать:**
 - [[exodus.pp.ua/architecture/features/ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1\|ВЕРСІОНУВАННЯ_ЛОГІКИ_АГЕНТА_V1]] — current.drakon.json є canonical logic format у logic/ tier
 - [[exodus.pp.ua/architecture/core/КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ\|КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — Phase 4 (Execute Agent): Mastra виконує logic з _agent.md
+- [[exodus.pp.ua/drakon/АНАЛІЗ_ПРОЕКТУ\|АНАЛІЗ_ПРОЕКТУ]] — аналіз контексту Garden Bloom для DRAKON інтеграції
+- [[exodus.pp.ua/drakon/ДОСЛІДЖЕННЯ_DRAKONWIDGET\|ДОСЛІДЖЕННЯ_DRAKONWIDGET]] — технічне дослідження DrakonWidget компонента
+- [[exodus.pp.ua/drakon/ВИБІР_НАВИЧОК_CLAUDE\|ВИБІР_НАВИЧОК_CLAUDE]] — вибір Claude skills для реалізації

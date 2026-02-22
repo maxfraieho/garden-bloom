@@ -344,3 +344,22 @@ interface ConflictWarning {
 ---
 
 *Цей документ є канонічною специфікацією Proposal System для frontend імплементації.*
+
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ є частиною:**
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — операційний витяг для Frontend розробника
+
+**Цей документ залежить від:**
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — повна специфікація Proposal system
+- [[exodus.pp.ua/backend/КОНТРАКТИ_API_V1\|КОНТРАКТИ_API_V1]] — API endpoints для Proposal lifecycle
+
+**Від цього документа залежають:**
+- Lovable Frontend — UI реалізація Proposal state machine на основі цього витягу
+
+---
+
+*Цей документ є операційним витягом Proposal system для Frontend розробника (Lovable).*

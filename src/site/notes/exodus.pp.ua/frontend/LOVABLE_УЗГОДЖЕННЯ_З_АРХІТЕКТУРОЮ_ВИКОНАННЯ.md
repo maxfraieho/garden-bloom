@@ -504,3 +504,24 @@ graph LR
 ---
 
 *Цей документ визначає контракт frontend з runtime-архітектурою. Він є обов'язковим для Lovable-імплементації. Зміни цього контракту потребують рішення архітектора.*
+
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ є частиною:**
+- [[exodus.pp.ua/architecture/foundation/АРХІТЕКТУРНИЙ_КОРІНЬ\|АРХІТЕКТУРНИЙ_КОРІНЬ]] — A6: Frontend reads only, не пише
+
+**Цей документ залежить від:**
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ\|КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — загальна runtime архітектура
+- [[exodus.pp.ua/backend/КОНТРАКТИ_API_V1\|КОНТРАКТИ_API_V1]] — API schemas для Frontend інтеграції
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — Proposal lifecycle для UI відображення
+
+**Від цього документа залежають:**
+- [[exodus.pp.ua/frontend/ДИРЕКТИВА_УЗГОДЖЕННЯ_FRONTEND_V1\|ДИРЕКТИВА_УЗГОДЖЕННЯ_FRONTEND_V1]] — конкретні невідповідності UI
+- [[exodus.pp.ua/frontend/ПЛАН_МІГРАЦІЇ_FRONTEND_V1\|ПЛАН_МІГРАЦІЇ_FRONTEND_V1]] — план усунення невідповідностей
+
+---
+
+*Цей документ визначає контракт між Lovable Frontend та canonical runtime архітектурою.*

@@ -1,5 +1,5 @@
 ---
-{"tags":["domain:meta","status:canonical","format:prompt"],"created":"2026-02-21","updated":"2026-02-21","title":"АУДІО ПРОМПТ NOTEBOOKLM","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/АУДІО_ПРОМПТ_NOTEBOOKLM/","dgPassFrontmatter":true,"noteIcon":""}
+{"tags":["domain:meta","status:canonical","format:prompt"],"created":"2026-02-21","updated":"2026-02-21","title":"АУДІО ПРОМПТ NOTEBOOKLM","dg-publish":true,"dg-metatags":null,"dg-home":null,"isolated":"intentional","permalink":"/exodus.pp.ua/АУДІО_ПРОМПТ_NOTEBOOKLM/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
@@ -85,3 +85,18 @@ Technical but accessible. Imagine explaining this architecture to a senior engin
 5. **Agent contract model** — declarative behavior, DRAKON diagrams (1 min)
 6. **Failure model** — what crashes and what survives (1 min)
 7. **Open questions and challenges** — what could be improved (1-2 min)
+
+
+---
+
+## Семантичні зв'язки
+
+`isolated: intentional` — цей документ є standalone операційним промптом для NotebookLM audio overview. Не включається до навігаційного графу навмисно.
+
+**Контекст використання:**
+- Завантажити до NotebookLM разом з Tier 1 документами з [[exodus.pp.ua/ІНДЕКС\|ІНДЕКС]]
+- Використовується для генерації audio overview системи Garden Bloom
+
+---
+
+*Standalone prompt. Не є частиною канонічного knowledge graph.*
