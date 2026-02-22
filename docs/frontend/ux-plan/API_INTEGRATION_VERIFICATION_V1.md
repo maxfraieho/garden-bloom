@@ -42,7 +42,7 @@ Example flow for proposal history:
 ```
 Frontend: GET https://garden-mcp-server.maxfraieho.workers.dev/proposals/history?status=applied,rejected&limit=50
     → Cloudflare Worker (gateway)
-    → Backend (Replit FastAPI / KV)
+    → KV storage (proposals:history index)
     → Worker
     → Frontend
 ```
@@ -57,7 +57,9 @@ Frontend: GET https://garden-mcp-server.maxfraieho.workers.dev/proposals/history
 
 **Endpoint:** `GET /proposals/history`
 
-**Status:** The endpoint is defined in the API contract (§3.4) and the frontend client (`getProposalHistory()`) is implemented. The Worker proxy route may or may not be deployed — the frontend handles 404/502 gracefully with an informative empty state.
+**Status:** ✅ Route added to Cloudflare Worker (`_collab/infrastructure/cloudflare/worker/index.js`). The handler reads from the `proposals:history` global KV index, which is populated when proposals are accepted or rejected. Supports query params: `status` (comma-separated), `limit`, `offset`.
+
+**PATCH endpoint fix:** ✅ Added `PATCH /proposals/:proposalId` route that reads `{status}` from body and delegates to accept/reject handlers. Previously, the frontend sent PATCH but the Worker only had POST `/accept` and `/reject` routes — this mismatch has been resolved.
 
 **Confirmed network request** (from client logs):
 ```
@@ -65,13 +67,27 @@ POST https://garden-mcp-server.maxfraieho.workers.dev/auth/status → 200 OK
 ```
 This confirms Worker connectivity is active.
 
-## 4. Security Verification
+## 4. Critical Findings
+
+### 4.1 PATCH vs POST mismatch (FIXED)
+
+| Frontend method | Worker route (before) | Worker route (after) |
+|---|---|---|
+| `PATCH /proposals/{id}` body: `{status:'approved'}` | ❌ No PATCH handler → 404 | ✅ `PATCH /proposals/:id` → delegates to accept/reject |
+| `PATCH /proposals/{id}` body: `{status:'rejected'}` | ❌ No PATCH handler → 404 | ✅ Same |
+
+### 4.2 Status value mismatch (documented)
+
+Worker sets `proposal.status = 'accepted'` on accept, but frontend `STATUS_BADGE_MAP` expects `'approved'` / `'applied'`. History tab should show items correctly since it filters by comma-separated status values including both.
+
+## 5. Security Verification
 
 - ✅ No hardcoded backend URLs in `src/`
 - ✅ Owner token transmitted via `Authorization` header only
 - ✅ Zone guest access via `X-Zone-Code` header
 - ✅ No credentials stored in localStorage (token managed by `useOwnerAuth` hook)
 - ✅ AbortController timeout on every request
+- ✅ `/proposals/history` requires owner auth
 
 ---
 

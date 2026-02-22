@@ -43,6 +43,7 @@ type HistoryFilter = 'all' | 'approved' | 'rejected';
 
 const STATUS_BADGE_MAP: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
   approved: { variant: 'default', label: 'Approved' },
+  accepted: { variant: 'default', label: 'Approved' },
   applied: { variant: 'default', label: 'Applied' },
   auto_approved: { variant: 'default', label: 'Auto-approved' },
   rejected: { variant: 'destructive', label: 'Rejected' },
@@ -85,8 +86,8 @@ export function ProposalsInbox({ className }: ProposalsInboxProps) {
     setHistoryLoading(true);
     setHistoryError(null);
     try {
-      const statusParam = historyFilter === 'all' ? 'applied,rejected,auto_approved,expired' 
-        : historyFilter === 'approved' ? 'applied,approved,auto_approved'
+      const statusParam = historyFilter === 'all' ? 'accepted,applied,rejected,auto_approved,expired' 
+        : historyFilter === 'approved' ? 'accepted,applied,approved,auto_approved'
         : 'rejected';
       const res = await getProposalHistory({ status: statusParam, limit: 50 });
       setHistoryItems(res.proposals);
