@@ -1,7 +1,7 @@
 # Agent Memory System — Implementation Status
 
 **Date:** 2026-02-22
-**Status:** Phase 1 complete, Phase 2 (Mastra proper) next
+**Status:** Phase 2 complete ✅ — Mastra agents live on Replit
 
 ---
 
@@ -65,14 +65,19 @@ Sheet sidebar with 3 tabs:
 
 Memory button added to note header (owner only), opens panel with note title as initialQuery.
 
-### Layer 5 — Backend (✅ Running on Replit)
+### Layer 5 — Backend (✅ Phase 2 Complete — Mastra Agents Live)
 `~/projects/notebooklm` on Replit
 
-- **Storage:** isomorphic-git + local filesystem, mirrored to `maxfraieho/garden-seedling`
-- **Index:** wink-bm25 with wink-nlp stemming, 53 entities loaded
-- **Endpoints:** `/v1/memory/health`, `/init`, `/refresh`, `/entities`, `/context/:id`, `/orchestrated-search`, `/process-transcript`, `/commit`
+- **Storage:** isomorphic-git + local filesystem, entity path: `.git-store/src/site/notes/{type}/{name}.md`
+- **Index:** wink-bm25 with wink-nlp stemming, rebuilt on entity add (fixed Phase 1 crash bug)
+- **Agents:** Mastra v1.5 + `@ai-sdk/anthropic` (upgraded from raw Anthropic SDK)
+  - `memory-writer` — 20 steps max, tools: read/write/search/list/commit
+  - `memory-searcher` — 15 steps max, tools: read/search/list/diff
+- **Routes:** `/process-transcript` → `writerAgent.generate()`, `/orchestrated-search` → `searcherAgent.generate()`
+- **Tested (Phase 2):**
+  - Writer: 1 transcript → 5 entities created (olena, knowledge-graph-architecture, semantic-edge-types, garden-owner, exodus-pp-ua)
+  - Searcher: knowledge graph query → 5 sources returned with sub-queries
 - **Auth:** Bearer `NOTEBOOKLM_SERVICE_TOKEN`
-- **Tested:** orchestrated-search → 4 tool calls → answer + 6 citations
 
 ### Layer 6 — Gateway (✅ Configured)
 Cloudflare Worker routes `/v1/memory/*` → Replit backend
@@ -80,21 +85,20 @@ Cloudflare Worker routes `/v1/memory/*` → Replit backend
 
 ---
 
-## Known Gaps (Phase 1 Debt)
+## Known Gaps (Phase 2 Remaining Debt)
 
-| Gap | Location | Impact |
-|-----|---------|--------|
-| Hardcoded `'garden-owner'` user ID | `MemoryPanel.tsx:12` | Blocks multi-user |
-| Session ID collision risk (`Date.now()`) | `useAgentMemory.ts:117` | Rare, replace with crypto.randomUUID() |
-| No retry on transient failures | `useAgentMemory.ts` | Timeout = permanent error for user |
-| Generic error messages | `useAgentMemory.ts` | "Search failed" doesn't help |
-| No entity viewer component | — | User sees names, not content |
-| No Timeline UI | — | `getMemoryTimeline()` defined but unused |
-| No Onboarding UI | — | `onboardMemoryUser()` not exposed |
-| Initial query not auto-executed | `MemoryPanel.tsx` | UX friction |
-| No TanStack Query cache | — | Duplicate API calls on re-render |
-| No markdown rendering in answer | `SearchTab` | Plain text answer |
-| Backend uses direct Claude calls | Replit | Mastra tools not wired yet |
+| Gap | Location | Impact | Priority |
+|-----|---------|--------|----------|
+| Hardcoded `'garden-owner'` user ID | `MemoryPanel.tsx:12` | Blocks multi-user | High (Lovable task) |
+| Entity storage path mismatch | Replit `.git-store/src/site/notes/` | Entities mixed with garden notes | Medium — verify isolation |
+| Session ID collision risk (`Date.now()`) | `useAgentMemory.ts:117` | Rare race condition | Low, replace with `crypto.randomUUID()` |
+| No retry on transient failures | `useAgentMemory.ts` | Timeout = permanent error for user | Medium |
+| Generic error messages | `useAgentMemory.ts` | "Search failed" doesn't help | Low |
+| No entity viewer component | — | User sees names, not content | Low |
+| No Timeline UI | — | `getMemoryTimeline()` defined but unused | Low |
+| Initial query not auto-executed | `MemoryPanel.tsx` | UX friction on open | Low |
+| No markdown rendering in answer | `SearchTab` | Plain text LLM answer | Low |
+| No TanStack Query cache | — | Duplicate API calls on re-render | Low |
 
 ---
 
@@ -110,10 +114,17 @@ Cloudflare Worker routes `/v1/memory/*` → Replit backend
 
 ---
 
-## Phase 2 — Mastra Proper (Next)
+## Phase 2 — Mastra Proper (✅ Complete — 2026-02-22)
 
-### Goal
-Replace direct Claude API calls in Replit backend with proper Mastra tool-calling agents.
+### Goal ~~(achieved)~~
+~~Replace direct Claude API calls in Replit backend with proper Mastra tool-calling agents.~~
+
+**Done.** Both agents are live. Key implementation notes:
+- Upgraded to `@ai-sdk/anthropic` (Mastra v1.5 requires AI SDK v4, not raw Anthropic SDK)
+- BM25 index crash on `addDoc` post-consolidation fixed — now calls `rebuild()` instead of `consolidate()`
+- Entity storage path: `.git-store/src/site/notes/{type}/{name}.md`
+- `src/agents/tools.ts`, `writer-agent.ts`, `searcher-agent.ts`, `mastra.ts`, `extract-results.ts` — all created
+- Singleton adapter pattern (`setAdapter` / `getAdapter`) wired in `server.ts`
 
 ### What needs to change on Replit
 
