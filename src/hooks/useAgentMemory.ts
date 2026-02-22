@@ -112,7 +112,7 @@ export function useAgentMemory(userId: string): UseAgentMemoryReturn {
     try {
       const result = await processAndCommitMemory(userId, {
         memoryInput: text,
-        sessionId: sessionId || `session-${Date.now()}`,
+        sessionId: sessionId || `session-${crypto.randomUUID()}`,
         autoCommit: true,
       });
       // Refresh status after processing
