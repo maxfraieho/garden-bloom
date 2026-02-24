@@ -46,7 +46,7 @@ export function BloomRuntimeFooter() {
 
         {/* BLOOM branding */}
         <div className="text-[10px] text-muted-foreground/60 font-sans tracking-wider uppercase">
-          Powered by BLOOM Runtime — Behavioral Logic Orchestration for Order-Made Systems
+          Powered by BLOOM Runtime — Bespoke Logic Orchestration & Operational Machines
         </div>
       </div>
     </footer>

@@ -101,9 +101,7 @@ function NetworkBackground() {
 export function AccessGateUI() {
   const [password, setPassword] = useState('');
   const { login, isLoading, error } = useOwnerAuth();
-  const { t, locale } = useLocale();
-
-  const isUk = locale === 'uk';
+  const { t } = useLocale();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,26 +150,26 @@ export function AccessGateUI() {
                   BLOOM
                 </h1>
                 <p className="text-[11px] text-muted-foreground/60 tracking-[0.15em] font-sans font-light text-center">
-                  Bespoke Logic Orchestration & Operational Machines
+                  {t.accessGate.bloomExpansion}
                 </p>
               </div>
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs text-center">
-            BLOOM — Bespoke Logic Orchestration & Operational Machines
+            BLOOM — {t.accessGate.bloomExpansion}
           </TooltipContent>
         </Tooltip>
 
         {/* Runtime descriptor */}
         <p className="text-sm text-foreground/50 tracking-wide font-sans">
-          {isUk ? 'Індивідуальне середовище виконання' : 'Individual Execution Environment'}
+          {t.accessGate.runtimeSubtitle}
         </p>
 
         {/* Auth form */}
         <form onSubmit={handleSubmit} className="w-full space-y-4 mt-2">
           <Input
             type="password"
-            placeholder={isUk ? 'Введіть ключ доступу' : 'Enter access key'}
+            placeholder={t.accessGate.placeholder}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={isLoading}
@@ -192,14 +190,14 @@ export function AccessGateUI() {
                 {t.ownerAuth.verifying}
               </>
             ) : (
-              isUk ? 'Активувати середовище' : 'Activate Environment'
+              t.accessGate.unlock
             )}
           </Button>
         </form>
 
         {/* Runtime attribution footer */}
         <p className="text-[10px] text-muted-foreground/30 tracking-widest uppercase mt-6 font-sans">
-          Powered by BLOOM Runtime
+          {t.accessGate.runtimeFooter}
         </p>
       </div>
     </div>

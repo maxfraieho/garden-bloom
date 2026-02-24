@@ -273,9 +273,12 @@ export const de: Translations = {
   accessGate: {
     title: 'Zugang erforderlich',
     description: 'Dieser Garten ist privat. Geben Sie den Master-Code ein, um fortzufahren.',
-    placeholder: 'Master-Code eingeben',
-    unlock: 'Garten entsperren',
+    placeholder: 'Zugriffsschlüssel eingeben',
+    unlock: 'Umgebung aktivieren',
     hint: 'Wenn Sie einen Zugangslink oder QR-Code haben, verwenden Sie diesen direkt, um geteilte Inhalte anzuzeigen.',
+    bloomExpansion: 'Maßgeschneiderte Logik-Orchestrierung & operative Maschinen',
+    runtimeSubtitle: 'Individuelle Ausführungsumgebung',
+    runtimeFooter: 'Betrieben von BLOOM Runtime',
   },
  
    editor: {
