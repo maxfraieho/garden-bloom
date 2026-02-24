@@ -46,7 +46,8 @@ Bespoke Logic Orchestration & Operational Machines
 
 ### Підзаголовок (runtime descriptor)
 ```
-Індивідуальне середовище виконання
+EN: Execution Environment for Behavioral Logic
+UK: Середовище виконання поведінкової логіки
 ```
 
 ### Поле введення
@@ -88,7 +89,7 @@ BLOOM — Bespoke Logic Orchestration & Operational Machines
 │            [ BLOOM logo ]               │
 │                                         │
 │               BLOOM                     │
-│    Індивідуальне середовище виконання    │
+│  Середовище виконання поведінкової логіки │
 │                                         │
 │     ┌──────────────────────────┐        │
 │     │   Введіть ключ доступу   │        │

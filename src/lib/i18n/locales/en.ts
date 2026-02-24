@@ -277,7 +277,7 @@ export const en: Translations = {
     unlock: 'Activate Environment',
     hint: 'If you have an access link or QR code, use it directly to view shared content.',
     bloomExpansion: 'Bespoke Logic Orchestration & Operational Machines',
-    runtimeSubtitle: 'Individual Execution Environment',
+    runtimeSubtitle: 'Execution Environment for Behavioral Logic',
     runtimeFooter: 'Powered by BLOOM Runtime',
   },
  

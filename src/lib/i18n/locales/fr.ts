@@ -277,7 +277,7 @@ export const fr: Translations = {
     unlock: 'Activer l\'environnement',
     hint: 'Si vous avez un lien d\'accès ou un code QR, utilisez-le directement pour voir le contenu partagé.',
     bloomExpansion: 'Orchestration de logique sur mesure & machines opérationnelles',
-    runtimeSubtitle: 'Environnement d\'exécution individuel',
+    runtimeSubtitle: 'Environnement d\'exécution pour la logique comportementale',
     runtimeFooter: 'Propulsé par BLOOM Runtime',
   },
  

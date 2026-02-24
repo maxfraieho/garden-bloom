@@ -277,7 +277,7 @@ export const de: Translations = {
     unlock: 'Umgebung aktivieren',
     hint: 'Wenn Sie einen Zugangslink oder QR-Code haben, verwenden Sie diesen direkt, um geteilte Inhalte anzuzeigen.',
     bloomExpansion: 'Maßgeschneiderte Logik-Orchestrierung & operative Maschinen',
-    runtimeSubtitle: 'Individuelle Ausführungsumgebung',
+    runtimeSubtitle: 'Ausführungsumgebung für Verhaltenslogik',
     runtimeFooter: 'Betrieben von BLOOM Runtime',
   },
  
