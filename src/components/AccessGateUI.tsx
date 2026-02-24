@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-/** Animated node-network background */
+/** Animated knowledge-graph background */
 function NetworkBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -26,8 +26,14 @@ function NetworkBackground() {
     if (!ctx) return;
 
     let animId: number;
-    const nodes: { x: number; y: number; vx: number; vy: number; r: number; opacity: number }[] = [];
-    const NODE_COUNT = 40;
+    const NODE_COUNT = 80;
+    const CONNECT_DIST = 200;
+
+    interface Node {
+      x: number; y: number; vx: number; vy: number;
+      r: number; opacity: number; hub: boolean;
+    }
+    const nodes: Node[] = [];
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -37,37 +43,48 @@ function NetworkBackground() {
     window.addEventListener('resize', resize);
 
     for (let i = 0; i < NODE_COUNT; i++) {
+      const isHub = Math.random() < 0.12;
       nodes.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.2,
-        vy: (Math.random() - 0.5) * 0.2,
-        r: Math.random() * 2 + 1,
-        opacity: Math.random() * 0.3 + 0.08,
+        vx: (Math.random() - 0.5) * (isHub ? 0.08 : 0.25),
+        vy: (Math.random() - 0.5) * (isHub ? 0.08 : 0.25),
+        r: isHub ? Math.random() * 3 + 3 : Math.random() * 1.5 + 0.8,
+        opacity: isHub ? Math.random() * 0.25 + 0.35 : Math.random() * 0.2 + 0.12,
+        hub: isHub,
       });
     }
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Draw edges
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[i].x - nodes[j].x;
           const dy = nodes[i].y - nodes[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 180) {
-            const alpha = (1 - dist / 180) * 0.1;
+          if (dist < CONNECT_DIST) {
+            const alpha = (1 - dist / CONNECT_DIST) * (nodes[i].hub || nodes[j].hub ? 0.18 : 0.08);
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
             ctx.lineTo(nodes[j].x, nodes[j].y);
             ctx.strokeStyle = `rgba(45, 212, 168, ${alpha})`;
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = nodes[i].hub && nodes[j].hub ? 1 : 0.5;
             ctx.stroke();
           }
         }
       }
 
+      // Draw nodes
       for (const n of nodes) {
+        if (n.hub) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(45, 212, 168, ${n.opacity * 0.12})`;
+          ctx.fill();
+        }
+
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(45, 212, 168, ${n.opacity})`;
