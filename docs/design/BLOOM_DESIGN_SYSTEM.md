@@ -1,131 +1,189 @@
-# BLOOM Design System
+---
+tags:
+  - domain:design
+  - status:canonical
+  - format:spec
+  - feature:branding
+created: 2026-02-24
+updated: 2026-02-24
+tier: 2
+title: "BLOOM — Дизайн-система"
+---
 
-> Visual identity and design guidelines for Garden Bloom platform
+# BLOOM — Дизайн-система
+
+Візуальна ідентичність та настанови з дизайну для платформи Garden Bloom.
 
 ---
 
-## 1. Кольори
+## 1. Кольорова палітра
 
-### Primary Palette
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--garden-forest` | `hsl(174, 62%, 36%)` | Primary actions, links, active states |
-| `--garden-teal` | `hsl(183, 55%, 55%)` | Secondary highlights, hover states |
-| Accent | `hsl(38, 90%, 55%)` | Warnings, proposals, attention |
+### Основна палітра
 
-### Dark Mode
-| Token | Value | Usage |
-|-------|-------|-------|
-| Background | `hsl(220, 15%, 12%)` | Page background — near-black charcoal |
-| Surface | `hsl(220, 12%, 16%)` | Cards, panels, elevated surfaces |
-| Primary | `hsl(190, 55%, 50%)` | Teal for primary actions |
-| Text | `hsl(220, 20%, 88%)` | Primary text — light gray |
-| Muted text | `hsl(220, 12%, 55%)` | Secondary text, labels |
+| Токен | Значення | Застосування |
+|-------|----------|-------------|
+| `--garden-forest` | `hsl(174, 62%, 36%)` | Основні дії, посилання, активні стани |
+| `--garden-teal` | `hsl(183, 55%, 55%)` | Другорядні виділення, стани наведення |
+| Акцент | `hsl(38, 90%, 55%)` | Попередження, пропозиції, привернення уваги |
 
-### Light Mode
-| Token | Value | Usage |
-|-------|-------|-------|
-| Background | `hsl(0, 0%, 100%)` | Clean white |
-| Primary | `hsl(174, 62%, 36%)` | Deep teal / emerald |
-| Text | `hsl(180, 6%, 16%)` | Near-black text |
+### Темна тема
 
-### BLOOM-specific Colors
-| Name | Value | Usage |
-|------|-------|-------|
-| Bloom Glow | `hsl(170, 60%, 45%)` | Logo glow, active node indicators |
-| Graph Gray | `hsl(220, 10%, 40%)` | Graph edges, secondary structure |
-| Node Green | `hsl(160, 50%, 50%)` | Active execution nodes |
+| Токен | Значення | Застосування |
+|-------|----------|-------------|
+| Фон | `hsl(220, 15%, 12%)` | Фон сторінки — майже чорний |
+| Поверхня | `hsl(220, 12%, 16%)` | Картки, панелі, піднесені поверхні |
+| Основний | `hsl(190, 55%, 50%)` | Teal для основних дій |
+| Текст | `hsl(220, 20%, 88%)` | Основний текст — світло-сірий |
+| Приглушений текст | `hsl(220, 12%, 55%)` | Допоміжний текст, мітки |
+
+### Світла тема
+
+| Токен | Значення | Застосування |
+|-------|----------|-------------|
+| Фон | `hsl(0, 0%, 100%)` | Чистий білий |
+| Основний | `hsl(174, 62%, 36%)` | Глибокий teal / смарагд |
+| Текст | `hsl(180, 6%, 16%)` | Майже чорний текст |
+
+### Спеціальні кольори BLOOM
+
+| Назва | Значення | Застосування |
+|-------|----------|-------------|
+| Bloom Glow | `hsl(170, 60%, 45%)` | Світіння логотипу, індикатори активних вузлів |
+| Graph Gray | `hsl(220, 10%, 40%)` | Ребра графу, другорядна структура |
+| Node Green | `hsl(160, 50%, 50%)` | Активні вузли виконання |
 
 ---
 
-## 2. Typography
+## 2. Типографіка
 
-### Font Stack
-- **Headlines:** `Inter` (system sans-serif fallback) — clean, technical
-- **Body text:** `Lora` (serif) — readable, knowledge-focused
-- **Code/Technical:** `monospace` — system default
+### Шрифтовий стек
 
-### Scale
-| Element | Size | Weight | Font |
-|---------|------|--------|------|
+| Призначення | Шрифт | Характер |
+|-------------|-------|----------|
+| Заголовки | `Inter` (sans-serif) | Чистий, технічний |
+| Основний текст | `Lora` (serif) | Читабельний, knowledge-орієнтований |
+| Код / технічний | `monospace` | Системний моноширинний |
+
+### Шкала розмірів
+
+| Елемент | Розмір | Вага | Шрифт |
+|---------|--------|------|-------|
 | H1 | 2.25rem | 600 | Sans |
 | H2 | 1.5rem | 600 | Sans |
 | H3 | 1.25rem | 600 | Sans |
-| Body | 1rem | 400 | Serif |
-| Small / Labels | 0.875rem | 400 | Sans |
-| Caption | 0.75rem | 400 | Sans |
+| Основний текст | 1rem | 400 | Serif |
+| Малий / Мітки | 0.875rem | 400 | Sans |
+| Підписи | 0.75rem | 400 | Sans |
 
 ---
 
-## 3. Logo Usage
+## 3. Логотип
 
-### Files
-- `/public/brand/bloom-logo.svg` — Full wordmark with symbol
-- `/public/brand/bloom-symbol.svg` — Symbol only (for compact contexts)
-- `/public/brand/bloom-favicon.svg` — Favicon variant
+### Файли
 
-### Symbol Concept
-The BLOOM symbol represents a **graph node bloom** — a central execution node with radiating branches, enclosed in an orchestration boundary (dashed circle). It is NOT a flower; it is an abstraction of logic expansion.
+| Файл | Призначення |
+|------|-------------|
+| `/public/brand/bloom-logo.svg` | Повний логотип з текстом |
+| `/public/brand/bloom-symbol.svg` | Лише символ (для компактних контекстів) |
+| `/public/brand/bloom-favicon.svg` | Варіант для favicon |
 
-### Color Adaptation
-- **Light mode:** Use `currentColor` (inherits dark text)
-- **Dark mode:** Use `currentColor` (inherits light text)
-- **Favicon:** Uses fixed `#2dd4a8` (BLOOM teal)
+### Концепція символу
 
----
+Символ BLOOM — це **graph node bloom**: центральний вузол виконання з розходженням гілок, обведений межею оркестрації (пунктирне коло). Це НЕ квітка — це абстракція розкриття логіки.
 
-## 4. Components
+### Адаптація кольору
 
-### Auth Gate
-The access gate is the entry point to the execution environment. It should convey:
-- Security and exclusivity
-- System-level aesthetic
-- Atmospheric depth through subtle backgrounds
-
-### Cards
-- Subtle border, no heavy shadows
-- Use `card` / `card-foreground` tokens
-- Rounded corners: `var(--radius)`
-
-### Buttons
-- Primary: filled with `--primary`, text `--primary-foreground`
-- Ghost: transparent, hover reveals `--accent` background
-- Destructive: `--destructive` fill
+| Режим | Колір |
+|-------|-------|
+| Світла тема | `currentColor` (успадковує темний текст) |
+| Темна тема | `currentColor` (успадковує світлий текст) |
+| Favicon | Фіксований `#2dd4a8` (BLOOM teal) |
 
 ---
 
-## 5. Motion
+## 4. Компоненти
 
-- Fade-in: 0.3-0.5s ease-out for page elements
-- Subtle glow animations for active states
-- No excessive motion — precision over decoration
+### Точка входу (Auth Gate)
+
+Точка входу — це вхід у execution-середовище. Має передавати:
+
+- Безпеку та ексклюзивність
+- Системну естетику
+- Атмосферну глибину через ледь помітний фон
+
+### Картки
+
+- Ледь помітна рамка, без важких тіней
+- Використовують токени `card` / `card-foreground`
+- Заокруглення: `var(--radius)`
+
+### Кнопки
+
+| Варіант | Стиль |
+|---------|-------|
+| Primary | Заповнена `--primary`, текст `--primary-foreground` |
+| Ghost | Прозора, при наведенні — `--accent` фон |
+| Destructive | Заповнена `--destructive` |
 
 ---
 
-## 6. Domains (Suggestions)
+## 5. Рух та анімація
 
-### BLOOM-focused
-1. bloom-runtime.com
-2. bloom-engine.io
-3. bloom-logic.dev
-4. bloom-forge.io
-5. bloom-core.systems
-6. bloom-fabric.dev
-7. bloom-system.io
-8. bloomexec.com
-9. bloom-orchestrator.com
-10. bloom-behavioral.dev
+| Тип | Параметри |
+|-----|-----------|
+| Fade-in | 0.3–0.5s ease-out для елементів сторінки |
+| Glow | Ледь помітне світіння для активних станів |
+| Загальний принцип | Точність, а не декоративність |
 
-### Garden-focused
-11. gardenbloom.ai
-12. gardenbloom.systems
-13. gardenbloom.dev
-14. garden-bloom.io
-15. bloomgarden.systems
+---
 
-### Combined / Creative
-16. bloomruntime.dev
-17. thebloomengine.com
-18. bloomlogic.systems
-19. bloom-bespoke.dev
-20. orderbloom.io
+## 6. Пропозиції доменів
+
+### Орієнтовані на BLOOM
+
+| № | Домен |
+|---|-------|
+| 1 | bloom-runtime.com |
+| 2 | bloom-engine.io |
+| 3 | bloom-logic.dev |
+| 4 | bloom-forge.io |
+| 5 | bloom-core.systems |
+| 6 | bloom-fabric.dev |
+| 7 | bloom-system.io |
+| 8 | bloomexec.com |
+| 9 | bloom-orchestrator.com |
+| 10 | bloom-behavioral.dev |
+
+### Орієнтовані на Garden
+
+| № | Домен |
+|---|-------|
+| 11 | gardenbloom.ai |
+| 12 | gardenbloom.systems |
+| 13 | gardenbloom.dev |
+| 14 | garden-bloom.io |
+| 15 | bloomgarden.systems |
+
+### Комбіновані / креативні
+
+| № | Домен |
+|---|-------|
+| 16 | bloomruntime.dev |
+| 17 | thebloomengine.com |
+| 18 | bloomlogic.systems |
+| 19 | bloom-bespoke.dev |
+| 20 | orderbloom.io |
+
+---
+
+## Семантичні зв'язки
+
+**Цей документ залежить від:**
+- [[BLOOM_IDENTITY_AND_RUNTIME]] — визначення ідентичності BLOOM
+
+**Цей документ є частиною:**
+- [[КАНОНІЗАЦІЯ_МОВИ]] — написаний відповідно до мовної норми
+
+---
+
+*Цей документ визначає візуальну ідентичність та дизайн-систему BLOOM Runtime.*
