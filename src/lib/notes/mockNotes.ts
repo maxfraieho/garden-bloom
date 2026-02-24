@@ -1,24 +1,24 @@
-// Mock notes data - Content source abstraction layer
-// In production, this would be replaced with Supabase or API calls
+// Mock definitions data - Content source abstraction layer
+// In production, this would be replaced with canonical storage API calls
 
 import type { Note } from './types';
 
 const mockNotesData: Record<string, { content: string; frontmatter: Record<string, unknown> }> = {
   'welcome': {
     frontmatter: {
-      title: 'Welcome to the Digital Garden',
+      title: 'Welcome to BLOOM Runtime',
       created: '2024-01-15',
       updated: '2024-03-20',
       tags: ['meta', 'introduction'],
     },
     content: `
-# Welcome to the Digital Garden
+# Welcome to BLOOM Runtime
 
 This is a **living collection of notes**, ideas, and thoughts that grow and evolve over time.
 
-## What is a Digital Garden?
+## What is BLOOM?
 
-Unlike a traditional blog with polished, finished articles, a digital garden is a space for:
+BLOOM is an execution environment for behavioral logic. It contains:
 
 - **Seedlings** — raw ideas, just planted
 - **Budding notes** — developing thoughts with some structure

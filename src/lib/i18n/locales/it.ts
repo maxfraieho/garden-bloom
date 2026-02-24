@@ -2,7 +2,7 @@ import type { Translations } from '../types';
 
 export const it: Translations = {
   sidebar: {
-    digitalGarden: 'Giardino Digitale',
+    digitalGarden: 'BLOOM Runtime',
     home: 'Home',
     graph: 'Grafo',
     chat: 'Chat',
@@ -54,7 +54,7 @@ export const it: Translations = {
   },
   
   index: {
-    digitalGarden: 'Giardino Digitale',
+    digitalGarden: 'BLOOM Runtime',
     description: 'Una raccolta di note, idee e pensieri.',
     allNotes: 'Tutte le Note',
     notesInGarden: 'note in questo giardino',
@@ -141,7 +141,7 @@ export const it: Translations = {
     ttlAccess: 'TTL',
     ttlAccessDesc: 'Revocato automaticamente dopo la scadenza',
     gardenInfo: 'Informazioni giardino',
-    gardenInfoDesc: 'Visualizza le informazioni del tuo Giardino Digitale.',
+    gardenInfoDesc: 'Visualizza le informazioni del tuo BLOOM Runtime.',
     status: 'Stato',
     activeReady: 'Attivo e pronto',
     ownerMode: 'Modalità proprietario',
@@ -162,7 +162,7 @@ export const it: Translations = {
     verifying: 'Verifica...',
     unlock: 'Sblocca',
     cancel: 'Annulla',
-    setupTitle: 'Benvenuto in Digital Garden',
+    setupTitle: 'Benvenuto in BLOOM Runtime',
     setupDescription: 'Imposta la tua password master per abilitare la modalità proprietario e le funzionalità di delega accesso.',
     createPassword: 'Crea una password forte',
     confirmPassword: 'Conferma la password',

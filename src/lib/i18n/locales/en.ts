@@ -2,7 +2,7 @@ import type { Translations } from '../types';
 
 export const en: Translations = {
   sidebar: {
-    digitalGarden: 'Digital Garden',
+    digitalGarden: 'BLOOM Runtime',
     home: 'Home',
     graph: 'Graph',
     chat: 'Chat',
@@ -19,8 +19,8 @@ export const en: Translations = {
   },
   
   graph: {
-    title: 'Knowledge Graph',
-    description: 'Visual map of all notes and their connections. Click any node to navigate.',
+    title: 'Execution Graph',
+    description: 'Visual map of all definitions and their connections. Click any node to navigate.',
     empty: 'No published notes to display.',
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',
@@ -54,12 +54,12 @@ export const en: Translations = {
   },
   
   index: {
-    digitalGarden: 'Digital Garden',
-    description: 'A collection of notes, ideas, and thoughts.',
+    digitalGarden: 'BLOOM Runtime',
+    description: 'Execution environment for behavioral logic.',
     allNotes: 'All Notes',
-    notesInGarden: 'notes in this garden',
-    browseTags: 'Browse by Tags',
-    knowledgeMap: 'Knowledge Map',
+    notesInGarden: 'definitions in this runtime',
+    browseTags: 'Browse by Domains',
+    knowledgeMap: 'Execution Graph',
     exploreGraph: 'Explore Full Graph',
     viewGraph: 'View Graph',
     recentNotes: 'Recent Notes',
@@ -76,15 +76,15 @@ export const en: Translations = {
 
   notePage: {
     notFoundTitle: 'Note not found',
-    notFoundMessage: 'The note "{slug}" doesn\'t exist yet. In a digital garden, missing notes are seeds waiting to be planted.',
+    notFoundMessage: 'The definition "{slug}" doesn\'t exist yet. Missing definitions are pending behavioral specifications.',
     pendingTitle: 'Note is syncing',
     pendingMessage: 'The note "{slug}" was recently added and will appear shortly. This usually takes 1-2 minutes.',
-    returnToGarden: 'Return to the garden',
+    returnToGarden: 'Return to runtime',
   },
   
   tagPage: {
     noTagSpecified: 'No tag specified',
-    returnToGarden: 'Return to the garden',
+    returnToGarden: 'Return to runtime',
   },
   
   common: {
@@ -110,13 +110,13 @@ export const en: Translations = {
 
   adminSettings: {
     title: 'Owner Settings',
-    subtitle: 'Manage your garden\'s security, access control, and advanced configuration.',
+    subtitle: 'Manage runtime security, access control, and advanced configuration.',
     tabSecurity: 'Security',
     tabAccessControl: 'Access Control',
     tabDiagnostics: 'Diagnostics',
     tabAdvanced: 'Advanced',
     changePassword: 'Change Password',
-    changePasswordDesc: 'Update your owner password to keep your garden secure.',
+    changePasswordDesc: 'Update your owner password to keep your runtime secure.',
     currentPassword: 'Current Password',
     currentPasswordPlaceholder: 'Enter your current password',
     newPassword: 'New Password',
@@ -140,8 +140,8 @@ export const en: Translations = {
     mcpAccessDesc: 'Share via Model Context Protocol for AI tools',
     ttlAccess: 'TTL',
     ttlAccessDesc: 'Automatically revoked after expiration',
-    gardenInfo: 'Garden Information',
-    gardenInfoDesc: 'View information about your Digital Garden.',
+    gardenInfo: 'Runtime Information',
+    gardenInfoDesc: 'View information about your BLOOM Runtime instance.',
     status: 'Status',
     activeReady: 'Active & Ready',
     ownerMode: 'Owner Mode',
@@ -162,8 +162,8 @@ export const en: Translations = {
     verifying: 'Verifying...',
     unlock: 'Unlock',
     cancel: 'Cancel',
-    setupTitle: 'Welcome to Digital Garden',
-    setupDescription: 'Set up your master password to enable owner mode and access delegation features.',
+    setupTitle: 'Welcome to BLOOM Runtime',
+    setupDescription: 'Set up your master password to enable owner mode and activate execution environment.',
     createPassword: 'Create a strong password',
     confirmPassword: 'Confirm your password',
     passwordMinLength: 'Password must be at least 8 characters',
@@ -272,7 +272,7 @@ export const en: Translations = {
   
   accessGate: {
     title: 'Access Required',
-    description: 'This garden is private. Enter the master code to continue.',
+    description: 'This runtime is private. Enter the master code to continue.',
     placeholder: 'Enter access key',
     unlock: 'Activate Environment',
     hint: 'If you have an access link or QR code, use it directly to view shared content.',

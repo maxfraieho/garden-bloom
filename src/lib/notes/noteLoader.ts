@@ -1,5 +1,5 @@
-// Runtime note loader for Digital Garden
-// Loads real Markdown files from src/site/notes
+// Runtime definition loader for BLOOM Runtime
+// Loads real Markdown files from src/site/notes (behavioral definitions)
 
 import type { Note, NoteFrontmatter } from './types';
 

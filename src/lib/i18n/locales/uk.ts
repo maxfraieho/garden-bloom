@@ -2,7 +2,7 @@ import type { Translations } from '../types';
 
 export const uk: Translations = {
   sidebar: {
-    digitalGarden: 'Цифровий сад',
+    digitalGarden: 'BLOOM Runtime',
     home: 'Головна',
     graph: 'Граф',
     chat: 'Чат',
@@ -19,8 +19,8 @@ export const uk: Translations = {
   },
   
   graph: {
-    title: 'Граф знань',
-    description: 'Візуальна карта всіх нотаток та їхніх зв\'язків. Клацніть на вузол для переходу.',
+    title: 'Граф виконання',
+    description: 'Візуальна карта всіх визначень та їхніх зв\'язків. Клацніть на вузол для переходу.',
     empty: 'Немає опублікованих нотаток для відображення.',
     zoomIn: 'Збільшити',
     zoomOut: 'Зменшити',
@@ -42,10 +42,10 @@ export const uk: Translations = {
   
   tags: {
     allTags: 'Усі теги',
-    tagsInGarden: 'тегів у саду',
-    tagInGarden: 'тег у саду',
-    noTagsYet: 'У саду ще немає тегів.',
-    allNotes: 'Усі нотатки',
+    tagsInGarden: 'доменів у runtime',
+    tagInGarden: 'домен у runtime',
+    noTagsYet: 'У runtime ще немає доменів.',
+    allNotes: 'Усі визначення',
     notesTagged: 'нотаток з цією темою',
     noteTagged: 'нотатка з цією темою',
     noNotesWithTag: 'Ще немає опублікованих нотаток з цим тегом.',
@@ -54,12 +54,12 @@ export const uk: Translations = {
   },
   
   index: {
-    digitalGarden: 'Цифровий сад',
-    description: 'Колекція нотаток, ідей та думок.',
-    allNotes: 'Усі нотатки',
-    notesInGarden: 'нотаток у цьому саду',
-    browseTags: 'Огляд тегів',
-    knowledgeMap: 'Карта знань',
+    digitalGarden: 'BLOOM Runtime',
+    description: 'Середовище виконання поведінкової логіки.',
+    allNotes: 'Усі визначення',
+    notesInGarden: 'визначень у цьому runtime',
+    browseTags: 'Огляд доменів',
+    knowledgeMap: 'Граф виконання',
     exploreGraph: 'Дослідити граф',
     viewGraph: 'Переглянути граф',
     recentNotes: 'Нещодавні нотатки',
@@ -76,15 +76,15 @@ export const uk: Translations = {
 
   notePage: {
     notFoundTitle: 'Нотатку не знайдено',
-    notFoundMessage: 'Нотатка "{slug}" ще не існує. У цифровому саду відсутні нотатки — це насіння, що чекає на посадку.',
-    pendingTitle: 'Нотатка синхронізується',
-    pendingMessage: 'Нотатку "{slug}" щойно додано і вона невдовзі з\'явиться на сайті. Зазвичай це займає 1-2 хвилини.',
-    returnToGarden: 'Повернутися до саду',
+    notFoundMessage: 'Визначення "{slug}" ще не існує. Відсутні визначення — це специфікації, що очікують створення.',
+    pendingTitle: 'Визначення синхронізується',
+    pendingMessage: 'Визначення "{slug}" щойно додано і воно невдовзі з\'явиться. Зазвичай це займає 1-2 хвилини.',
+    returnToGarden: 'Повернутися до runtime',
   },
   
   tagPage: {
     noTagSpecified: 'Тег не вказано',
-    returnToGarden: 'Повернутися до саду',
+    returnToGarden: 'Повернутися до runtime',
   },
   
   common: {
@@ -110,13 +110,13 @@ export const uk: Translations = {
 
   adminSettings: {
     title: 'Налаштування власника',
-    subtitle: 'Керуйте безпекою, контролем доступу та конфігурацією вашого саду.',
+    subtitle: 'Керуйте безпекою, контролем доступу та конфігурацією runtime.',
     tabSecurity: 'Безпека',
     tabAccessControl: 'Контроль доступу',
     tabDiagnostics: 'Діагностика',
     tabAdvanced: 'Додатково',
     changePassword: 'Змінити пароль',
-    changePasswordDesc: 'Оновіть пароль власника для захисту вашого саду.',
+    changePasswordDesc: 'Оновіть пароль власника для захисту вашого runtime.',
     currentPassword: 'Поточний пароль',
     currentPasswordPlaceholder: 'Введіть поточний пароль',
     newPassword: 'Новий пароль',
@@ -140,8 +140,8 @@ export const uk: Translations = {
     mcpAccessDesc: 'Поділіться через Model Context Protocol для AI інструментів',
     ttlAccess: 'TTL',
     ttlAccessDesc: 'Автоматично відкликається після закінчення терміну',
-    gardenInfo: 'Інформація про сад',
-    gardenInfoDesc: 'Переглядайте інформацію про ваш Цифровий сад.',
+    gardenInfo: 'Інформація про runtime',
+    gardenInfoDesc: 'Переглядайте інформацію про ваш BLOOM Runtime.',
     status: 'Статус',
     activeReady: 'Активний і готовий',
     ownerMode: 'Режим власника',
@@ -162,8 +162,8 @@ export const uk: Translations = {
     verifying: 'Перевірка...',
     unlock: 'Розблокувати',
     cancel: 'Скасувати',
-    setupTitle: 'Ласкаво просимо до Digital Garden',
-    setupDescription: 'Налаштуйте мастер-пароль для активації режиму власника та функцій делегування доступу.',
+    setupTitle: 'Ласкаво просимо до BLOOM Runtime',
+    setupDescription: 'Налаштуйте мастер-пароль для активації execution environment та функцій делегування доступу.',
     createPassword: 'Створіть надійний пароль',
     confirmPassword: 'Підтвердіть пароль',
     passwordMinLength: 'Пароль має містити щонайменше 8 символів',
@@ -272,7 +272,7 @@ export const uk: Translations = {
   
   accessGate: {
     title: 'Потрібен доступ',
-    description: 'Цей сад приватний. Введіть мастер-код для продовження.',
+    description: 'Цей runtime приватний. Введіть мастер-код для продовження.',
     placeholder: 'Введіть ключ доступу',
     unlock: 'Активувати середовище',
     hint: 'Якщо у вас є посилання або QR-код доступу, використовуйте його безпосередньо для перегляду спільного контенту.',

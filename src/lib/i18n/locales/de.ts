@@ -2,7 +2,7 @@ import type { Translations } from '../types';
 
 export const de: Translations = {
   sidebar: {
-    digitalGarden: 'Digitaler Garten',
+    digitalGarden: 'BLOOM Runtime',
     home: 'Startseite',
     graph: 'Graph',
     chat: 'Chat',
@@ -54,7 +54,7 @@ export const de: Translations = {
   },
   
   index: {
-    digitalGarden: 'Digitaler Garten',
+    digitalGarden: 'BLOOM Runtime',
     description: 'Eine Sammlung von Notizen, Ideen und Gedanken.',
     allNotes: 'Alle Notizen',
     notesInGarden: 'Notizen in diesem Garten',
@@ -162,7 +162,7 @@ export const de: Translations = {
     verifying: 'Überprüfung...',
     unlock: 'Entsperren',
     cancel: 'Abbrechen',
-    setupTitle: 'Willkommen bei Digital Garden',
+    setupTitle: 'Willkommen bei BLOOM Runtime',
     setupDescription: 'Richten Sie Ihr Master-Passwort ein, um den Eigentümermodus und Zugriffsdelegierungsfunktionen zu aktivieren.',
     createPassword: 'Erstellen Sie ein starkes Passwort',
     confirmPassword: 'Passwort bestätigen',
