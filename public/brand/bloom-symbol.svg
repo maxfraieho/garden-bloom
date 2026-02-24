@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g transform="translate(32, 32)">
+    <!-- Central execution node -->
+    <circle cx="0" cy="0" r="5" fill="currentColor" opacity="0.95"/>
+    <!-- Primary branches -->
+    <line x1="0" y1="0" x2="-14" y2="-20" stroke="currentColor" stroke-width="2" opacity="0.7"/>
+    <line x1="0" y1="0" x2="14" y2="-20" stroke="currentColor" stroke-width="2" opacity="0.7"/>
+    <line x1="0" y1="0" x2="-22" y2="-4" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+    <line x1="0" y1="0" x2="22" y2="-4" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+    <line x1="0" y1="0" x2="-10" y2="20" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+    <line x1="0" y1="0" x2="10" y2="20" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+    <!-- Terminal nodes -->
+    <circle cx="-14" cy="-20" r="3" fill="currentColor" opacity="0.6"/>
+    <circle cx="14" cy="-20" r="3" fill="currentColor" opacity="0.6"/>
+    <circle cx="-22" cy="-4" r="2.5" fill="currentColor" opacity="0.4"/>
+    <circle cx="22" cy="-4" r="2.5" fill="currentColor" opacity="0.4"/>
+    <circle cx="-10" cy="20" r="2.5" fill="currentColor" opacity="0.3"/>
+    <circle cx="10" cy="20" r="2.5" fill="currentColor" opacity="0.3"/>
+    <!-- Orchestration boundary -->
+    <circle cx="0" cy="0" r="27" stroke="currentColor" stroke-width="1" fill="none" opacity="0.15" stroke-dasharray="4 4"/>
+  </g>
+</svg>
