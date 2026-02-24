@@ -23,7 +23,7 @@ export function TagCloud({ maxTags = 15 }: TagCloudProps) {
         <div className="flex items-center gap-2 mb-3">
           <Tag className="w-4 h-4 text-primary" />
           <h2 className="font-semibold text-foreground font-sans">
-            {t.index.browseTags}
+            Behavioral Domains
           </h2>
         </div>
         <p className="text-muted-foreground text-sm">{t.tags.noTagsYet}</p>
@@ -36,7 +36,7 @@ export function TagCloud({ maxTags = 15 }: TagCloudProps) {
       <div className="flex items-center gap-2 mb-4">
         <Tag className="w-4 h-4 text-primary" />
         <h2 className="font-semibold text-foreground font-sans">
-          {t.index.browseTags}
+          Behavioral Domains
         </h2>
       </div>
 

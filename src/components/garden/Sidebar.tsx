@@ -110,15 +110,15 @@ export function Sidebar() {
           className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
           onClick={() => setIsOpen(false)}
         >
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-lg flex items-center justify-center shadow-sm">
-            <Sprout className="w-5 h-5 text-primary-foreground" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img src="/brand/bloom-symbol.svg" alt="BLOOM" className="w-7 h-7" />
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-sidebar-foreground truncate">
-              {t.sidebar.digitalGarden}
+              BLOOM Runtime
             </h2>
             <p className="text-xs text-sidebar-muted-foreground truncate">
-              {t.sidebar?.home || 'Knowledge Base'}
+              Garden: Exodus
             </p>
           </div>
         </Link>

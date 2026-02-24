@@ -186,7 +186,7 @@ export function KnowledgeMapPreview() {
       <div className="flex items-center gap-2 mb-4">
         <Network className="w-5 h-5 text-primary" />
         <h2 className="font-semibold text-foreground font-sans">
-          {t.index.knowledgeMap}
+          Execution Graph
         </h2>
       </div>
 
@@ -266,18 +266,18 @@ export function KnowledgeMapPreview() {
         variant="default"
         className="w-full mb-4 font-semibold transition-all duration-200 hover:shadow-md"
       >
-        <Link to="/graph">{t.index.exploreGraph}</Link>
+        <Link to="/graph">Explore Execution Graph</Link>
       </Button>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2 text-center">
         <div className="p-2 rounded-md bg-muted/50 transition-all duration-200 hover:bg-muted">
           <div className="text-sm font-semibold text-primary">{nodeCount}</div>
-          <div className="text-xs text-muted-foreground">{t.common.notes}</div>
+          <div className="text-xs text-muted-foreground">Behavioral Nodes</div>
         </div>
         <div className="p-2 rounded-md bg-muted/50 transition-all duration-200 hover:bg-muted">
           <div className="text-sm font-semibold text-primary">{edgeCount}</div>
-          <div className="text-xs text-muted-foreground">{t.index.connections}</div>
+          <div className="text-xs text-muted-foreground">Execution Paths</div>
         </div>
       </div>
     </div>

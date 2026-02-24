@@ -122,7 +122,7 @@ export function NoteLayout({ note }: NoteLayoutProps) {
       {localGraph && (localGraph.inbound.length > 0 || localGraph.outbound.length > 0) && (
         <section className="mt-12 p-6 bg-card rounded-lg border border-border">
           <h2 className="text-lg font-semibold text-foreground mb-4 font-sans">
-            Connections
+            Execution Paths
           </h2>
           <LocalGraphView graph={localGraph} />
         </section>

@@ -9,7 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { OwnerAuthProvider, useOwnerAuth } from "@/hooks/useOwnerAuth.tsx";
 import { OwnerSetupWizard } from "@/components/garden/OwnerSetupWizard";
 import { AccessGuard } from "@/components/AccessGuard";
-import Index from "./pages/Index";
+import RuntimeOverview from "./pages/RuntimeOverview";
 import NotePage from "./pages/NotePage";
 import TagPage from "./pages/TagPage";
 import TagsIndex from "./pages/TagsIndex";
@@ -26,6 +26,9 @@ import NotFound from "./pages/NotFound";
 import EditorPage from "./pages/EditorPage";
 import DrakonPage from "./pages/DrakonPage";
 import AgentsPage from "./pages/AgentsPage";
+import ExecutionPage from "./pages/runtime/ExecutionPage";
+import HistoryPage from "./pages/runtime/HistoryPage";
+import ArtifactsPage from "./pages/runtime/ArtifactsPage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -53,7 +56,7 @@ function AppContent() {
       <AccessGuard>
         <SearchHighlightProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<RuntimeOverview />} />
             <Route path="/notes/*" element={<NotePage />} />
             <Route path="/notes/:slug/edit" element={<EditorPage />} />
             <Route path="/notes/new" element={<EditorPage />} />
@@ -66,6 +69,9 @@ function AppContent() {
             <Route path="/zone/:zoneId" element={<ZoneViewPage />} />
             <Route path="/zone/:zoneId/edit/:noteSlug" element={<ZoneEditPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/runtime/execution" element={<ExecutionPage />} />
+            <Route path="/runtime/history" element={<HistoryPage />} />
+            <Route path="/runtime/artifacts" element={<ArtifactsPage />} />
             {/* /admin/diagnostics removed — use Settings > Diagnostics tab */}
             <Route path="/admin/zones" element={<AdminZonesPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
