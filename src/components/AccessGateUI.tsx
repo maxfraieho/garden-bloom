@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-/** Animated knowledge-graph background */
+/** Animated knowledge-graph background — pushes nodes away from center */
 function NetworkBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -26,8 +26,9 @@ function NetworkBackground() {
     if (!ctx) return;
 
     let animId: number;
-    const NODE_COUNT = 80;
-    const CONNECT_DIST = 200;
+    const NODE_COUNT = 100;
+    const CONNECT_DIST = 220;
+    const EXCLUSION_RADIUS = 180; // pixels from center — keep clear for UI
 
     interface Node {
       x: number; y: number; vx: number; vy: number;
@@ -42,21 +43,34 @@ function NetworkBackground() {
     resize();
     window.addEventListener('resize', resize);
 
-    for (let i = 0; i < NODE_COUNT; i++) {
-      const isHub = Math.random() < 0.12;
-      nodes.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * (isHub ? 0.08 : 0.25),
-        vy: (Math.random() - 0.5) * (isHub ? 0.08 : 0.25),
-        r: isHub ? Math.random() * 3 + 3 : Math.random() * 1.5 + 0.8,
-        opacity: isHub ? Math.random() * 0.25 + 0.35 : Math.random() * 0.2 + 0.12,
+    // Spawn nodes outside exclusion zone
+    const spawnNode = (): Node => {
+      const isHub = Math.random() < 0.15;
+      let x: number, y: number;
+      do {
+        x = Math.random() * canvas.width;
+        y = Math.random() * canvas.height;
+      } while (
+        Math.sqrt((x - canvas.width / 2) ** 2 + (y - canvas.height / 2) ** 2) < EXCLUSION_RADIUS
+      );
+      return {
+        x, y,
+        vx: (Math.random() - 0.5) * (isHub ? 0.12 : 0.35),
+        vy: (Math.random() - 0.5) * (isHub ? 0.12 : 0.35),
+        r: isHub ? Math.random() * 3.5 + 3.5 : Math.random() * 2 + 1,
+        opacity: isHub ? Math.random() * 0.3 + 0.5 : Math.random() * 0.25 + 0.2,
         hub: isHub,
-      });
+      };
+    };
+
+    for (let i = 0; i < NODE_COUNT; i++) {
+      nodes.push(spawnNode());
     }
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
 
       // Draw edges
       for (let i = 0; i < nodes.length; i++) {
@@ -65,12 +79,14 @@ function NetworkBackground() {
           const dy = nodes[i].y - nodes[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < CONNECT_DIST) {
-            const alpha = (1 - dist / CONNECT_DIST) * (nodes[i].hub || nodes[j].hub ? 0.18 : 0.08);
+            const bothHub = nodes[i].hub && nodes[j].hub;
+            const anyHub = nodes[i].hub || nodes[j].hub;
+            const alpha = (1 - dist / CONNECT_DIST) * (bothHub ? 0.4 : anyHub ? 0.25 : 0.12);
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
             ctx.lineTo(nodes[j].x, nodes[j].y);
             ctx.strokeStyle = `rgba(45, 212, 168, ${alpha})`;
-            ctx.lineWidth = nodes[i].hub && nodes[j].hub ? 1 : 0.5;
+            ctx.lineWidth = bothHub ? 1.5 : anyHub ? 0.8 : 0.4;
             ctx.stroke();
           }
         }
@@ -78,10 +94,11 @@ function NetworkBackground() {
 
       // Draw nodes
       for (const n of nodes) {
+        // Hub glow
         if (n.hub) {
           ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(45, 212, 168, ${n.opacity * 0.12})`;
+          ctx.arc(n.x, n.y, n.r * 4, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(45, 212, 168, ${n.opacity * 0.15})`;
           ctx.fill();
         }
 
@@ -90,10 +107,23 @@ function NetworkBackground() {
         ctx.fillStyle = `rgba(45, 212, 168, ${n.opacity})`;
         ctx.fill();
 
+        // Movement
         n.x += n.vx;
         n.y += n.vy;
+
+        // Bounce off walls
         if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
         if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+
+        // Repel from center exclusion zone
+        const distToCenter = Math.sqrt((n.x - cx) ** 2 + (n.y - cy) ** 2);
+        if (distToCenter < EXCLUSION_RADIUS) {
+          const angle = Math.atan2(n.y - cy, n.x - cx);
+          n.x = cx + Math.cos(angle) * EXCLUSION_RADIUS;
+          n.y = cy + Math.sin(angle) * EXCLUSION_RADIUS;
+          n.vx = Math.cos(angle) * Math.abs(n.vx) * 1.2;
+          n.vy = Math.sin(angle) * Math.abs(n.vy) * 1.2;
+        }
       }
 
       animId = requestAnimationFrame(draw);
