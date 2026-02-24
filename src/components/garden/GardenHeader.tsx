@@ -73,14 +73,14 @@ export function GardenHeader() {
           to="/"
           className="flex items-center gap-3 flex-shrink-0 group hover:opacity-80 transition-opacity duration-200"
         >
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-200">
-            <Sprout className="w-5 h-5 text-primary-foreground" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img src="/brand/bloom-symbol.svg" alt="BLOOM" className="w-7 h-7" />
           </div>
           <div className="hidden sm:block">
             <h1 className="text-lg font-semibold text-foreground leading-tight">
-              Digital Garden
+              BLOOM Runtime
             </h1>
-            <p className="text-xs text-muted-foreground">Knowledge Base</p>
+            <p className="text-xs text-muted-foreground">Garden: Exodus</p>
           </div>
         </Link>
 
