@@ -20,6 +20,22 @@ title: "BLOOM — Дизайн-система"
 
 ---
 
+## 0. BLOOM Expansion (канонічне)
+
+| Мова | Розшифровка |
+|------|-------------|
+| English (canonical) | **BLOOM — Bespoke Logic Orchestration & Operational Machines** |
+| Українська | Оркестрація індивідуальної логіки та операційних машин |
+
+### Правила використання
+
+- Expansion завжди **менший** за назву BLOOM
+- Expansion має **lighter weight** та **muted color**
+- Expansion передає **technical identity**, не маркетинг
+- Ієрархія: `BLOOM` → `Expansion` → `Runtime descriptor`
+
+---
+
 ## 1. Кольорова палітра
 
 ### Основна палітра
