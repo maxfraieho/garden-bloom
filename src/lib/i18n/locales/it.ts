@@ -273,9 +273,12 @@ export const it: Translations = {
   accessGate: {
     title: 'Accesso richiesto',
     description: 'Questo giardino è privato. Inserisci il codice master per continuare.',
-    placeholder: 'Inserisci il codice master',
-    unlock: 'Sblocca giardino',
+    placeholder: 'Inserisci la chiave di accesso',
+    unlock: 'Attiva ambiente',
     hint: 'Se hai un link di accesso o un codice QR, usalo direttamente per visualizzare i contenuti condivisi.',
+    bloomExpansion: 'Orchestrazione della logica su misura & macchine operative',
+    runtimeSubtitle: 'Ambiente di esecuzione individuale',
+    runtimeFooter: 'Alimentato da BLOOM Runtime',
   },
  
    editor: {

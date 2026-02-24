@@ -250,6 +250,9 @@ export interface Translations {
     placeholder: string;
     unlock: string;
     hint: string;
+    bloomExpansion: string;
+    runtimeSubtitle: string;
+    runtimeFooter: string;
   };
  
    // Editor
