@@ -130,11 +130,11 @@ export function AccessGateUI() {
       </div>
 
       {/* Main content */}
-      <div className="relative flex flex-col items-center gap-6 w-full max-w-sm" style={{ zIndex: 2 }}>
-        {/* BLOOM Logo with tooltip */}
+      <div className="relative flex flex-col items-center gap-8 w-full max-w-sm" style={{ zIndex: 2 }}>
+        {/* BLOOM Logo with canonical tooltip */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex flex-col items-center gap-4 cursor-default">
+            <div className="flex flex-col items-center gap-5 cursor-default">
               <div className="w-16 h-16 flex items-center justify-center">
                 <img
                   src="/brand/bloom-symbol.svg"
@@ -143,30 +143,36 @@ export function AccessGateUI() {
                   style={{ filter: 'var(--bloom-symbol-filter, none)' }}
                 />
               </div>
-              <div className="flex flex-col items-center gap-1.5">
-                <h1
-                  className="text-3xl font-sans font-semibold tracking-[0.3em] text-foreground"
-                >
+              <div className="flex flex-col items-center gap-3">
+                {/* BLOOM title — primary */}
+                <h1 className="text-[42px] font-sans font-medium tracking-[0.25em] text-foreground leading-none">
                   BLOOM
                 </h1>
-                <p className="text-[11px] text-muted-foreground/60 tracking-[0.15em] font-sans font-light text-center">
+                {/* Expansion — identity layer (muted) */}
+                <p className="text-[13px] text-foreground/55 tracking-[0.08em] font-sans font-normal text-center leading-snug">
                   {t.accessGate.bloomExpansion}
+                </p>
+                {/* Descriptor — runtime meaning (prominent) */}
+                <p className="text-base text-foreground/90 tracking-[0.04em] font-sans font-medium text-center">
+                  {t.accessGate.runtimeSubtitle}
                 </p>
               </div>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs text-center">
-            BLOOM — {t.accessGate.bloomExpansion}
+          <TooltipContent
+            side="bottom"
+            className="max-w-xs text-center bg-card/80 backdrop-blur-md border-border/50 shadow-none"
+          >
+            <div className="flex flex-col gap-1 py-1">
+              <span className="text-xs font-semibold tracking-wide text-foreground">BLOOM Runtime</span>
+              <span className="text-[11px] text-muted-foreground/70">{t.accessGate.bloomExpansion}</span>
+              <span className="text-[11px] text-foreground/80">{t.accessGate.runtimeSubtitle}</span>
+            </div>
           </TooltipContent>
         </Tooltip>
 
-        {/* Runtime descriptor */}
-        <p className="text-sm text-foreground/50 tracking-wide font-sans">
-          {t.accessGate.runtimeSubtitle}
-        </p>
-
         {/* Auth form */}
-        <form onSubmit={handleSubmit} className="w-full space-y-4 mt-2">
+        <form onSubmit={handleSubmit} className="w-full space-y-4">
           <Input
             type="password"
             placeholder={t.accessGate.placeholder}
@@ -195,10 +201,15 @@ export function AccessGateUI() {
           </Button>
         </form>
 
-        {/* Runtime attribution footer */}
-        <p className="text-[10px] text-muted-foreground/30 tracking-widest uppercase mt-6 font-sans">
-          {t.accessGate.runtimeFooter}
-        </p>
+        {/* Canonical runtime attribution footer */}
+        <div className="flex flex-col items-center gap-0.5 mt-6">
+          <span className="text-[11px] text-muted-foreground/50 tracking-wider uppercase font-sans">
+            BLOOM Runtime
+          </span>
+          <span className="text-[11px] text-muted-foreground/40 tracking-wide font-sans">
+            {t.accessGate.runtimeSubtitle}
+          </span>
+        </div>
       </div>
     </div>
   );

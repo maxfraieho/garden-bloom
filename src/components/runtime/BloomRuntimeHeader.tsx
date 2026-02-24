@@ -38,14 +38,24 @@ export function BloomRuntimeHeader() {
                 <div className="text-sm font-semibold text-foreground tracking-tight font-sans">
                   BLOOM Runtime
                 </div>
-                <div className="text-[10px] text-muted-foreground font-sans">
+                <div className="text-[11px] text-muted-foreground/65 font-sans leading-tight">
+                  Execution Environment for Behavioral Logic
+                </div>
+                <div className="text-[10px] text-muted-foreground/50 font-sans">
                   Garden: Exodus
                 </div>
               </div>
             </Link>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
-            BLOOM — Bespoke Logic Orchestration & Operational Machines · Execution Environment for Behavioral Logic
+          <TooltipContent
+            side="bottom"
+            className="bg-card/80 backdrop-blur-md border-border/50 shadow-none"
+          >
+            <div className="flex flex-col gap-1 py-1 text-center">
+              <span className="text-xs font-semibold tracking-wide text-foreground">BLOOM Runtime</span>
+              <span className="text-[11px] text-muted-foreground/70">Bespoke Logic Orchestration & Operational Machines</span>
+              <span className="text-[11px] text-foreground/80">Execution Environment for Behavioral Logic</span>
+            </div>
           </TooltipContent>
         </Tooltip>
 
