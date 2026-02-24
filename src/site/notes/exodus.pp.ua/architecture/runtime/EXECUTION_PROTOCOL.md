@@ -1,5 +1,5 @@
 ---
-{"tags":["domain:arch","status:canonical","format:spec","feature:execution"],"created":"2026-02-24","updated":"2026-02-24","tier":1,"title":"EXECUTION PROTOCOL — BLOOM Runtime","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/runtime/EXECUTION_PROTOCOL/","dgPassFrontmatter":true,"noteIcon":""}
+{"tags":["domain:arch","status:canonical","format:spec","feature:execution"],"created":"2026-02-24","updated":"2026-02-24","tier":1,"title":"EXECUTION PROTOCOL — BLOOM Runtime","dg-publish":true,"dg-metatags":null,"dg-home":null,"permalink":"/exodus.pp.ua/architecture/runtime/EXECUTION_PROTOCOL/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
@@ -131,7 +131,7 @@ Runtime делегує Job агенту через **Lease**.
 
 ### Stage 8 — Execution
 
-Agent виконує IR згідно з [[КОНТРАКТ_АГЕНТА_V1]].
+Agent виконує IR згідно з [[exodus.pp.ua/architecture/core/КОНТРАКТ_АГЕНТА_V1\|КОНТРАКТ_АГЕНТА_V1]].
 
 **Можливі результати:**
 - `complete` — успішне завершення
@@ -206,15 +206,15 @@ Execution Protocol є **orchestration contract** BLOOM runtime.
 ## 6. Семантичні зв'язки
 
 **Цей документ залежить від:**
-- [[КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — повна архітектура виконання
-- [[КОНТРАКТ_АГЕНТА_V1]] — контракт агента
-- [[АБСТРАКЦІЯ_РІВНЯ_ОРКЕСТРАЦІЇ]] — orchestration layer contract
-- [[BLOOM_RUNTIME_IDENTITY]] — execution identity
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ\|КАНОНІЧНА_АРХІТЕКТУРА_ВИКОНАННЯ]] — повна архітектура виконання
+- [[exodus.pp.ua/architecture/core/КОНТРАКТ_АГЕНТА_V1\|КОНТРАКТ_АГЕНТА_V1]] — контракт агента
+- [[exodus.pp.ua/architecture/core/АБСТРАКЦІЯ_РІВНЯ_ОРКЕСТРАЦІЇ\|АБСТРАКЦІЯ_РІВНЯ_ОРКЕСТРАЦІЇ]] — orchestration layer contract
+- [[exodus.pp.ua/architecture/foundation/BLOOM_RUNTIME_IDENTITY\|BLOOM_RUNTIME_IDENTITY]] — execution identity
 
 **Цей документ доповнює:**
-- [[КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — деталі pipeline
-- [[КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ]] — state machine runs
-- [[INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — Proposal system
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ\|КАНОНІЧНИЙ_КОНВЕЄР_ВИКОНАННЯ]] — деталі pipeline
+- [[exodus.pp.ua/architecture/core/КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ\|КАНОНІЧНИЙ_ЦИКЛ_ЗАПУСКУ]] — state machine runs
+- [[exodus.pp.ua/architecture/core/INBOX_ТА_PROPOSAL_АРХІТЕКТУРА\|INBOX_ТА_PROPOSAL_АРХІТЕКТУРА]] — Proposal system
 
 ---
 
