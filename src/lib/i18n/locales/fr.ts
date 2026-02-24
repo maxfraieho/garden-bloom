@@ -2,7 +2,7 @@ import type { Translations } from '../types';
 
 export const fr: Translations = {
   sidebar: {
-    digitalGarden: 'Jardin Numérique',
+    digitalGarden: 'BLOOM Runtime',
     home: 'Accueil',
     graph: 'Graphe',
     chat: 'Chat',
@@ -162,7 +162,7 @@ export const fr: Translations = {
     verifying: 'Vérification...',
     unlock: 'Déverrouiller',
     cancel: 'Annuler',
-    setupTitle: 'Bienvenue dans Digital Garden',
+    setupTitle: 'Bienvenue dans BLOOM Runtime',
     setupDescription: 'Configurez votre mot de passe maître pour activer le mode propriétaire et les fonctionnalités de délégation d\'accès.',
     createPassword: 'Créez un mot de passe fort',
     confirmPassword: 'Confirmez votre mot de passe',

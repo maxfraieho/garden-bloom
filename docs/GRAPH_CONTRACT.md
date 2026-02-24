@@ -5,7 +5,7 @@
 **Last updated**: 2026-02-22
 
 This document is the single source of truth for all graph-related behavior
-in this knowledge garden. Both the Python CI scripts (`scripts/`) and the
+in this execution graph. Both the Python CI scripts (`scripts/`) and the
 TypeScript frontend (`src/lib/notes/`) are derived implementations of this
 contract. Any divergence between implementations is a bug.
 
