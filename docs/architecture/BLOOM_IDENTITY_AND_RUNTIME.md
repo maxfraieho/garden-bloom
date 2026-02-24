@@ -1,9 +1,9 @@
 ---
 tags:
-  - domain:architecture
+  - domain:arch
   - status:canonical
   - format:spec
-  - feature:runtime
+  - feature:execution
 created: 2026-02-24
 updated: 2026-02-24
 tier: 1
@@ -12,7 +12,12 @@ title: "BLOOM — Ідентичність та Runtime"
 
 # BLOOM — Ідентичність та Runtime
 
-**BLOOM** — Behavioral Logic Orchestration for Order-Made Systems  
+> Створено: 2026-02-24
+> Автор: Головний архітектор системи
+> Статус: Canonical
+> Мова: Українська (канонічна)
+
+**BLOOM** — Behavioral Logic Orchestration for Order-Made Systems
 **UA:** Оркестрація поведінкової логіки для систем, створених на індивідуальне замовлення
 
 ---
