@@ -1,9 +1,8 @@
 ---
 tags:
-  - domain:design
+  - domain:frontend
   - status:canonical
   - format:spec
-  - feature:branding
 created: 2026-02-24
 updated: 2026-02-24
 tier: 2
@@ -11,6 +10,11 @@ title: "BLOOM — Дизайн-система"
 ---
 
 # BLOOM — Дизайн-система
+
+> Створено: 2026-02-24
+> Автор: Головний архітектор системи
+> Статус: Canonical
+> Мова: Українська (канонічна)
 
 Візуальна ідентичність та настанови з дизайну для платформи Garden Bloom.
 
