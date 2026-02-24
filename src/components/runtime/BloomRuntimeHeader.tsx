@@ -45,7 +45,7 @@ export function BloomRuntimeHeader() {
             </Link>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            BLOOM — Bespoke Logic Orchestration & Operational Machines
+            BLOOM — Bespoke Logic Orchestration & Operational Machines · Execution Environment for Behavioral Logic
           </TooltipContent>
         </Tooltip>
 

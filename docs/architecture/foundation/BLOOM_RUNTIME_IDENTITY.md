@@ -26,6 +26,11 @@ title: "BLOOM Runtime Identity"
 
 BLOOM — це **execution environment**, в якому виконуються агенти Garden Bloom.
 
+### Canonical Runtime Descriptor
+
+**EN:** BLOOM is an Execution Environment for Behavioral Logic.
+**UA:** BLOOM — це середовище виконання поведінкової логіки.
+
 BLOOM відповідає за:
 
 - **Orchestration execution pipeline** — управління послідовністю виконання behavioral logic
