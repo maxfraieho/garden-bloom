@@ -39,13 +39,17 @@ title: "BLOOM Auth UI Spec"
 BLOOM
 ```
 
-### Підзаголовок
+### Expansion (canonical)
+```
+Bespoke Logic Orchestration & Operational Machines
+```
+
+### Підзаголовок (runtime descriptor)
 ```
 Індивідуальне середовище виконання
 ```
 
 ### Поле введення
-- Label: `Ключ доступу`
 - Placeholder: `Введіть ключ доступу`
 
 ### Кнопка
@@ -55,7 +59,12 @@ BLOOM
 
 ### Footer
 ```
-Garden Bloom Runtime
+Powered by BLOOM Runtime
+```
+
+### Tooltip (на логотипі)
+```
+BLOOM — Bespoke Logic Orchestration & Operational Machines
 ```
 
 ### Заборонені тексти
