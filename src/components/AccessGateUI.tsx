@@ -168,16 +168,10 @@ export function AccessGateUI() {
           </h1>
         </div>
 
-        {/* Garden name */}
+        {/* Runtime identity */}
         <div className="flex flex-col items-center gap-1">
-          <h2
-            className="text-lg font-sans font-medium text-foreground/80 tracking-wide"
-            style={{ fontFamily: 'var(--font-sans)' }}
-          >
-            Garden: Exodus
-          </h2>
-          <p className="text-xs text-muted-foreground tracking-widest uppercase">
-            Behavioral Logic Runtime
+          <p className="text-sm text-foreground/60 tracking-wide">
+            {isUk ? 'Індивідуальне середовище виконання' : 'Individual Execution Environment'}
           </p>
         </div>
 
@@ -206,14 +200,14 @@ export function AccessGateUI() {
                 {t.ownerAuth.verifying}
               </>
             ) : (
-              isUk ? 'Увійти до саду' : 'Enter Garden'
+              isUk ? 'Активувати середовище' : 'Activate Environment'
             )}
           </Button>
         </form>
 
         {/* Branding footer */}
         <p className="text-[10px] text-muted-foreground/40 tracking-widest uppercase mt-4">
-          Powered by BLOOM runtime
+          Garden Bloom Runtime
         </p>
       </div>
     </div>

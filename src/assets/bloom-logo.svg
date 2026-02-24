@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- BLOOM Execution Node Logo — minimalist graph core -->
+  <g transform="translate(32, 32)">
+    <!-- Core execution node -->
+    <circle cx="0" cy="0" r="4.5" fill="currentColor" opacity="0.95"/>
+    
+    <!-- Execution paths (6 directions) -->
+    <line x1="0" y1="0" x2="0" y2="-22" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+    <line x1="0" y1="0" x2="19" y2="-11" stroke="currentColor" stroke-width="1.2" opacity="0.5"/>
+    <line x1="0" y1="0" x2="19" y2="11" stroke="currentColor" stroke-width="1.2" opacity="0.4"/>
+    <line x1="0" y1="0" x2="0" y2="22" stroke="currentColor" stroke-width="1.2" opacity="0.35"/>
+    <line x1="0" y1="0" x2="-19" y2="11" stroke="currentColor" stroke-width="1.2" opacity="0.4"/>
+    <line x1="0" y1="0" x2="-19" y2="-11" stroke="currentColor" stroke-width="1.2" opacity="0.5"/>
+    
+    <!-- Terminal nodes -->
+    <circle cx="0" cy="-22" r="2.5" fill="currentColor" opacity="0.55"/>
+    <circle cx="19" cy="-11" r="2" fill="currentColor" opacity="0.45"/>
+    <circle cx="19" cy="11" r="2" fill="currentColor" opacity="0.35"/>
+    <circle cx="0" cy="22" r="2.5" fill="currentColor" opacity="0.3"/>
+    <circle cx="-19" cy="11" r="2" fill="currentColor" opacity="0.35"/>
+    <circle cx="-19" cy="-11" r="2" fill="currentColor" opacity="0.45"/>
+    
+    <!-- Orchestration boundary -->
+    <circle cx="0" cy="0" r="28" stroke="currentColor" stroke-width="0.6" fill="none" opacity="0.12" stroke-dasharray="3 2"/>
+  </g>
+</svg>
