@@ -1,16 +1,17 @@
- import { useState } from 'react';
- import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
- import { NoteEditor } from '@/components/garden/NoteEditor';
- import { GardenHeader } from '@/components/garden/GardenHeader';
- import { GardenFooter } from '@/components/garden/GardenFooter';
- import { EditorFolderTree } from '@/components/garden/EditorFolderTree';
- import { useNoteEditor } from '@/hooks/useNoteEditor';
- import { useOwnerAuth } from '@/hooks/useOwnerAuth';
- import { useLocale } from '@/hooks/useLocale';
- import { Card } from '@/components/ui/card';
- import { Button } from '@/components/ui/button';
- import { Lock, ArrowLeft } from 'lucide-react';
- import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { NoteEditor } from '@/components/garden/NoteEditor';
+import { GardenHeader } from '@/components/garden/GardenHeader';
+import { GardenFooter } from '@/components/garden/GardenFooter';
+import { EditorFolderTree } from '@/components/garden/EditorFolderTree';
+import { DeleteNoteDialog } from '@/components/garden/DeleteNoteDialog';
+import { useNoteEditor } from '@/hooks/useNoteEditor';
+import { useOwnerAuth } from '@/hooks/useOwnerAuth';
+import { useLocale } from '@/hooks/useLocale';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Lock, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
  
  export default function EditorPage() {
    const { slug } = useParams<{ slug: string }>();
@@ -104,19 +105,29 @@
          
          {/* Editor content */}
          <div className="flex-1 flex flex-col min-w-0 px-4 py-4">
-           {/* Page title + back */}
-           <div className="flex items-center gap-3 mb-4">
-             <Link 
-               to="/" 
-               className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
-             >
-               <ArrowLeft className="w-4 h-4" />
-               <span className="hidden sm:inline">Back</span>
-             </Link>
-             <h1 className="text-xl font-semibold">
-               {editor.isNewNote ? t.editor.newNote : t.editor.editNote}
-             </h1>
-           </div>
+            {/* Page title + actions */}
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <Link 
+                  to="/" 
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Back</span>
+                </Link>
+                <h1 className="text-xl font-semibold">
+                  {editor.isNewNote ? t.editor.newNote : t.editor.editNote}
+                </h1>
+              </div>
+              
+              {/* Delete button for existing notes */}
+              {!editor.isNewNote && slug && (
+                <DeleteNoteDialog 
+                  noteSlug={slug} 
+                  noteTitle={editor.title || 'Untitled'} 
+                />
+              )}
+            </div>
  
            {/* Editor */}
            <div className="flex-1 min-h-0">

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
+import { useLocale } from '@/hooks/useLocale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ interface OwnerLoginDialogProps {
 
 export function OwnerLoginDialog({ open, onOpenChange }: OwnerLoginDialogProps) {
   const { login, isLoading, error } = useOwnerAuth();
+  const { t } = useLocale();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -39,16 +41,16 @@ export function OwnerLoginDialog({ open, onOpenChange }: OwnerLoginDialogProps) 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
-            Owner Access
+            {t.ownerAuth.loginTitle}
           </DialogTitle>
           <DialogDescription>
-            Enter the master password to access owner mode.
+            {t.ownerAuth.loginDescription}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Master Password</Label>
+            <Label htmlFor="password">{t.ownerAuth.masterPassword}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -56,7 +58,7 @@ export function OwnerLoginDialog({ open, onOpenChange }: OwnerLoginDialogProps) 
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter master password"
+                placeholder={t.ownerAuth.enterPassword}
                 className="pl-10 pr-10"
                 autoFocus
                 disabled={isLoading}
@@ -89,16 +91,16 @@ export function OwnerLoginDialog({ open, onOpenChange }: OwnerLoginDialogProps) 
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t.ownerAuth.cancel}
             </Button>
             <Button type="submit" disabled={isLoading || !password.trim()}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
+                  {t.ownerAuth.verifying}
                 </>
               ) : (
-                'Unlock'
+                t.ownerAuth.unlock
               )}
             </Button>
           </div>

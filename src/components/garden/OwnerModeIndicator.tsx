@@ -55,7 +55,7 @@ export function OwnerModeIndicator() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem asChild>
-            <Link to="/admin/diagnostics" className="flex items-center">
+            <Link to="/admin/settings" className="flex items-center">
               <Activity className="mr-2 h-4 w-4" />
               Diagnostics
             </Link>

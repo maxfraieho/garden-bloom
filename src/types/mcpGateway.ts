@@ -9,7 +9,7 @@ export type NotebookLMStatus =
   | 'completed'
   | 'failed';
 
-// Unified error codes for UI mapping
+// Unified error codes for UI mapping (V1 Appendix A canonical)
 export type GatewayErrorCode =
   | 'NETWORK_OFFLINE'
   | 'TIMEOUT'
@@ -22,7 +22,18 @@ export type GatewayErrorCode =
   | 'RATE_LIMITED'
   | 'SERVER_ERROR'
   | 'BAD_REQUEST'
-  | 'UNKNOWN';
+  | 'UNKNOWN'
+  // V1 Appendix A codes
+  | 'CONCURRENT_MODIFICATION'
+  | 'INVALID_TRANSITION'
+  | 'VALIDATION_FAILED'
+  | 'INVALID_JSON'
+  | 'TOKEN_EXPIRED'
+  | 'DUPLICATE_ENTRY'
+  | 'UPSTREAM_UNAVAILABLE'
+  | 'AGENT_TIMEOUT'
+  | 'INVALID_AGENT_TRANSITION'
+  | 'NLM_UNAVAILABLE';
 
 export interface ApiError {
   message: string;
@@ -91,6 +102,7 @@ export interface CreateZoneRequest {
   notebookTitle?: string;
   notebookShareEmails?: string[];
   notebookSourceMode?: 'minio' | 'url';
+  consentRequired?: boolean; // Default true - zone requires confidentiality consent
 }
 
 export interface CreateZoneResponse {
@@ -115,8 +127,28 @@ export interface ZoneListItem {
   accessCode?: string;
 }
 
-// Edit Proposals
-export type ProposalStatus = 'pending' | 'accepted' | 'rejected';
+// Edit Proposals — canonical V1 lifecycle statuses
+export type ProposalStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'auto_approved'
+  | 'expired'
+  | 'applying'
+  | 'applied'
+  | 'failed';
+
+export interface GitCommitResult {
+  success: boolean;
+  sha?: string;
+  url?: string;
+  message?: string;
+  error?: string;
+  status?: number;
+  hint?: string;
+  // Extra diagnostic payload from gateway/backend (optional)
+  fullResponse?: unknown;
+}
 
 export interface EditProposal {
   proposalId: string;
@@ -132,6 +164,12 @@ export interface EditProposal {
   createdAt: number;
   updatedAt: number;
   reviewedAt: number | null;
+}
+
+export interface AcceptProposalResponse {
+  success: true;
+  proposal: EditProposal;
+  gitCommitResult?: GitCommitResult;
 }
 
 export interface CreateProposalRequest {

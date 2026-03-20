@@ -26,6 +26,7 @@ import {
   TriangleAlert,
   ChevronRight,
   ChevronDown,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getFolderStructure, getAllNotes } from '@/lib/notes/noteLoader';
@@ -120,6 +121,9 @@ export function ZoneCreationDialog({
   const [customTTL, setCustomTTL] = useState('');
   const [isCustomTTL, setIsCustomTTL] = useState(false);
 
+  // Confidentiality consent - default ON
+  const [consentRequired, setConsentRequired] = useState(true);
+
   const [createNotebookLM, setCreateNotebookLM] = useState(false);
   const [notebookTitle, setNotebookTitle] = useState('');
   const [notebookShareEmails, setNotebookShareEmails] = useState('');
@@ -136,10 +140,11 @@ export function ZoneCreationDialog({
   const noteCount = useMemo(() => {
     if (selectedFolders.size === 0) return 0;
     
+    const folderArr = Array.from(selectedFolders);
     return allNotes.filter(note => {
       const decodedSlug = decodeURIComponent(note.slug);
-      return Array.from(selectedFolders).some(folder => 
-        decodedSlug.startsWith(folder + '/') || decodedSlug.startsWith(folder)
+      return folderArr.some(folder => 
+        decodedSlug.startsWith(folder + '/') || decodedSlug === folder
       );
     }).length;
   }, [selectedFolders, allNotes]);
@@ -148,14 +153,25 @@ export function ZoneCreationDialog({
   const getNotesForExport = () => {
     if (selectedFolders.size === 0) return [];
     
-    return allNotes
+    const folderArr = Array.from(selectedFolders);
+    console.log('[ZoneCreation] selectedFolders:', folderArr);
+    console.log('[ZoneCreation] total allNotes:', allNotes.length);
+    
+    const filtered = allNotes
       .filter(note => {
         const decodedSlug = decodeURIComponent(note.slug);
-        return Array.from(selectedFolders).some(folder => 
-          decodedSlug.startsWith(folder + '/') || decodedSlug.startsWith(folder)
+        return folderArr.some(folder => 
+          decodedSlug.startsWith(folder + '/') || decodedSlug === folder
         );
-      })
-      .map(note => ({
+      });
+    
+    console.log('[ZoneCreation] filtered notes for export:', filtered.length);
+    if (filtered.length < allNotes.length) {
+      const excluded = allNotes.filter(n => !filtered.includes(n));
+      console.log('[ZoneCreation] excluded notes (first 5):', excluded.slice(0, 5).map(n => decodeURIComponent(n.slug)));
+    }
+    
+    return filtered.map(note => ({
         slug: note.slug,
         title: note.title,
         content: note.content,
@@ -283,6 +299,7 @@ export function ZoneCreationDialog({
       notebookTitle: notebookTitle.trim() || undefined,
       notebookShareEmails: createNotebookLM ? (emails.length ? emails : undefined) : undefined,
       notebookSourceMode: createNotebookLM ? notebookSourceMode : undefined,
+      consentRequired,
     });
 
     // Reset form
@@ -293,6 +310,7 @@ export function ZoneCreationDialog({
     setSelectedTTL(1440);
     setIsCustomTTL(false);
     setCustomTTL('');
+    setConsentRequired(true);
 
     setCreateNotebookLM(false);
     setNotebookTitle('');
@@ -464,6 +482,38 @@ export function ZoneCreationDialog({
             )}
           </div>
 
+          {/* Confidentiality Settings */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              {t.zones.confidentialitySettings}
+            </Label>
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+              <Checkbox
+                id="consent-required"
+                checked={consentRequired}
+                onCheckedChange={(v) => setConsentRequired(Boolean(v))}
+                className="data-[state=checked]:bg-primary"
+              />
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="consent-required" className="text-sm font-medium cursor-pointer">
+                  {t.zones.requireConsent}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t.zones.requireConsentDesc}
+                </p>
+              </div>
+              <span className={cn(
+                "text-xs font-medium px-2 py-0.5 rounded",
+                consentRequired 
+                  ? "bg-destructive/10 text-destructive" 
+                  : "bg-green-500/10 text-green-600"
+              )}>
+                {consentRequired ? t.zones.confidentialZone : t.zones.publicZone}
+              </span>
+            </div>
+          </div>
+
           {/* NotebookLM (optional) */}
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -489,7 +539,7 @@ export function ZoneCreationDialog({
                     <AlertDescription>
                       <p className="whitespace-pre-line">{notebookHealthError}</p>
                       <p className="mt-2">
-                        <a href="/admin/diagnostics" className="underline">
+                        <a href="/admin/settings" className="underline">
                           Перейти до діагностики
                         </a>
                       </p>

@@ -1,5 +1,5 @@
-// Runtime note loader for Digital Garden
-// Loads real Markdown files from src/site/notes
+// Runtime definition loader for BLOOM Runtime
+// Loads real Markdown files from src/site/notes (behavioral definitions)
 
 import type { Note, NoteFrontmatter } from './types';
 
@@ -196,6 +196,17 @@ export function getNoteBySlug(slug: string): Note | null {
       const nDecodedLower = decodeURIComponent(n.slug).toLowerCase();
       const nSlugLower = n.slug.toLowerCase();
       return candidateLower.includes(nSlugLower) || candidateLower.includes(nDecodedLower);
+    });
+  }
+
+  // Fallback: match by filename (last path segment) for short wikilinks
+  // e.g. [[ARCHITECTURE_ROOT]] should match exodus.pp.ua/architecture/ARCHITECTURE_ROOT
+  if (!note) {
+    const searchName = decodedNormalized.toLowerCase();
+    note = notes.find((n) => {
+      const decoded = decodeURIComponent(n.slug);
+      const filename = decoded.split('/').pop() || decoded;
+      return filename.toLowerCase() === searchName;
     });
   }
 

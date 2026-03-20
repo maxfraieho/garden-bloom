@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
+import { useLocale } from '@/hooks/useLocale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,7 @@ import { Lock, Eye, EyeOff, Shield, Loader2, CheckCircle2 } from 'lucide-react';
 
 export function OwnerSetupWizard() {
   const { setupPassword, isLoading, error } = useOwnerAuth();
+  const { t } = useLocale();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,16 +31,16 @@ export function OwnerSetupWizard() {
           <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Shield className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Welcome to Digital Garden</CardTitle>
+          <CardTitle className="text-2xl">{t.ownerAuth.setupTitle}</CardTitle>
           <CardDescription>
-            Set up your master password to enable owner mode and access delegation features.
+            {t.ownerAuth.setupDescription}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-password">Master Password</Label>
+              <Label htmlFor="new-password">{t.ownerAuth.masterPassword}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -46,7 +48,7 @@ export function OwnerSetupWizard() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a strong password"
+                  placeholder={t.ownerAuth.createPassword}
                   className="pl-10 pr-10"
                   autoFocus
                   disabled={isLoading}
@@ -68,19 +70,19 @@ export function OwnerSetupWizard() {
               </div>
               {password && !isValidLength && (
                 <p className="text-xs text-muted-foreground">
-                  Password must be at least 8 characters
+                  {t.ownerAuth.passwordMinLength}
                 </p>
               )}
               {password && isValidLength && (
                 <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Password length OK
+                  {t.ownerAuth.passwordLengthOk}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Label htmlFor="confirm-password">{t.ownerAuth.confirmPassword}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -88,20 +90,20 @@ export function OwnerSetupWizard() {
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your password"
+                  placeholder={t.ownerAuth.confirmPassword}
                   className="pl-10"
                   disabled={isLoading}
                 />
               </div>
               {confirmPassword && !passwordsMatch && (
                 <p className="text-xs text-destructive">
-                  Passwords do not match
+                  {t.ownerAuth.passwordsNoMatch}
                 </p>
               )}
               {confirmPassword && passwordsMatch && (
                 <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Passwords match
+                  {t.ownerAuth.passwordsMatch}
                 </p>
               )}
             </div>
@@ -118,18 +120,18 @@ export function OwnerSetupWizard() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Setting up...
+                  {t.ownerAuth.settingUp}
                 </>
               ) : (
                 <>
                   <Shield className="mr-2 h-4 w-4" />
-                  Initialize Owner Mode
+                  {t.ownerAuth.initializeOwner}
                 </>
               )}
             </Button>
 
             <p className="text-xs text-muted-foreground text-center">
-              This password will be required to access admin features and create access zones.
+              {t.ownerAuth.setupHint}
             </p>
           </form>
         </CardContent>

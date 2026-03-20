@@ -11,6 +11,7 @@ import {
   Link2,
   AlertCircle,
   Loader2,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +42,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { downloadZoneNotes } from '@/lib/api/mcpGatewayClient';
 
 export function AccessZonesManager() {
   const { t } = useLocale();
@@ -237,6 +239,22 @@ export function AccessZonesManager() {
                       </Button>
                     )}
 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await downloadZoneNotes(zone.id, zone.name);
+                          toast.success('Download started');
+                        } catch (err) {
+                          toast.error('Download failed');
+                          console.error(err);
+                        }
+                      }}
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1" />
+                      .md
+                    </Button>
                     {zone.notebooklm && (
                       <Button
                         variant="outline"

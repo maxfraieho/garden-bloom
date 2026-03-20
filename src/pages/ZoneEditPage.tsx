@@ -25,7 +25,8 @@
  } from 'lucide-react';
  import { cn } from '@/lib/utils';
  import { ZoneNoteRenderer } from '@/components/garden/ZoneNoteRenderer';
- import { GardenHeader } from '@/components/garden/GardenHeader';
+import { ThemeToggle } from '@/components/garden/ThemeToggle';
+import { LanguageSwitcher } from '@/components/garden/LanguageSwitcher';
  import { createProposal } from '@/lib/api/mcpGatewayClient';
  import { toast } from 'sonner';
  
@@ -51,18 +52,44 @@
    const [guestEmail, setGuestEmail] = useState('');
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
+  const [noteLoading, setNoteLoading] = useState(true);
  
-   // Find note and initialize content
-   useEffect(() => {
-     if (zone && noteSlug) {
-       const decodedSlug = decodeURIComponent(noteSlug);
-       const note = zone.notes.find(n => n.slug === decodedSlug);
-       if (note) {
-         setSelectedNote(note);
-         setEditedContent(note.content);
-       }
-     }
-   }, [zone, noteSlug]);
+  // Find note and initialize content
+  useEffect(() => {
+    if (!noteSlug) {
+      setSelectedNote(null);
+      setNoteLoading(false);
+      return;
+    }
+
+    if (!zone) {
+      if (!isLoading) setNoteLoading(false);
+      return;
+    }
+
+    const decodedParam = decodeURIComponent(noteSlug);
+    const normalize = (s: string) => {
+      try {
+        return decodeURIComponent(s);
+      } catch {
+        return s;
+      }
+    };
+
+    const note = zone.notes.find((n) => {
+      const raw = n.slug;
+      const norm = normalize(raw);
+      return raw === decodedParam || norm === decodedParam || raw === noteSlug;
+    });
+
+    if (note) {
+      setSelectedNote(note);
+      setEditedContent(note.content);
+    } else {
+      setSelectedNote(null);
+    }
+    setNoteLoading(false);
+  }, [zone, noteSlug, isLoading]);
  
    const hasChanges = selectedNote && editedContent !== selectedNote.content;
  
@@ -91,7 +118,7 @@
    };
  
    // Loading state
-   if (isLoading) {
+  if (isLoading || noteLoading) {
      return (
        <div className="min-h-screen bg-background flex items-center justify-center">
          <div className="text-center space-y-4">
@@ -126,8 +153,8 @@
      );
    }
  
-   // Error state
-   if (!isValid || error || !selectedNote) {
+  // Error state
+  if (!isValid || error) {
      return (
        <div className="min-h-screen bg-background flex items-center justify-center p-4">
          <Card className="w-full max-w-md text-center">
@@ -149,13 +176,51 @@
        </div>
      );
    }
+
+  // Note not found (zone is valid, but slug doesn't match any note)
+  if (!noteLoading && !selectedNote) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+              <Lock className="h-6 w-6 text-destructive" />
+            </div>
+            <CardTitle>{t.zoneView.invalidZone}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link to={`/zone/${zoneId}?code=${encodeURIComponent(accessCode || '')}`}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                {t.zoneView.selectNote}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
  
    return (
      <div className="min-h-screen bg-background flex flex-col">
-       <GardenHeader />
+      {/* Minimal header for zones - only theme/language, no navigation */}
+      <header className="sticky top-0 z-[60] bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="font-normal">
+              <Lock className="h-3 w-3 mr-1" />
+              {t.zoneView.sharedAccess}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
  
-       {/* Header */}
-       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-14 z-10">
+      {/* Edit header */}
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-14 z-10">
          <div className="container mx-auto px-4 py-3">
            <div className="flex items-center justify-between gap-4">
              <div className="flex items-center gap-3">
@@ -199,7 +264,7 @@
              </div>
            </div>
          </div>
-       </header>
+      </div>
  
        {/* Main content */}
        <div className="container mx-auto px-4 py-6 flex-1">

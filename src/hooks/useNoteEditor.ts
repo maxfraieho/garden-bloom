@@ -1,7 +1,8 @@
- import { useState, useEffect, useCallback, useMemo } from 'react';
- import { getNoteBySlug } from '@/lib/notes/noteLoader';
- import { useToast } from '@/hooks/use-toast';
- import { useLocale } from '@/hooks/useLocale';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { getNoteBySlug } from '@/lib/notes/noteLoader';
+import { commitNote } from '@/lib/api/mcpGatewayClient';
+import { useToast } from '@/hooks/use-toast';
+import { useLocale } from '@/hooks/useLocale';
  
  interface NoteEditorState {
    content: string;
@@ -120,60 +121,60 @@
      setState(prev => ({ ...prev, hasDraft: false }));
    }, [draftKey]);
  
-   const save = useCallback(async (): Promise<string | null> => {
-     if (!state.title.trim()) {
-       toast({
-         title: t.editor?.titleRequired || 'Title is required',
-         variant: 'destructive',
-       });
-       return null;
-     }
- 
-     setState(prev => ({ ...prev, isSaving: true }));
- 
-     try {
-       // Serialize note to markdown with frontmatter
-       const frontmatter = [
-         '---',
-         `title: "${state.title.replace(/"/g, '\\"')}"`,
-         `tags: [${state.tags.map(t => `"${t}"`).join(', ')}]`,
-         `created: "${new Date().toISOString()}"`,
-         `updated: "${new Date().toISOString()}"`,
-         `dg-publish: true`,
-         '---',
-         '',
-       ].join('\n');
- 
-       const markdown = frontmatter + state.content;
- 
-       // For now, copy to clipboard (API integration TODO)
-       await navigator.clipboard.writeText(markdown);
-       
-       // Clear draft on successful save
-       localStorage.removeItem(draftKey);
-       
-       setState(prev => ({ ...prev, isDirty: false, isSaving: false }));
-       
-       toast({
-         title: t.editor?.saved || 'Note saved',
-         description: t.editor?.copiedToClipboard || 'Markdown copied to clipboard',
-       });
- 
-       // Return generated slug
-       const generatedSlug = encodeURIComponent(
-         (folder ? `${folder}/` : '') + state.title.replace(/\s+/g, '-')
-       );
-       return generatedSlug;
-     } catch (error) {
-       setState(prev => ({ ...prev, isSaving: false }));
-       toast({
-         title: t.editor?.error || 'Failed to save',
-         description: error instanceof Error ? error.message : 'Unknown error',
-         variant: 'destructive',
-       });
-       return null;
-     }
-   }, [state.title, state.content, state.tags, folder, draftKey, toast, t]);
+  const save = useCallback(async (): Promise<string | null> => {
+    if (!state.title.trim()) {
+      toast({
+        title: t.editor?.titleRequired || 'Title is required',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    setState(prev => ({ ...prev, isSaving: true }));
+
+    try {
+      // Generate slug for the note
+      const generatedSlug = (folder ? `${folder}/` : '') + state.title.trim();
+      const encodedSlug = encodeURIComponent(generatedSlug);
+
+      // Commit to GitHub via API
+      const result = await commitNote({
+        slug: isNewNote ? undefined : slug,
+        title: state.title.trim(),
+        content: state.content,
+        tags: state.tags,
+        folder: folder || undefined,
+        isNew: isNewNote,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save note');
+      }
+      
+      // Clear draft on successful save
+      localStorage.removeItem(draftKey);
+      
+      setState(prev => ({ ...prev, isDirty: false, isSaving: false }));
+      
+      toast({
+        title: t.editor?.saved || 'Note saved',
+        description: 'Changes committed to repository. Reload to see updates.',
+      });
+
+      return encodedSlug;
+    } catch (error) {
+      setState(prev => ({ ...prev, isSaving: false }));
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      toast({
+        title: t.editor?.error || 'Failed to save',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      return null;
+    }
+  }, [state.title, state.content, state.tags, folder, draftKey, toast, t, isNewNote, slug]);
  
    const insertAtCursor = useCallback((
      textareaRef: React.RefObject<HTMLTextAreaElement>,

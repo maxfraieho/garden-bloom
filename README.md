@@ -1,73 +1,131 @@
-# Welcome to your Lovable project
+# Garden Bloom Frontend
 
-## Project info
+## Overview
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Garden Bloom Frontend is the presentation layer of the Garden Bloom execution platform.
 
-## How can I edit this code?
+It renders system state retrieved via Gateway API and provides user interfaces for:
 
-There are several ways of editing your application.
+- viewing notes
+- viewing proposals
+- approving or rejecting proposals
+- interacting with agent-generated content
+- viewing execution results
 
-**Use Lovable**
+Frontend does NOT execute agents.
+Frontend does NOT mutate canonical storage.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Architectural Role
 
-**Use your preferred IDE**
+Frontend is a Projection Layer.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Responsibilities:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- render state from Gateway API
+- submit user intents to Gateway
+- display execution status
+- display proposals
+- collect approval decisions
 
-Follow these steps:
+Frontend never:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- writes to MinIO directly
+- executes agents
+- modifies canonical storage
+- bypasses Gateway
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Canonical reference:
 
-# Step 3: Install the necessary dependencies.
-npm i
+docs/architecture/RUNTIME_ARCHITECTURE_CANONICAL.md
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+---
+
+## Stack
+
+- Vite
+- React
+- TypeScript
+- TailwindCSS
+
+Runtime dependencies:
+
+- Gateway API
+- Cloudflare Worker (Gateway)
+- Canonical Storage (indirect via Gateway)
+
+---
+
+## Gateway contract
+
+Frontend communicates exclusively via Gateway.
+
+Reference:
+
+docs/backend/API_CONTRACTS_V1.md
+
+No direct storage access allowed.
+
+---
+
+## Repository structure
+
+Important directories:
+
+```
+src/           — React application code
+public/        — static assets and runtime libs
+vendor/        — embedded runtime libraries (DRAKON widget)
+docs/          — canonical architecture and API contracts
+.github/       — CI/CD workflows
+_collab/       — agent collaboration and migration artifacts
+_quarantine/   — legacy and non-frontend code isolated from runtime
+```
+
+Frontend runtime depends ONLY on:
+
+```
+src/
+public/
+vendor/
+docs/
+```
+
+---
+
+## Development
+
+Install:
+
+```bash
+npm install
+```
+
+Run:
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Build:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Architectural invariants
 
-## What technologies are used for this project?
+Frontend is stateless.
 
-This project is built with:
+All canonical state exists in storage layer accessed via Gateway.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Frontend must remain vendor-agnostic with respect to orchestration.
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Canonical architecture reference
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+docs/architecture/RUNTIME_ARCHITECTURE_INDEX.md

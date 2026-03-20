@@ -197,7 +197,7 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
     const stageText = getStageText({ job, isLoading: jobQuery.isLoading, timedOut });
 
     const rawError = (jobQuery.error as any) || null;
-    const messageFromJobOrMapping = job?.error || mapping?.lastError || null;
+    const messageFromJobOrMapping = job?.error || mapping?.lastError || (mapping as any)?.error || null;
     const errorText = rawError ? getErrorMessage(rawError) : messageFromJobOrMapping;
 
     const configError = isConfigError(rawError) || (typeof messageFromJobOrMapping === 'string' && messageFromJobOrMapping.includes('FileNotFoundError'));
@@ -272,7 +272,7 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
                     Це проблема конфігурації бекенду (повинен бути доступний реальний MinIO endpoint, не localhost).
                   </p>
                   <Button asChild variant="outline" size="sm">
-                    <a href="/admin/diagnostics">Перейти до діагностики</a>
+                    <a href="/admin/settings">Перейти до діагностики</a>
                   </Button>
                 </div>
               )}
@@ -307,7 +307,7 @@ export function NotebookLMSetupPanel({ zoneId, initialNotebooklm, isOwner }: Pro
                     Сервіс NotebookLM потребує налаштування адміністратором.
                   </p>
                   <Button asChild variant="outline" size="sm">
-                    <a href="/admin/diagnostics">Перейти до діагностики</a>
+                    <a href="/admin/settings">Перейти до діагностики</a>
                   </Button>
                 </div>
               )}

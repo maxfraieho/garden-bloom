@@ -8,7 +8,7 @@ import {
   CreateChatRequest 
 } from '@/lib/chat/types';
 
-const MCP_WORKER_URL = 'https://garden-mcp-server.maxfraieho.workers.dev';
+// Gateway URL removed — this hook uses localStorage for MVP. Will migrate to gateway client when backend chat is ready.
 
 // Generate unique ID
 const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

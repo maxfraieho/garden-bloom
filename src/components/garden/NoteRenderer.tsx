@@ -1,11 +1,42 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, lazy, Suspense } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Loader2 } from 'lucide-react';
 import { WikiLink } from './WikiLink';
-import { noteExists } from '@/lib/notes/noteLoader';
+import { noteExists, getNoteBySlug } from '@/lib/notes/noteLoader';
 import { useScrollToMatch } from '@/hooks/useSearchHighlight';
+import { parseDrakonDirective } from '@/lib/drakon/types';
 import type { Note } from '@/lib/notes/types';
 import type { Components } from 'react-markdown';
+
+// Eager-load all images from src/site/img so markdown paths like /img/user/... resolve automatically
+const siteImages = import.meta.glob('/src/site/img/**/*.{png,jpg,jpeg,gif,webp,svg}', {
+  eager: true,
+  import: 'default',
+}) as Record<string, string>;
+
+function resolveSiteImageSrc(src: string): string {
+  // Map /img/user/... → /src/site/img/user/...
+  if (src.startsWith('/img/')) {
+    const key = `/src/site${src}`;
+    if (siteImages[key]) return siteImages[key];
+  }
+  // For any unresolved image path, try to match by filename against all known site images
+  const filename = src.split('/').pop();
+  if (filename) {
+    for (const [key, value] of Object.entries(siteImages)) {
+      if (key.endsWith(`/${filename}`)) {
+        return value;
+      }
+    }
+  }
+  return src;
+}
+
+// Lazy load DrakonDiagramBlock
+const DrakonDiagramBlock = lazy(() =>
+  import('./DrakonDiagramBlock').then(m => ({ default: m.DrakonDiagramBlock }))
+);
 
 interface NoteRendererProps {
   note: Note;
@@ -14,28 +45,67 @@ interface NoteRendererProps {
 // Regex to find our wikilink markers in the transformed content
 const WIKILINK_MARKER_REGEX = /%%WIKILINK:([^:]+):([^:]+):(true|false)%%/g;
 
+// Regex to find DRAKON markers
+const DRAKON_MARKER_REGEX = /^%%DRAKON:(.+)%%$/;
+
 /**
- * Transform markdown content to replace wikilinks with markers,
+ * Transform markdown content to replace wikilinks and drakon directives with markers,
  * then use custom rendering for those markers
  */
+function resolveWikilinkSlug(target: string): { slug: string; exists: boolean } {
+  const trimmed = target.trim();
+  // Try encodeURIComponent first (matches noteLoader's pathToSlug)
+  const encoded = encodeURIComponent(trimmed);
+  if (noteExists(encoded)) return { slug: encoded, exists: true };
+  // Try as-is
+  if (noteExists(trimmed)) return { slug: trimmed, exists: true };
+  // Try finding by getNoteBySlug (handles fallback by filename)
+  const found = getNoteBySlug(trimmed);
+  if (found) return { slug: found.slug, exists: true };
+  // Not found
+  return { slug: encoded, exists: false };
+}
+
 function transformContent(content: string): string {
-  // Replace [[target|alias]] or [[target]] with markers
-  const wikilinkRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+  // Replace [[target\|alias]], [[target|alias]], or [[target]] with markers
+  // Handle backslash-pipe format from Obsidian Digital Garden
+  const wikilinkRegex = /\[\[([^\]]+)\]\]/g;
   
-  return content.replace(wikilinkRegex, (match, target, alias) => {
-    const slug = target
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^\w\-]+/g, '')
-      .replace(/\-\-+/g, '-');
+  let transformed = content.replace(wikilinkRegex, (match, inner) => {
+    let target: string;
+    let alias: string | null = null;
+
+    if (inner.includes('\\|')) {
+      const [pathPart, aliasPart] = inner.split('\\|', 2);
+      // Extract stem (last path segment) as target
+      const stem = pathPart.includes('/')
+        ? pathPart.split('/').pop() || pathPart
+        : pathPart;
+      target = stem.trim();
+      alias = aliasPart?.trim() || null;
+    } else if (inner.includes('|')) {
+      const [targetPart, aliasPart] = inner.split('|', 2);
+      target = targetPart.trim();
+      alias = aliasPart?.trim() || null;
+    } else {
+      target = inner.trim();
+    }
+
+    const displayText = alias || target;
+    const { slug, exists } = resolveWikilinkSlug(target);
     
-    const displayText = alias?.trim() || target.trim();
-    const exists = noteExists(slug);
-    
-    // Return marker that we'll parse in the text renderer
     return `%%WIKILINK:${slug}:${encodeURIComponent(displayText)}:${exists}%%`;
   });
+
+  // Transform :::drakon::: directives to markers
+  transformed = transformed.replace(
+    /^:::drakon\s+([^:]+):::$/gm,
+    (match, attrs) => {
+      return `%%DRAKON:${encodeURIComponent(attrs.trim())}%%`;
+    }
+  );
+
+  return transformed;
 }
 
 /**
@@ -152,10 +222,52 @@ export function NoteRenderer({ note }: NoteRendererProps) {
     return children;
   }
 
+  /**
+   * Extract text content from React children (handles arrays and nested elements)
+   */
+  function extractTextContent(children: React.ReactNode): string {
+    if (typeof children === 'string') return children;
+    if (Array.isArray(children)) {
+      return children.map(extractTextContent).join('');
+    }
+    if (children && typeof children === 'object' && 'props' in children) {
+      return extractTextContent((children as React.ReactElement).props.children);
+    }
+    return '';
+  }
+
   // Custom components for react-markdown
   const components: Components = useMemo(() => ({
-    // Override text rendering to handle wikilinks and highlighting
+    // Override text rendering to handle wikilinks, highlighting, and DRAKON blocks
     p: ({ children, ...props }) => {
+      // Extract text content to check for DRAKON marker
+      const textContent = extractTextContent(children);
+      const drakonMatch = textContent.match(DRAKON_MARKER_REGEX);
+      
+      if (drakonMatch) {
+        const attrs = decodeURIComponent(drakonMatch[1]);
+        const params = parseDrakonDirective(`:::drakon ${attrs}:::`);
+        if (params) {
+          return (
+            <Suspense
+              fallback={
+                <div
+                  className="flex items-center justify-center rounded-lg border bg-muted/30"
+                  style={{ height: params.height || 400 }}
+                >
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              }
+            >
+              <DrakonDiagramBlock
+                params={params}
+                noteSlug={note.slug}
+                className="my-4"
+              />
+            </Suspense>
+          );
+        }
+      }
       const processedChildren = processChildren(children);
       return <p {...props}>{processedChildren}</p>;
     },
@@ -183,7 +295,11 @@ export function NoteRenderer({ note }: NoteRendererProps) {
       const processedChildren = processChildren(children);
       return <h3 {...props}>{processedChildren}</h3>;
     },
-  }), [query]);
+    img: ({ src, alt, ...props }) => {
+      const resolvedSrc = src ? resolveSiteImageSrc(src) : '';
+      return <img src={resolvedSrc} alt={alt || ''} loading="lazy" {...props} />;
+    },
+  }), [query, note.slug]);
 
   return (
     <article ref={contentRef} className="prose-garden animate-fade-in">

@@ -2,6 +2,11 @@
 // Validates zone access and fetches zone data for guest view
 
 import { useState, useEffect, useCallback } from 'react';
+import {
+  validateZone as apiValidateZone,
+  getZoneNotebookLMStatus,
+} from '@/lib/api/mcpGatewayClient';
+import type { NotebookLMMapping } from '@/types/mcpGateway';
 
 export interface ZoneNote {
   slug: string;
@@ -19,6 +24,8 @@ export interface ZoneData {
   notes: ZoneNote[];
   expiresAt: number;
   accessType: 'web' | 'mcp' | 'both';
+  notebooklm?: NotebookLMMapping | null;
+  consentRequired?: boolean;
 }
 
 interface ZoneValidationState {
@@ -28,8 +35,6 @@ interface ZoneValidationState {
   error: string | null;
   zone: ZoneData | null;
 }
-
-const MCP_GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
 
 export function useZoneValidation(zoneId: string | undefined, accessCode: string | null) {
   const [state, setState] = useState<ZoneValidationState>({
@@ -55,38 +60,35 @@ export function useZoneValidation(zoneId: string | undefined, accessCode: string
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const url = new URL(`${MCP_GATEWAY_URL}/zones/validate/${zoneId}`);
-      if (accessCode) {
-        url.searchParams.set('code', accessCode);
-      }
-
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        
-        if (response.status === 410 || data.expired) {
-          setState({
-            isLoading: false,
-            isValid: false,
-            isExpired: true,
-            error: 'This access zone has expired',
-            zone: null,
-          });
-          return;
-        }
-        
-        throw new Error(data.error || 'Zone validation failed');
-      }
-
-      const data = await response.json();
+      const data = await apiValidateZone(zoneId, accessCode);
       
-      // Backend now returns complete zone data directly (not nested in .zone)
+      // Check for expired response
+      if (data.expired) {
+        setState({
+          isLoading: false,
+          isValid: false,
+          isExpired: true,
+          error: 'This access zone has expired',
+          zone: null,
+        });
+        return;
+      }
+      
+      let notebooklmData: NotebookLMMapping | null = data.notebooklm ?? null;
+      
+      // If notebooklm not in response, fetch it separately
+      if (!notebooklmData) {
+        try {
+          const nlmData = await getZoneNotebookLMStatus(zoneId);
+          if (nlmData.notebooklm) {
+            notebooklmData = nlmData.notebooklm;
+          }
+        } catch {
+          // NotebookLM fetch failed - continue without it
+          console.warn('Failed to fetch NotebookLM status');
+        }
+      }
+      
       const zoneData: ZoneData = {
         id: data.id || data.zoneId,
         name: data.name || 'Access Zone',
@@ -96,6 +98,8 @@ export function useZoneValidation(zoneId: string | undefined, accessCode: string
         notes: data.notes || [],
         expiresAt: data.expiresAt,
         accessType: data.accessType || 'both',
+        notebooklm: notebooklmData,
+        consentRequired: data.consentRequired ?? true,
       };
       
       // Check if expired based on expiresAt
@@ -120,11 +124,24 @@ export function useZoneValidation(zoneId: string | undefined, accessCode: string
         zone: zoneData,
       });
     } catch (err) {
+      // Check for expired error from gateway
+      const errObj = err as any;
+      if (errObj?.code === 'ZONE_EXPIRED' || errObj?.httpStatus === 410) {
+        setState({
+          isLoading: false,
+          isValid: false,
+          isExpired: true,
+          error: 'This access zone has expired',
+          zone: null,
+        });
+        return;
+      }
+
       setState({
         isLoading: false,
         isValid: false,
         isExpired: false,
-        error: err instanceof Error ? err.message : 'Failed to validate zone',
+        error: errObj?.message || (err instanceof Error ? err.message : 'Failed to validate zone'),
         zone: null,
       });
     }
@@ -149,7 +166,7 @@ export function useZoneValidation(zoneId: string | undefined, accessCode: string
       }
     };
 
-    const interval = setInterval(checkExpiration, 30000); // Check every 30s
+    const interval = setInterval(checkExpiration, 30000);
     return () => clearInterval(interval);
   }, [state.zone]);
 

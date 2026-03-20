@@ -18,6 +18,14 @@ const FLAGS: Record<Locale, string> = {
   it: '🇮🇹',
 };
 
+const SHORT_LABELS: Record<Locale, string> = {
+  uk: 'укр',
+  en: 'eng',
+  fr: 'fra',
+  de: 'deu',
+  it: 'ita',
+};
+
 export function LanguageSwitcher() {
   const { locale, setLocale } = useLocale();
   
@@ -30,7 +38,7 @@ export function LanguageSwitcher() {
         <SelectValue>
           <span className="flex items-center gap-1.5">
             <span className="text-base">{currentFlag}</span>
-            <span className="hidden sm:inline">{currentLocale?.nativeName}</span>
+            <span className="hidden sm:inline">{SHORT_LABELS[locale]}</span>
           </span>
         </SelectValue>
       </SelectTrigger>

@@ -23,7 +23,7 @@ export function TagCloud({ maxTags = 15 }: TagCloudProps) {
         <div className="flex items-center gap-2 mb-3">
           <Tag className="w-4 h-4 text-primary" />
           <h2 className="font-semibold text-foreground font-sans">
-            {t.index.browseTags}
+            Behavioral Domains
           </h2>
         </div>
         <p className="text-muted-foreground text-sm">{t.tags.noTagsYet}</p>
@@ -36,19 +36,24 @@ export function TagCloud({ maxTags = 15 }: TagCloudProps) {
       <div className="flex items-center gap-2 mb-4">
         <Tag className="w-4 h-4 text-primary" />
         <h2 className="font-semibold text-foreground font-sans">
-          {t.index.browseTags}
+          Behavioral Domains
         </h2>
       </div>
 
       <div className="flex flex-wrap gap-2">
         {topTags.map((tag) => (
-          <Link key={tag.tag} to={`/tags/${encodeURIComponent(tag.tag)}`}>
+          <Link 
+            key={tag.tag} 
+            to={`/tags/${encodeURIComponent(tag.tag)}`}
+            className="inline-block"
+          >
             <Badge
               variant="secondary"
-              className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border-0 px-2.5 py-1 cursor-pointer transition-colors"
+              className="text-xs px-3 py-1.5 cursor-pointer font-medium transition-all duration-200 bg-primary/10 text-primary border border-transparent hover:border-primary/50 hover:bg-primary/15 hover:shadow-sm"
             >
+              <span className="mr-1">#</span>
               {tag.tag}
-              <span className="ml-1.5 text-muted-foreground">({tag.noteCount})</span>
+              <span className="ml-1.5 text-primary/70 text-xs">({tag.noteCount})</span>
             </Badge>
           </Link>
         ))}
@@ -56,7 +61,7 @@ export function TagCloud({ maxTags = 15 }: TagCloudProps) {
 
       <Link
         to="/tags"
-        className="inline-block mt-4 text-sm text-primary hover:underline"
+        className="inline-block mt-4 text-sm text-primary hover:text-primary/80 hover:underline transition-colors duration-200 font-medium"
       >
         {t.tags.viewAllTags}
       </Link>

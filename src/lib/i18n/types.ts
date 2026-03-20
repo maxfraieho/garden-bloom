@@ -11,6 +11,8 @@ export interface Translations {
     chat: string;
     toggleNavigation: string;
     fileStructure: string;
+    explore: string;
+    content: string;
   };
   
   // Search
@@ -81,6 +83,15 @@ export interface Translations {
     message: string;
     returnHome: string;
   };
+
+  // Note page
+  notePage: {
+    notFoundTitle: string;
+    notFoundMessage: string;
+    pendingTitle: string;
+    pendingMessage: string;
+    returnToGarden: string;
+  };
   
   // Tag page
   tagPage: {
@@ -95,6 +106,42 @@ export interface Translations {
     tag: string;
     tags: string;
     edit: string;
+    close: string;
+    copied: string;
+    toggleTheme: string;
+    language: string;
+    cancel: string;
+  };
+
+  // Owner menu
+  owner: {
+    menu: string;
+    settings: string;
+    zones: string;
+    help: string;
+    logout: string;
+  };
+
+  // Owner Auth
+  ownerAuth: {
+    loginTitle: string;
+    loginDescription: string;
+    masterPassword: string;
+    enterPassword: string;
+    verifying: string;
+    unlock: string;
+    cancel: string;
+    setupTitle: string;
+    setupDescription: string;
+    createPassword: string;
+    confirmPassword: string;
+    passwordMinLength: string;
+    passwordLengthOk: string;
+    passwordsMatch: string;
+    passwordsNoMatch: string;
+    settingUp: string;
+    initializeOwner: string;
+    setupHint: string;
   };
   
   // Export Modal
@@ -171,6 +218,12 @@ export interface Translations {
     downloadQR: string;
     qrDownloaded: string;
     qrDownloadError: string;
+    // Confidentiality settings
+    confidentialitySettings: string;
+    requireConsent: string;
+    requireConsentDesc: string;
+    publicZone: string;
+    confidentialZone: string;
   };
   
   // Zone View (Guest Access)
@@ -197,6 +250,9 @@ export interface Translations {
     placeholder: string;
     unlock: string;
     hint: string;
+    bloomExpansion: string;
+    runtimeSubtitle: string;
+    runtimeFooter: string;
   };
  
    // Editor
@@ -252,6 +308,7 @@ export interface Translations {
   // Zone Edit (Guest editing)
   zoneEdit: {
     editing: string;
+    proposeEdit: string;
     submitProposal: string;
     proposalSubmitted: string;
     proposalFailed: string;
@@ -269,6 +326,7 @@ export interface Translations {
     description: string;
     empty: string;
     accepted: string;
+    acceptedAutoCommit: string;
     acceptFailed: string;
     rejected: string;
     rejectFailed: string;
@@ -276,6 +334,172 @@ export interface Translations {
     submittedBy: string;
     accept: string;
     reject: string;
+    acceptedTitle: string;
+    copyInstructions: string;
+    copyContent: string;
+    contentCopied: string;
+    rejectTitle: string;
+    rejectDescription: string;
+    rejectPlaceholder: string;
+    minChars: string;
+    confirmReject: string;
+  };
+
+  // Delegated Zone Consent
+  delegatedConsent: {
+    title: string;
+    summary: string;
+    readFull: string;
+    checkbox: string;
+    continue: string;
+    decline: string;
+    policyTitle: string;
+    policyVersion: string;
+  };
+
+  // DRAKON editor UI strings
+  drakonEditor: {
+    newDiagram: string;
+    startHere: string;
+    diagramName: string;
+    select: string;
+    pan: string;
+    zoomIn: string;
+    zoomOut: string;
+    pseudocode: string;
+    exportPseudocode: string;
+    toggleSilhouette: string;
+    createNewDiagram: string;
+    diagramId: string;
+    diagramIdHint: string;
+    createAndEdit: string;
+    newDrakon: string;
+    enterDiagramId: string;
+    enterDiagramName: string;
+    diagramNamePlaceholder: string;
+    selectFolder: string;
+    selectFolderPlaceholder: string;
+    newDrakonHere: string;
+    savedIn: string;
+    accessDenied: string;
+    ownerOnly: string;
+    returnToGarden: string;
+    back: string;
+    // Icon toolbar labels
+    action: string;
+    question: string;
+    choice: string;
+    caseName: string;
+    forLoop: string;
+    branchName: string;
+    insertion: string;
+    comment: string;
+    shelf: string;
+    simpleInput: string;
+    simpleOutput: string;
+    input: string;
+    output: string;
+    process: string;
+    timer: string;
+    pause: string;
+    duration: string;
+    groupDuration: string;
+    groupDurationRight: string;
+    parallel: string;
+    parallelBlock: string;
+    controlStart: string;
+    controlEnd: string;
+    endIcon: string;
+    link: string;
+  };
+
+  // Admin Settings page
+  adminSettings: {
+    title: string;
+    subtitle: string;
+    tabSecurity: string;
+    tabAccessControl: string;
+    tabDiagnostics: string;
+    tabAdvanced: string;
+    changePassword: string;
+    changePasswordDesc: string;
+    currentPassword: string;
+    currentPasswordPlaceholder: string;
+    newPassword: string;
+    newPasswordPlaceholder: string;
+    confirmNewPassword: string;
+    confirmNewPasswordPlaceholder: string;
+    passwordChanged: string;
+    changePasswordBtn: string;
+    securityBestPractices: string;
+    tipStrongPassword: string;
+    tipChangeRegularly: string;
+    tipNeverShare: string;
+    accessZones: string;
+    accessZonesDesc: string;
+    accessZonesInfo: string;
+    manageZones: string;
+    accessControlInfo: string;
+    webAccess: string;
+    webAccessDesc: string;
+    mcpAccess: string;
+    mcpAccessDesc: string;
+    ttlAccess: string;
+    ttlAccessDesc: string;
+    gardenInfo: string;
+    gardenInfoDesc: string;
+    status: string;
+    activeReady: string;
+    ownerMode: string;
+    enabled: string;
+    advancedOptions: string;
+    advancedOptionsDesc: string;
+    featureMcpGateway: string;
+    featureNotebookLM: string;
+    featureFolderRestrictions: string;
+    featureAccessTTL: string;
+  };
+
+  // DRAKON diagram widget labels
+  drakon: {
+    yes: string;
+    no: string;
+    end: string;
+    exit: string;
+    branch: string;
+    editContent: string;
+    editSecondaryText: string;
+    // Context menu items
+    copy: string;
+    cut: string;
+    paste: string;
+    delete: string;
+    swapYesNo: string;
+    addParameters: string;
+    insertBranchWithEnd: string;
+    insertBranch: string;
+    insertBranchLeft: string;
+    insertBranchRight: string;
+    insertCase: string;
+    insertCaseLeft: string;
+    insertCaseRight: string;
+    addPath: string;
+    addPathLeft: string;
+    addPathRight: string;
+    addVertex: string;
+    addRemoveVertex: string;
+    sendToBack: string;
+    bringToFront: string;
+    deletePath: string;
+    editUpperText: string;
+    editLink: string;
+    goToBranch: string;
+    increaseMargin: string;
+    resetMargin: string;
+    flip: string;
+    format: string;
+    diagramFormat: string;
+    changeImage: string;
   };
 }
 

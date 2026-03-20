@@ -9,7 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { OwnerAuthProvider, useOwnerAuth } from "@/hooks/useOwnerAuth.tsx";
 import { OwnerSetupWizard } from "@/components/garden/OwnerSetupWizard";
 import { AccessGuard } from "@/components/AccessGuard";
-import Index from "./pages/Index";
+import RuntimeOverview from "./pages/RuntimeOverview";
 import NotePage from "./pages/NotePage";
 import TagPage from "./pages/TagPage";
 import TagsIndex from "./pages/TagsIndex";
@@ -18,9 +18,17 @@ import FilesPage from "./pages/FilesPage";
 import ZoneViewPage from "./pages/ZoneViewPage";
 import ZoneEditPage from "./pages/ZoneEditPage";
 import ChatPage from "./pages/ChatPage";
-import AdminDiagnosticsPage from "./pages/AdminDiagnosticsPage";
+// AdminDiagnosticsPage removed — consolidated into Settings tab
+import AdminZonesPage from "./pages/AdminZonesPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
+import PolicyPage from "./pages/PolicyPage";
 import NotFound from "./pages/NotFound";
 import EditorPage from "./pages/EditorPage";
+import DrakonPage from "./pages/DrakonPage";
+import AgentsPage from "./pages/AgentsPage";
+import ExecutionPage from "./pages/runtime/ExecutionPage";
+import HistoryPage from "./pages/runtime/HistoryPage";
+import ArtifactsPage from "./pages/runtime/ArtifactsPage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -48,10 +56,12 @@ function AppContent() {
       <AccessGuard>
         <SearchHighlightProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/notes/:slug" element={<NotePage />} />
+            <Route path="/" element={<RuntimeOverview />} />
+            <Route path="/notes/*" element={<NotePage />} />
             <Route path="/notes/:slug/edit" element={<EditorPage />} />
             <Route path="/notes/new" element={<EditorPage />} />
+            <Route path="/drakon" element={<DrakonPage />} />
+            <Route path="/agents" element={<AgentsPage />} />
             <Route path="/tags" element={<TagsIndex />} />
             <Route path="/tags/:tag" element={<TagPage />} />
             <Route path="/graph" element={<GraphPage />} />
@@ -59,7 +69,13 @@ function AppContent() {
             <Route path="/zone/:zoneId" element={<ZoneViewPage />} />
             <Route path="/zone/:zoneId/edit/:noteSlug" element={<ZoneEditPage />} />
             <Route path="/chat" element={<ChatPage />} />
-            <Route path="/admin/diagnostics" element={<AdminDiagnosticsPage />} />
+            <Route path="/runtime/execution" element={<ExecutionPage />} />
+            <Route path="/runtime/history" element={<HistoryPage />} />
+            <Route path="/runtime/artifacts" element={<ArtifactsPage />} />
+            {/* /admin/diagnostics removed — use Settings > Diagnostics tab */}
+            <Route path="/admin/zones" element={<AdminZonesPage />} />
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
+            <Route path="/policy/delegated-zone-confidentiality" element={<PolicyPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

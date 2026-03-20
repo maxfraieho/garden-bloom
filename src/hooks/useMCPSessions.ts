@@ -1,10 +1,13 @@
 // MCP Session Management Hook
-// Architecture: Browser → Cloudflare Worker (CORS) → MinIO (storage)
-// Auth: JWT token from useOwnerAuth for protected endpoints
+// Architecture: Browser → mcpGatewayClient → Cloudflare Worker (CORS) → MinIO (storage)
+// Auth: JWT token via centralized gateway client
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { getOwnerToken } from './useOwnerAuth';
+import {
+  createMCPSession as apiCreateSession,
+  revokeMCPSession as apiRevokeSession,
+} from '@/lib/api/mcpGatewayClient';
 
 export interface MCPNote {
   slug: string;
@@ -42,64 +45,6 @@ interface CreateSessionResponse {
 }
 
 const STORAGE_KEY = 'mcp-active-sessions';
-
-/**
- * Single gateway endpoint - Cloudflare Worker handles CORS and storage
- */
-const MCP_GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
-
-/**
- * Debug mode - set to true to see detailed logs in console
- */
-const DEBUG_MCP = true;
-
-/**
- * POST to Cloudflare Worker with optional JWT auth
- */
-async function postToGateway(
-  path: string, 
-  payload: unknown,
-  requireAuth = false
-): Promise<Response> {
-  const url = `${MCP_GATEWAY_URL}${path}`;
-  const body = JSON.stringify(payload);
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  // Add JWT token for protected endpoints
-  if (requireAuth) {
-    const token = getOwnerToken();
-    if (!token) {
-      throw new Error('Authentication required. Please login first.');
-    }
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  if (DEBUG_MCP) {
-    console.log('[MCP] POST to gateway:', url);
-    console.log('[MCP] Payload size:', body.length, 'bytes');
-    console.log('[MCP] Auth required:', requireAuth);
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers,
-    body,
-  });
-
-  if (DEBUG_MCP) {
-    console.log('[MCP] Response status:', response.status);
-  }
-
-  // Handle auth errors specifically
-  if (response.status === 401) {
-    throw new Error('Unauthorized. Please login again.');
-  }
-
-  return response;
-}
 
 function loadSessionsFromStorage(): MCPSession[] {
   try {
@@ -163,27 +108,17 @@ export function useMCPSessions() {
     setCreationError(null);
 
     try {
-      const payload = {
+      const data: CreateSessionResponse = await apiCreateSession({
         folders,
         ttlMinutes,
-        notes, // Include notes content for snapshot
+        notes,
         userId: 'web-user',
         metadata: {
           source: 'web-ui',
           version: '2.0',
           timestamp: new Date().toISOString(),
         },
-      };
-
-      // 🔐 Protected endpoint - requires owner JWT
-      const response = await postToGateway('/sessions/create', payload, true);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data: CreateSessionResponse = await response.json();
+      });
 
       const newSession: MCPSession = {
         sessionId: data.sessionId,
@@ -203,7 +138,8 @@ export function useMCPSessions() {
 
       return newSession;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Невідома помилка';
+      const message = error instanceof Error ? error.message :
+        (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Невідома помилка';
       setCreationError(message);
       toast.error('❌ Помилка створення MCP доступу', {
         description: message,
@@ -216,12 +152,7 @@ export function useMCPSessions() {
 
   const revokeSession = useCallback(async (sessionId: string): Promise<boolean> => {
     try {
-      // 🔐 Protected endpoint - requires owner JWT
-      const response = await postToGateway('/sessions/revoke', { sessionId }, true);
-
-      if (!response.ok) {
-        throw new Error('Не вдалося відкликати сесію');
-      }
+      await apiRevokeSession(sessionId);
 
       setSessions(prev => prev.filter(s => s.sessionId !== sessionId));
 

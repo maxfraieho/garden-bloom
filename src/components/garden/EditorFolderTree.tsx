@@ -49,20 +49,21 @@ import { Link } from 'react-router-dom';
          style={{ paddingLeft: `${8 + level * 16}px` }}
        >
          {/* Expand/collapse toggle */}
-         {hasChildren ? (
-           <button
-             onClick={(e) => {
-               e.stopPropagation();
-               onToggleExpand(folder.path);
-             }}
-             className="p-0.5 hover:bg-accent rounded"
-           >
-             {isExpanded ? (
-               <ChevronDown className="h-3.5 w-3.5" />
-             ) : (
-               <ChevronRight className="h-3.5 w-3.5" />
-             )}
-           </button>
+          {hasChildren ? (
+            <span
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand(folder.path);
+              }}
+              className="p-0.5 hover:bg-accent rounded cursor-pointer"
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+            </span>
          ) : (
            <span className="w-4" />
          )}

@@ -14,8 +14,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import type { Comment } from '@/lib/comments/types';
 import { AIAgentBadge } from './AIAgentBadge';
-
-const MCP_GATEWAY_URL = import.meta.env.VITE_MCP_GATEWAY_URL || 'https://garden-mcp-server.maxfraieho.workers.dev';
+import {
+  fetchComments as apiFetchComments,
+  createComment as apiCreateComment,
+} from '@/lib/api/mcpGatewayClient';
 
 interface ZoneCommentSectionProps {
   articleSlug: string;
@@ -39,22 +41,7 @@ export function ZoneCommentSection({ articleSlug, zoneId, accessCode }: ZoneComm
     setError(null);
     
     try {
-      const response = await fetch(
-        `${MCP_GATEWAY_URL}/comments/${encodeURIComponent(articleSlug)}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Zone-Id': zoneId,
-            'X-Zone-Code': accessCode,
-          }
-        }
-      );
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch comments: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const data = await apiFetchComments(articleSlug, { zoneId, zoneCode: accessCode });
       
       if (data.success) {
         // Only show approved comments to zone guests
@@ -66,7 +53,8 @@ export function ZoneCommentSection({ articleSlug, zoneId, accessCode }: ZoneComm
         throw new Error(data.error || 'Failed to fetch comments');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       setError(message);
       console.error('[ZoneComments] Fetch error:', message);
     } finally {
@@ -88,40 +76,25 @@ export function ZoneCommentSection({ articleSlug, zoneId, accessCode }: ZoneComm
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${MCP_GATEWAY_URL}/comments/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Zone-Id': zoneId,
-          'X-Zone-Code': accessCode,
-        },
-        body: JSON.stringify({
-          articleSlug,
-          content,
-          authorName: authorName.trim() || 'Zone Guest',
-          zoneId,
-          zoneCode: accessCode,
-        }),
+      const data = await apiCreateComment({
+        articleSlug,
+        content,
+        authorName: authorName.trim() || 'Zone Guest',
+        zoneId,
+        zoneCode: accessCode,
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-      
-      const data = await response.json();
       
       if (data.success) {
         setNewComment('');
         toast.success('💬 Коментар надіслано', {
           description: 'Очікує схвалення власником'
         });
-        // Don't add to list - it's pending and won't show until approved
       } else {
         throw new Error(data.error || 'Failed to create comment');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message :
+        (err && typeof err === 'object' && 'message' in err) ? (err as any).message : 'Unknown error';
       toast.error('Помилка відправки', { description: message });
     } finally {
       setIsSubmitting(false);

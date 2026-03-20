@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Network, FolderTree, Home, MessageSquare, PenSquare, Edit3 } from 'lucide-react';
+import { Sprout, Network, MessageSquare, Edit3, FolderTree, Home, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from './SearchBar';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { OwnerModeIndicator } from './OwnerModeIndicator';
+import { OwnerMenu } from './OwnerMenu';
 import { useLocale } from '@/hooks/useLocale';
 import { useOwnerAuth } from '@/hooks/useOwnerAuth';
 import {
@@ -15,87 +15,201 @@ import {
 
 export function GardenHeader() {
   const { t } = useLocale();
-  const location = useLocation();
   const { isAuthenticated } = useOwnerAuth();
+  const location = useLocation();
 
-  // Cycle between: Home -> Files -> Chat -> Graph -> Home
-  // Cycle: Home -> Files -> Chat -> Graph -> Editor -> Home
-  const isEditorPage = location.pathname === '/notes/new' || location.pathname.endsWith('/edit');
-  
-  const cycle = (() => {
-    if (location.pathname === '/') {
-      return { to: '/files', icon: FolderTree, tooltip: t.sidebar.fileStructure || 'File Structure' };
+  // Determine next navigation in cycle
+  const getCycleNavigation = () => {
+    const isEditorPage = location.pathname === '/notes/new' || location.pathname.endsWith('/edit');
+    const isDrakonPage = location.pathname === '/drakon';
+    
+    if (location.pathname === '/' || location.pathname === '') {
+      return { to: '/files', icon: FolderTree, tooltip: t.sidebar?.fileStructure || 'File Structure' };
     }
     if (location.pathname === '/files') {
-      return { to: '/chat', icon: MessageSquare, tooltip: t.sidebar.chat || 'Chat' };
+      return { to: '/chat', icon: MessageSquare, tooltip: t.sidebar?.chat || 'Chat' };
     }
     if (location.pathname === '/chat') {
-      return { to: '/graph', icon: Network, tooltip: t.index.viewGraph || 'Graph' };
+      return { to: '/graph', icon: Network, tooltip: t.index?.viewGraph || 'Graph' };
     }
     if (location.pathname === '/graph') {
-      return { to: '/notes/new', icon: Edit3, tooltip: t.editor?.newNote || 'Editor' };
+      return { to: '/notes/new', icon: Edit3, tooltip: t.editor?.newNote || 'New Note' };
     }
     if (isEditorPage) {
-      return { to: '/', icon: Home, tooltip: t.sidebar.home || 'Home' };
+      return { to: '/drakon', icon: GitBranch, tooltip: 'DRAKON Editor' };
     }
-    // Default - for note pages and others
-    return { to: '/files', icon: FolderTree, tooltip: t.sidebar.fileStructure || 'File Structure' };
-  })();
+    if (isDrakonPage) {
+      return { to: '/', icon: Home, tooltip: t.sidebar?.home || 'Home' };
+    }
+    // Default for other pages (notes, tags, etc)
+    return { to: '/', icon: Home, tooltip: t.sidebar?.home || 'Home' };
+  };
+
+  const cycle = getCycleNavigation();
   const CycleIcon = cycle.icon;
 
   return (
-    <header className="sticky top-0 z-[60] bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-        {/* File structure / Home toggle button */}
+    <header className="sticky top-0 z-[60] bg-card/95 backdrop-blur-sm border-b border-border shadow-sm transition-all duration-200">
+      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        {/* Left: Cycle Button */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button asChild variant="ghost" size="icon" className="shrink-0">
+            <Button 
+              asChild 
+              variant="ghost" 
+              size="icon" 
+              className="shrink-0 hover:bg-accent/50 transition-colors duration-200"
+            >
               <Link to={cycle.to} aria-label={cycle.tooltip}>
                 <CycleIcon className="w-5 h-5" />
               </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            {cycle.tooltip}
-          </TooltipContent>
+          <TooltipContent>{cycle.tooltip}</TooltipContent>
         </Tooltip>
 
-        {/* Search bar */}
-        <div className="flex-1 max-w-md">
+        {/* Logo & Brand */}
+        <Link
+          to="/"
+          className="flex items-center gap-3 flex-shrink-0 group hover:opacity-80 transition-opacity duration-200"
+        >
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img src="/brand/bloom-symbol.svg" alt="BLOOM" className="w-7 h-7" />
+          </div>
+          <div className="hidden sm:block">
+            <h1 className="text-lg font-semibold text-foreground leading-tight">
+              BLOOM Runtime
+            </h1>
+            <p className="text-xs text-muted-foreground">Garden: Exodus</p>
+          </div>
+        </Link>
+
+        {/* Center: Search Bar (expanded) */}
+        <div className="flex-1 max-w-2xl">
           <SearchBar />
         </div>
 
-        {/* Right side actions */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          <OwnerModeIndicator />
-          <LanguageSwitcher />
-          <ThemeToggle />
-          {isAuthenticated && (
+        {/* Right: Quick Navigation + Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Quick Navigation Icons */}
+          <div className="hidden sm:flex items-center gap-1">
+            {/* Chat */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button asChild variant="ghost" size="icon">
-                  <Link to="/notes/new" aria-label={t.editor?.newNote || 'New Note'}>
-                    <PenSquare className="w-5 h-5" />
+                <Button 
+                  asChild 
+                  variant={location.pathname === '/chat' ? 'default' : 'ghost'} 
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <Link to="/chat" aria-label={t.sidebar?.chat || 'Chat'}>
+                    <MessageSquare className="w-4 h-4" />
                   </Link>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                {t.editor?.newNote || 'New Note'}
-              </TooltipContent>
+              <TooltipContent>{t.sidebar?.chat || 'Chat'}</TooltipContent>
             </Tooltip>
-          )}
-          <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link to="/chat">
-              <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">Chat</span>
-            </Link>
-          </Button>
-          <Button asChild variant="default" size="sm" className="gap-2">
-            <Link to="/graph">
-              <Network className="w-4 h-4" />
-              <span className="hidden sm:inline">{t.index.viewGraph}</span>
-            </Link>
-          </Button>
+
+            {/* Files */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  asChild 
+                  variant={location.pathname === '/files' ? 'default' : 'ghost'} 
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <Link to="/files" aria-label={t.sidebar?.fileStructure || 'Files'}>
+                    <FolderTree className="w-4 h-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t.sidebar?.fileStructure || 'Files'}</TooltipContent>
+            </Tooltip>
+
+            {/* Graph */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  asChild 
+                  variant={location.pathname === '/graph' ? 'default' : 'ghost'} 
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <Link to="/graph" aria-label={t.index?.viewGraph || 'Graph'}>
+                    <Network className="w-4 h-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t.index?.viewGraph || 'Graph'}</TooltipContent>
+            </Tooltip>
+
+            {/* New Note - only show for authenticated users */}
+            {isAuthenticated && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    asChild 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <Link to="/notes/new" aria-label={t.editor?.newNote || 'New Note'}>
+                      <Edit3 className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t.editor?.newNote || 'New Note'}</TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* DRAKON Editor - only show for authenticated users */}
+            {isAuthenticated && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    asChild 
+                    variant={location.pathname === '/drakon' ? 'default' : 'ghost'} 
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <Link to="/drakon" aria-label="DRAKON Editor">
+                      <GitBranch className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>DRAKON Editor</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-6 bg-border mx-1" />
+
+          {/* Theme Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ThemeToggle />
+            </TooltipTrigger>
+            <TooltipContent>
+              {t.common?.toggleTheme || 'Toggle theme'}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Language Switcher */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="inline-flex">
+                <LanguageSwitcher />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {t.common?.language || 'Language'}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Owner Menu - Only for authenticated users */}
+          {isAuthenticated && <OwnerMenu />}
         </div>
       </div>
     </header>

@@ -11,7 +11,7 @@ import type {
 import { pushApiError } from './apiErrorStore';
 import { getOwnerToken } from '@/hooks/useOwnerAuth';
 
-const DEFAULT_GATEWAY = 'https://garden-mcp-server.maxfraieho.workers.dev';
+const DEFAULT_GATEWAY = 'https://garden-mcp.exodus.pp.ua';
 const REQUEST_TIMEOUT_MS = 30000;
 
 export function getGatewayBaseUrl() {
@@ -32,6 +32,16 @@ const ERROR_MESSAGES: Record<GatewayErrorCode, string> = {
   SERVER_ERROR: "Something went wrong on our end. Please try again later.",
   BAD_REQUEST: "Invalid request. Please check your input.",
   UNKNOWN: "An unexpected error occurred. Please try again.",
+  CONCURRENT_MODIFICATION: "This resource was modified by another user. Please refresh and try again.",
+  INVALID_TRANSITION: "This action is not allowed in the current state.",
+  VALIDATION_FAILED: "Input validation failed. Please check your data.",
+  INVALID_JSON: "Invalid request format.",
+  TOKEN_EXPIRED: "Your session has expired. Please log in again.",
+  DUPLICATE_ENTRY: "This entry already exists.",
+  UPSTREAM_UNAVAILABLE: "An external service is temporarily unavailable. Please try again later.",
+  AGENT_TIMEOUT: "The agent took too long to respond. Please try again.",
+  INVALID_AGENT_TRANSITION: "The agent attempted an invalid state transition.",
+  NLM_UNAVAILABLE: "NotebookLM service is temporarily unavailable.",
 };
 
 // Whether the error is retryable
@@ -40,6 +50,10 @@ const RETRYABLE_CODES: Set<GatewayErrorCode> = new Set([
   'TIMEOUT',
   'RATE_LIMITED',
   'SERVER_ERROR',
+  'UPSTREAM_UNAVAILABLE',
+  'AGENT_TIMEOUT',
+  'CONCURRENT_MODIFICATION',
+  'NLM_UNAVAILABLE',
 ]);
 
 function createApiError(
@@ -58,15 +72,18 @@ function createApiError(
 }
 
 function mapHttpStatusToCode(status: number, serverCode?: string): GatewayErrorCode {
-  // Check server-provided codes first
+  // If backend sends a known error.code, use it directly (V1 contract)
   if (serverCode) {
-    const upper = serverCode.toUpperCase();
+    const upper = serverCode.toUpperCase() as GatewayErrorCode;
+    if (upper in ERROR_MESSAGES) return upper;
+    // Legacy fallback patterns
     if (upper.includes('ZONE_EXPIRED') || upper.includes('EXPIRED')) return 'ZONE_EXPIRED';
     if (upper.includes('ZONE_NOT_FOUND')) return 'ZONE_NOT_FOUND';
     if (upper.includes('NOT_AUTHENTICATED') || upper.includes('AUTH')) return 'AUTH_REQUIRED';
     if (upper.includes('RATE_LIMIT')) return 'RATE_LIMITED';
   }
 
+  // Fallback mapping only if code absent
   switch (status) {
     case 400:
       return 'BAD_REQUEST';
@@ -76,8 +93,12 @@ function mapHttpStatusToCode(status: number, serverCode?: string): GatewayErrorC
       return 'FORBIDDEN';
     case 404:
       return 'NOT_FOUND';
-    case 410: // Gone - often used for expired resources
+    case 409:
+      return 'CONCURRENT_MODIFICATION';
+    case 410:
       return 'ZONE_EXPIRED';
+    case 422:
+      return 'VALIDATION_FAILED';
     case 429:
       return 'RATE_LIMITED';
     default:
@@ -168,7 +189,39 @@ export async function parseError(resOrErr: Response | unknown): Promise<ApiError
   return err;
 }
 
+/** Generate UUID v4 for correlation tracking */
+function generateCorrelationId(): string {
+  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 async function requestJson<T>(
+  path: string,
+  init: RequestInit & { requireAuth?: boolean; timeoutMs?: number; retries?: number; retryDelayMs?: number } = {}
+): Promise<T> {
+  const maxRetries = init.retries ?? 0;
+  const baseDelay = init.retryDelayMs ?? 1500;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await requestJsonOnce<T>(path, init);
+    } catch (err: unknown) {
+      const isRetryable = err && typeof err === 'object' && 'retryable' in err && (err as ApiError).retryable;
+      const is503 = err && typeof err === 'object' && 'httpStatus' in err && (err as ApiError).httpStatus === 503;
+
+      if (attempt < maxRetries && (isRetryable || is503)) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`[gateway] Retry ${attempt + 1}/${maxRetries} after ${delay}ms (503/retryable)`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  // Unreachable but TypeScript needs it
+  throw createApiError('UNKNOWN');
+}
+
+async function requestJsonOnce<T>(
   path: string,
   init: RequestInit & { requireAuth?: boolean; timeoutMs?: number } = {}
 ): Promise<T> {
@@ -177,6 +230,9 @@ async function requestJson<T>(
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string> | undefined),
   };
+
+  // Task 4: Correlation ID — generated per request, single location
+  headers['X-Correlation-Id'] = generateCorrelationId();
 
   if (!headers['Content-Type'] && init.method && init.method !== 'GET') {
     headers['Content-Type'] = 'application/json';
@@ -266,15 +322,51 @@ export async function retryNotebookLMImport(zoneId: string): Promise<{ notebookl
 }
 
 export async function chatNotebookLM(payload: NotebookLMChatRequest): Promise<NotebookLMChatResponse> {
+  // NotebookLM can be slow (browser automation). Allow longer client-side timeout.
   return requestJson<NotebookLMChatResponse>('/notebooklm/chat', {
     method: 'POST',
     body: JSON.stringify(payload),
     requireAuth: true,
+    timeoutMs: 120000,
+  });
+}
+
+/**
+ * Guest-facing NotebookLM chat endpoint.
+ * Uses zone access code instead of owner auth.
+ */
+export async function chatNotebookLMGuest(
+  zoneId: string,
+  zoneCode: string,
+  payload: Omit<NotebookLMChatRequest, 'notebookUrl'>
+): Promise<NotebookLMChatResponse> {
+  return requestJson<NotebookLMChatResponse>(`/zones/${zoneId}/notebooklm/chat`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {
+      'X-Zone-Code': zoneCode,
+    },
+    timeoutMs: 120000,
   });
 }
 
 export async function pingHealth(): Promise<{ ok: boolean } | any> {
   return requestJson<any>('/health', { method: 'GET' });
+}
+
+// Git Status API (for testing Replit backend integration)
+export interface GitStatusResponse {
+  exists: boolean;
+  path: string;
+  sha?: string;
+}
+
+export async function getGitStatus(path: string): Promise<GitStatusResponse> {
+  const encodedPath = encodeURIComponent(path);
+  return requestJson<GitStatusResponse>(`/v1/git/status?path=${encodedPath}`, {
+    method: 'GET',
+    requireAuth: true,
+  });
 }
 
 export async function getAuthStatus(): Promise<{
@@ -410,7 +502,7 @@ export async function patchChat(
 // Edit Proposals API
 // ============================================
 
-import type { EditProposal, CreateProposalRequest, ProposalsListResponse } from '@/types/mcpGateway';
+import type { EditProposal, CreateProposalRequest, ProposalsListResponse, AcceptProposalResponse } from '@/types/mcpGateway';
 
 export async function createProposal(
   zoneId: string,
@@ -428,7 +520,7 @@ export async function createProposal(
 
 export async function getZoneProposals(
   zoneId: string,
-  options?: { status?: 'pending' | 'accepted' | 'rejected' | 'all'; zoneCode?: string }
+  options?: { status?: 'pending' | 'approved' | 'rejected' | 'applied' | 'failed' | 'expired' | 'all'; zoneCode?: string }
 ): Promise<ProposalsListResponse> {
   const params = new URLSearchParams();
   if (options?.status) params.set('status', options.status);
@@ -456,6 +548,31 @@ export async function getPendingProposals(limit?: number): Promise<ProposalsList
   });
 }
 
+export async function getProposalHistory(options?: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<ProposalsListResponse> {
+  const params = new URLSearchParams();
+  if (options?.status) params.set('status', options.status);
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.offset) params.set('offset', String(options.offset));
+
+  const query = params.toString();
+  const res = await requestJson<ProposalsListResponse>(`/proposals/history${query ? `?${query}` : ''}`, {
+    method: 'GET',
+    requireAuth: true,
+    timeoutMs: 15000,
+  });
+
+  // Runtime validation — guard against malformed responses
+  if (!res || typeof res !== 'object' || !Array.isArray(res.proposals)) {
+    throw createApiError('BAD_REQUEST', undefined, res, 'Invalid history response: expected proposals array');
+  }
+
+  return res;
+}
+
 export async function getProposal(
   proposalId: string,
   zoneCode?: string
@@ -473,20 +590,525 @@ export async function getProposal(
 
 export async function acceptProposal(
   proposalId: string
-): Promise<{ success: true; proposal: EditProposal }> {
-  return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}/accept`, {
-    method: 'POST',
-    body: JSON.stringify({}),
+): Promise<AcceptProposalResponse> {
+  return requestJson<AcceptProposalResponse>(`/proposals/${proposalId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'approved' }),
     requireAuth: true,
   });
 }
 
 export async function rejectProposal(
-  proposalId: string
+  proposalId: string,
+  decisionNote: string
 ): Promise<{ success: true; proposal: EditProposal }> {
-  return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}/reject`, {
-    method: 'POST',
-    body: JSON.stringify({}),
+  return requestJson<{ success: true; proposal: EditProposal }>(`/proposals/${proposalId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status: 'rejected',
+      decision_note: decisionNote,
+    }),
     requireAuth: true,
   });
+}
+
+// ============================================
+// Notes Management API (GitHub Commits)
+// ============================================
+
+export interface NoteCommitRequest {
+  slug?: string;
+  title: string;
+  content: string;
+  tags?: string[];
+  folder?: string;
+  isNew?: boolean;
+}
+
+export interface NoteCommitResponse {
+  success: boolean;
+  sha?: string;
+  url?: string;
+  path?: string;
+  error?: string;
+}
+
+export interface NoteDeleteResponse {
+  success: boolean;
+  sha?: string;
+  path?: string;
+  note?: string;
+  error?: string;
+}
+
+/**
+ * Create or update a note via GitHub commit.
+ */
+export async function commitNote(payload: NoteCommitRequest): Promise<NoteCommitResponse> {
+  return requestJson<NoteCommitResponse>('/v1/notes/commit', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    retries: 2,
+    retryDelayMs: 2000,
+  });
+}
+
+/**
+ * Delete a note via GitHub commit.
+ */
+export async function deleteNote(slug: string): Promise<NoteDeleteResponse> {
+  return requestJson<NoteDeleteResponse>(`/v1/notes/${encodeURIComponent(slug)}`, {
+    method: 'DELETE',
+    requireAuth: true,
+    retries: 2,
+    retryDelayMs: 2000,
+  });
+}
+
+// ============================================
+// DRAKON Diagrams API
+// ============================================
+
+export interface DrakonCommitRequest {
+  /** Note folder slug (e.g., 'exodus.pp.ua/article-name' or standalone 'diagrams/flow') */
+  folderSlug?: string;
+  /** Diagram ID (filename without extension) */
+  diagramId: string;
+  /** Diagram JSON content */
+  diagram: object;
+  /** Human-readable name for commit message */
+  name?: string;
+  /** Whether this is a new diagram */
+  isNew?: boolean;
+}
+
+export interface DrakonCommitResponse {
+  success: boolean;
+  sha?: string;
+  url?: string;
+  path?: string;
+  error?: string;
+}
+
+export interface DrakonDeleteResponse {
+  success: boolean;
+  sha?: string;
+  path?: string;
+  error?: string;
+}
+
+/**
+ * Create or update a DRAKON diagram via GitHub commit.
+ * Stores as: src/site/notes/{folderSlug}/diagrams/{diagramId}.drakon.json
+ */
+export async function commitDrakonDiagram(payload: DrakonCommitRequest): Promise<DrakonCommitResponse> {
+  return requestJson<DrakonCommitResponse>('/v1/drakon/commit', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+  });
+}
+
+/**
+ * Delete a DRAKON diagram via GitHub commit.
+ */
+export async function deleteDrakonDiagram(
+  folderSlug: string,
+  diagramId: string
+): Promise<DrakonDeleteResponse> {
+  return requestJson<DrakonDeleteResponse>(
+    `/v1/drakon/${encodeURIComponent(folderSlug)}/${encodeURIComponent(diagramId)}`,
+    {
+      method: 'DELETE',
+      requireAuth: true,
+    }
+  );
+}
+
+// ============================================
+// Comments API (used by useComments hook)
+// ============================================
+
+export async function fetchComments(
+  articleSlug: string,
+  options?: { zoneId?: string; zoneCode?: string }
+): Promise<any> {
+  const headers: Record<string, string> = {};
+  if (options?.zoneId) headers['X-Zone-Id'] = options.zoneId;
+  if (options?.zoneCode) headers['X-Zone-Code'] = options.zoneCode;
+  return requestJson<any>(`/comments/${encodeURIComponent(articleSlug)}`, {
+    method: 'GET',
+    headers,
+    requireAuth: !options?.zoneCode, // Owner auth if no zone code
+  });
+}
+
+export async function createComment(payload: {
+  articleSlug: string;
+  content: string;
+  parentId?: string | null;
+  authorName?: string;
+  zoneId?: string;
+  zoneCode?: string;
+}): Promise<any> {
+  const headers: Record<string, string> = {};
+  if (payload.zoneId) headers['X-Zone-Id'] = payload.zoneId;
+  if (payload.zoneCode) headers['X-Zone-Code'] = payload.zoneCode;
+  return requestJson<any>('/comments/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers,
+  });
+}
+
+export async function updateComment(
+  commentId: string,
+  updates: { status?: string; content?: string }
+): Promise<any> {
+  return requestJson<any>(`/comments/${commentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+    requireAuth: true,
+  });
+}
+
+export async function deleteComment(commentId: string): Promise<any> {
+  return requestJson<any>(`/comments/${commentId}`, {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+// ============================================
+// Annotations API (used by useAnnotations hook)
+// ============================================
+
+export async function fetchAnnotations(articleSlug: string): Promise<any> {
+  return requestJson<any>(`/annotations/${encodeURIComponent(articleSlug)}`, {
+    method: 'GET',
+  });
+}
+
+export async function createAnnotation(payload: {
+  articleSlug: string;
+  highlightedText: string;
+  startOffset: number;
+  endOffset: number;
+  paragraphIndex: number;
+  comment: { content: string; authorName: string };
+}): Promise<any> {
+  return requestJson<any>('/annotations/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAnnotation(annotationId: string): Promise<any> {
+  return requestJson<any>(`/annotations/${annotationId}`, {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+// ============================================
+// MCP Sessions API (used by useMCPSessions hook)
+// ============================================
+
+export async function createMCPSession(payload: {
+  folders: string[];
+  ttlMinutes: number;
+  notes: any[];
+  userId: string;
+  metadata: any;
+}): Promise<any> {
+  return requestJson<any>('/sessions/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+  });
+}
+
+export async function revokeMCPSession(sessionId: string): Promise<any> {
+  return requestJson<any>('/sessions/revoke', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
+    requireAuth: true,
+  });
+}
+
+// ============================================
+// Zone Validation API (used by useZoneValidation hook)
+// ============================================
+
+export async function validateZone(
+  zoneId: string,
+  accessCode?: string | null
+): Promise<any> {
+  const params = new URLSearchParams();
+  if (accessCode) params.set('code', accessCode);
+  const query = params.toString();
+  return requestJson<any>(`/zones/validate/${zoneId}${query ? `?${query}` : ''}`, {
+    method: 'GET',
+  });
+}
+
+// ============================================
+// Access Zones List/Revoke API (used by useAccessZones hook)
+// ============================================
+
+export async function listZones(): Promise<any> {
+  return requestJson<any>('/zones/list', {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
+export async function revokeZone(zoneId: string): Promise<any> {
+  return requestJson<any>(`/zones/${zoneId}`, {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+export async function downloadZoneNotes(zoneId: string, zoneName: string): Promise<void> {
+  const base = getGatewayBaseUrl();
+  const token = getOwnerToken();
+  const headers: Record<string, string> = {
+    'X-Correlation-Id': generateCorrelationId(),
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const resp = await fetch(`${base}/zones/${zoneId}/download`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Download failed: ${resp.status}`);
+  }
+
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${zoneName}-notes.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================
+// Auth API (used by useOwnerAuth hook)
+// ============================================
+
+// ============================================
+// Agent Memory API (DiffMem-like, aligned with real backend)
+// ============================================
+
+import type {
+  ContextRequest,
+  ContextGraph,
+  MemorySearchResponse,
+  MemoryProcessRequest,
+  MemoryProcessResponse,
+  MemoryUserStatus,
+  MemoryEntity,
+  OrchestratedSearchRequest,
+  OrchestratedSearchResponse,
+  EntityHistoryResponse,
+  EntityDiffResponse,
+  RevisionSnapshotResponse,
+} from '@/types/agentMemory';
+
+/**
+ * POST /v1/memory/context — context assembly with depth mode
+ * Real backend accepts: { query, depth, maxDepth, maxTokens, historyLimit }
+ */
+export async function getMemoryContextByQuery(
+  payload: ContextRequest
+): Promise<ContextGraph> {
+  return requestJson<ContextGraph>('/v1/memory/context', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    timeoutMs: 60000,
+  });
+}
+
+/**
+ * @deprecated Legacy route — CF Worker does not proxy /v1/memory/:userId/context.
+ * Use getMemoryContextByQuery() with POST /v1/memory/context instead.
+ */
+export async function getMemoryContext(
+  _userId: string,
+  payload: ContextRequest
+): Promise<ContextGraph> {
+  // Redirect to canonical route
+  return getMemoryContextByQuery(payload);
+}
+
+/**
+ * GET /v1/memory/search?q=&limit= — BM25 present-state search
+ */
+export async function searchMemory(
+  query: string,
+  limit?: number
+): Promise<MemorySearchResponse> {
+  const params = new URLSearchParams({ q: query });
+  if (limit) params.set('limit', String(limit));
+  return requestJson<MemorySearchResponse>(`/v1/memory/search?${params}`, {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
+export async function orchestratedSearchMemory(
+  userId: string,
+  payload: OrchestratedSearchRequest
+): Promise<OrchestratedSearchResponse> {
+  return requestJson<OrchestratedSearchResponse>(`/v1/memory/${encodeURIComponent(userId)}/orchestrated-search`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    timeoutMs: 90000,
+  });
+}
+
+/**
+ * POST /v1/memory/:userId/process-transcript — process text into memory
+ * Real backend route (not process-and-commit)
+ */
+export async function processTranscript(
+  userId: string,
+  payload: MemoryProcessRequest
+): Promise<MemoryProcessResponse> {
+  return requestJson<MemoryProcessResponse>(`/v1/memory/${encodeURIComponent(userId)}/process-transcript`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    requireAuth: true,
+    timeoutMs: 120000,
+  });
+}
+
+/**
+ * GET /v1/memory/entities/:id — read single entity (present-state)
+ * Backend returns entity directly (not wrapped in { entity }).
+ */
+export async function getMemoryEntity(
+  _userId: string,
+  entityId: string
+): Promise<MemoryEntity> {
+  return requestJson<MemoryEntity>(
+    `/v1/memory/entities/${encodeURIComponent(entityId)}`,
+    { method: 'GET', requireAuth: true }
+  );
+}
+
+// ============================================
+// Temporal endpoints (History Layer)
+// ============================================
+
+/**
+ * GET /v1/memory/entities/:id/history — entity commit history
+ */
+export async function getEntityHistory(
+  entityId: string,
+  options?: { limit?: number; since?: string; until?: string }
+): Promise<EntityHistoryResponse> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.since) params.set('since', options.since);
+  if (options?.until) params.set('until', options.until);
+  const query = params.toString();
+  return requestJson<EntityHistoryResponse>(
+    `/v1/memory/entities/${encodeURIComponent(entityId)}/history${query ? `?${query}` : ''}`,
+    { method: 'GET', requireAuth: true }
+  );
+}
+
+/**
+ * GET /v1/memory/entities/:id/diff?from=&to= — diff between revisions
+ */
+export async function getEntityDiff(
+  entityId: string,
+  toSha: string,
+  fromSha?: string
+): Promise<EntityDiffResponse> {
+  const params = new URLSearchParams({ to: toSha });
+  if (fromSha) params.set('from', fromSha);
+  return requestJson<EntityDiffResponse>(
+    `/v1/memory/entities/${encodeURIComponent(entityId)}/diff?${params}`,
+    { method: 'GET', requireAuth: true }
+  );
+}
+
+/**
+ * GET /v1/memory/entities/:id/revisions/:sha — read-only snapshot
+ */
+export async function getEntityRevision(
+  entityId: string,
+  sha: string
+): Promise<RevisionSnapshotResponse> {
+  return requestJson<RevisionSnapshotResponse>(
+    `/v1/memory/entities/${encodeURIComponent(entityId)}/revisions/${encodeURIComponent(sha)}`,
+    { method: 'GET', requireAuth: true }
+  );
+}
+
+/**
+ * GET /v1/memory/health — public health check
+ */
+export async function getMemoryHealth(): Promise<{
+  ok: boolean;
+  initialized: boolean;
+  entityCount: number;
+}> {
+  return requestJson<any>('/v1/memory/health', { method: 'GET' });
+}
+
+/**
+ * POST /v1/memory/commit — commit staged changes
+ */
+export async function commitMemory(message: string): Promise<{ sha: string; message: string }> {
+  return requestJson<any>('/v1/memory/commit', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+    requireAuth: true,
+  });
+}
+
+export async function authRequest(
+  path: string,
+  payload: unknown,
+  token?: string
+): Promise<Response> {
+  const baseUrl = getGatewayBaseUrl();
+  const url = `${baseUrl}${path}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Correlation-Id': generateCorrelationId(),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
 }
