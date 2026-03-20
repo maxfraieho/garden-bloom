@@ -1,9 +1,0 @@
-## Procedure "Logical_Or_Inv"
-
-Algorithm:
-If A and B
-    D
-Else
-    C
-
-End of procedure

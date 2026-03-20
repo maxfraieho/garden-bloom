@@ -1,4 +1,0 @@
-Generate a JavaScript function "generateProject".
-Do not use "new", "class", and "this" keywords.
-Use "undefined" instead of "null".
-The module format is CommonJs.

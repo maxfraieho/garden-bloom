@@ -1,1 +1,0 @@
-This folder contains agent collaboration layer, onboarding instructions, and migration files used for handoff between Lovable, Replit, Claude, and other agents. These files are operational and must not be deleted.
